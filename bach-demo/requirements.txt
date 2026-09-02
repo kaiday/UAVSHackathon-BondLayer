@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pydantic
+pynacl
+httpx
+pytest
+anthropic
+openai

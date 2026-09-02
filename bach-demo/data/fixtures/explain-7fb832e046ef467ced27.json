@@ -1,0 +1,20 @@
+{
+  "label": "explain",
+  "model": "gpt-5",
+  "source": "openai",
+  "recorded_at": "2026-09-01T03:53:40+00:00",
+  "latency_ms": 37583,
+  "usage": {
+    "input_tokens": 748,
+    "output_tokens": 2202,
+    "parameter_fallbacks": [
+      "max_tokens->max_completion_tokens",
+      "dropped temperature",
+      "retried with max_completion_tokens=6000"
+    ],
+    "truncated": false
+  },
+  "system": "Write two plain sentences explaining the recommendation, using ONLY the numbers\nin the table you are given. Do not introduce any number that is not in it.\nReturn the sentences as plain text.",
+  "prompt": "{\n  \"request\": \"Find me a good waterproof jacket under $200.\",\n  \"table\": [\n    {\n      \"merchant\": \"Peak Supply Co\",\n      \"merchant_id\": \"peak\",\n      \"list_price_aud\": 179.0,\n      \"adjusted_cost_aud\": 179.0,\n      \"eligible\": true,\n      \"excluded_reason\": null,\n      \"lines\": []\n    },\n    {\n      \"merchant\": \"Ridgeway Gear\",\n      \"merchant_id\": \"ridgeway\",\n      \"list_price_aud\": 195.0,\n      \"adjusted_cost_aud\": 199.0,\n      \"eligible\": true,\n      \"excluded_reason\": null,\n      \"lines\": [\n        {\n          \"label\": \"2 year warranty\",\n          \"amount_aud\": 0.0,\n          \"status\": \"unverified\",\n          \"basis\": \"no signature -- displayed, never valued\"\n        },\n        {\n          \"label\": \"Uncertainty penalty\",\n          \"amount_aud\": 4.0,\n          \"status\": \"unverified\",\n          \"basis\": \"50% of $8.00 in claims this merchant asks you to take on faith\"\n        }\n      ]\n    },\n    {\n      \"merchant\": \"Alpine Outfitters\",\n      \"merchant_id\": \"alpine\",\n      \"list_price_aud\": 199.0,\n      \"adjusted_cost_aud\": 155.26,\n      \"eligible\": false,\n      \"excluded_reason\": \"11.2% above the cheapest list price, over your 10% tolerance\",\n      \"lines\": [\n        {\n          \"label\": \"Gold member price \\u2014 5% off full-price items\",\n          \"amount_aud\": -9.95,\n          \"status\": \"signed\",\n          \"basis\": \"member price is $9.95 below list\"\n        },\n        {\n          \"label\": \"Free returns within 60 days, return postage paid\",\n          \"amount_aud\": -9.0,\n          \"status\": \"signed\",\n          \"basis\": \"your fit-risk value $9.00\"\n        },\n        {\n          \"label\": \"24 month manufacturer warranty\",\n          \"amount_aud\": -8.0,\n          \"status\": \"signed\",\n          \"basis\": \"1 extra year(s) x your $8.00/yr\"\n        },\n        {\n          \"label\": \"Free standard delivery over $100 (normally $12.95)\",\n          \"amount_aud\": -12.0,\n          \"status\": \"signed\",\n          \"basis\": \"you would otherwise pay $12.00\"\n        },\n        {\n          \"label\": \"Summit Club points \\u2014 2 per dollar, 100 points = $1\",\n          \"amount_aud\": -2.79,\n          \"status\": \"signed\",\n          \"basis\": \"2 pts/$ on $199.00 redeemed at 100 pts/$1 = $3.98, x your 70% confidence after breakage\"\n        },\n        {\n          \"label\": \"280 points from Platinum (free express delivery)\",\n          \"amount_aud\": -2.0,\n          \"status\": \"provisional\",\n          \"basis\": \"your $4.00 value for reaching Platinum x your 50% confidence -- depends on future spend\"\n        }\n      ]\n    }\n  ]\n}",
+  "completion": "Peak Supply Co at 179.0 is the top recommendation as the lowest eligible price.  \nRidgeway Gear is 195.0 with an adjusted cost of 199.0 after a 4.0 Uncertainty penalty and an unverified 2 year warranty, while Alpine Outfitters is excluded for being 11.2% above the cheapest list price and over a 10% tolerance."
+}

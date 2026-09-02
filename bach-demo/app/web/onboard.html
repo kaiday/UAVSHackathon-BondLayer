@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BondLayer — plug in</title>
+<link rel="stylesheet" href="/static/styles.css">
+<link rel="stylesheet" href="/static/evidence.css">
+<link rel="stylesheet" href="/static/onboard.css">
+</head>
+<body class="evidence-page onboard-page">
+
+<header class="topbar">
+  <div class="brand">
+    <a href="/" class="homelink"><span class="mark" aria-hidden="true"></span></a>
+    <span class="name">BondLayer</span>
+    <span class="sub">plug in — about four minutes</span>
+  </div>
+  <div class="banner" id="banner">…</div>
+  <nav class="keys" aria-label="Navigation">
+    <a href="/" class="backlink">← home</a>
+  </nav>
+</header>
+
+<!-- ─────────────────────── progress rail ─────────────────────── -->
+<nav class="rail" id="rail" aria-label="Progress">
+  <ol>
+    <li data-step="1"><span class="rn">1</span><span class="rl">Your files</span></li>
+    <li data-step="2"><span class="rn">2</span><span class="rl">What agents can't read</span></li>
+    <li data-step="3"><span class="rn">3</span><span class="rl">Your claims, drafted</span></li>
+    <li data-step="4"><span class="rn">4</span><span class="rl">Approve &amp; sign</span></li>
+  </ol>
+</nav>
+
+<main class="evmain wizard">
+
+  <!-- ═══════════════════ step 1 — upload ═══════════════════ -->
+  <section class="wstep" data-step="1">
+    <p class="weyebrow">Step 1 of 4</p>
+    <h2>Give us the two files you already have</h2>
+    <p class="lede">Nothing to install, no schema to learn, no engineer needed.
+    A product export from your commerce platform, and the returns or membership
+    page from your own website. We read them in memory and never write them to
+    disk.</p>
+
+    <div class="drops">
+      <label class="drop" id="drop-catalog">
+        <input type="file" id="file-catalog" accept=".csv,text/csv">
+        <span class="dropicon" aria-hidden="true">⇪</span>
+        <span class="dropname">Your product export</span>
+        <span class="dropmeta">CSV with at least <code>sku</code>,
+          <code>name</code> and <code>price</code> columns</span>
+        <span class="dropstate" id="state-catalog">using the sample file</span>
+      </label>
+
+      <label class="drop" id="drop-policy">
+        <input type="file" id="file-policy" accept=".md,.txt,text/plain,text/markdown">
+        <span class="dropicon" aria-hidden="true">⇪</span>
+        <span class="dropname">Your policy page</span>
+        <span class="dropmeta">Returns, delivery, warranty or membership terms —
+          plain text or Markdown, written for humans</span>
+        <span class="dropstate" id="state-policy">using the sample file</span>
+      </label>
+    </div>
+
+    <p class="wnote" id="upload-note">You can skip this entirely — we will run
+    the whole flow on a sample retailer so you can see what happens first.</p>
+
+    <div class="wactions">
+      <button class="primary" id="go-1">Analyse my catalogue →</button>
+      <button class="ghost" id="reset-files" hidden>Use the sample instead</button>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ step 2 — the gap ═══════════════════ -->
+  <section class="wstep" data-step="2" hidden>
+    <p class="weyebrow">Step 2 of 4</p>
+    <h2 id="s2-head">Here is what we fixed, and what only you can fix</h2>
+    <p class="lede">No model runs in this step. Mapping a product is
+    deterministic on purpose — a hallucinated price is worse than a missing
+    one. So we corrected everything that was merely written oddly, and stopped
+    at anything that needs a decision only you can make.</p>
+
+    <div id="catalog-error"></div>
+    <div class="scorecard" id="catalog-nums"></div>
+
+    <div class="todosplit">
+      <div class="todocol">
+        <h3 class="colhead">Your to-do list<span class="colcount" id="todo-count"></span></h3>
+        <p class="colwhy">Nothing here is a CSV complaint. Each one is a
+        decision or a value only you have.</p>
+        <div id="todos"></div>
+      </div>
+      <div class="todocol">
+        <h3 class="colhead">Already done for you<span class="colcount" id="done-count"></span></h3>
+        <p class="colwhy">Applied in the corrected file below. You do not have
+        to retype any of it.</p>
+        <div id="autofixed"></div>
+      </div>
+    </div>
+
+    <div class="previewhead">
+      <div>
+        <h3 class="colhead">Your corrected catalogue</h3>
+        <p class="colwhy">Changed cells are highlighted. Rows we could not map
+        are still here, marked <code>ACTION REQUIRED</code> — a shorter file
+        that looked clean would be the most misleading thing we could hand you.</p>
+      </div>
+      <a class="download" id="download-fixed" download>Download CSV ↓</a>
+    </div>
+
+    <div class="tablewrap"><table class="fixedtable" id="fixed-table"></table></div>
+
+    <details class="policy raw"><summary>The file you gave us, unchanged</summary>
+      <div class="pbody2"><pre class="code scroll" id="csv-text"></pre></div>
+    </details>
+
+    <div class="wactions">
+      <button class="ghost" data-back="1">← Back</button>
+      <button class="primary" id="go-2">Now read my policy page →</button>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ step 3 — drafts ═══════════════════ -->
+  <section class="wstep" data-step="3" hidden>
+    <p class="weyebrow">Step 3 of 4</p>
+    <h2>Your policy, turned into claims an agent can price</h2>
+    <p class="lede">This is the one step where a model is genuinely necessary —
+    nobody hand-codes every retailer's terms. It is also where a mistake would
+    do the most damage, so the model is allowed to <b>draft</b> and nothing
+    else. It has no access to a signing key.</p>
+
+    <div class="bignums" id="draft-nums"></div>
+
+    <div class="callout amber">
+      <h3>Read the quotes, not our summary</h3>
+      <p>Every claim below must cite the sentence in your document it came
+      from. A quote your document does not contain is the clearest sign the
+      model invented something, and it is flagged on the record rather than
+      quietly dropped. <b>Anything flagged is unticked by default</b> — your
+      job on the next screen is to decide.</p>
+    </div>
+
+    <details class="policy"><summary>Your policy document, as customers read it</summary>
+      <div class="pbody2"><pre class="code scroll" id="policy-prose"></pre></div>
+    </details>
+
+    <div id="drafts"></div>
+
+    <div class="wactions">
+      <button class="ghost" data-back="2">← Back</button>
+      <button class="primary" id="go-3">Review and approve →</button>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ step 4 — sign ═══════════════════ -->
+  <section class="wstep" data-step="4" hidden>
+    <p class="weyebrow">Step 4 of 4</p>
+    <h2>Nothing is published until you say so</h2>
+    <p class="lede">The guardrail is structural, not statistical.
+    <code>sign_approved()</code> only ever receives records a person ticked; an
+    unapproved draft has no signature, and no agent will value an unsigned
+    claim. Untick anything you are not willing to stand behind.</p>
+
+    <div id="review"></div>
+
+    <div class="signbar">
+      <button id="sign" class="primary">Sign the ticked records</button>
+      <span class="signhint" id="signhint"></span>
+    </div>
+
+    <div id="signed"></div>
+
+    <div class="wactions">
+      <button class="ghost" data-back="3">← Back</button>
+    </div>
+  </section>
+
+</main>
+
+<script src="/static/onboard.js"></script>
+</body>
+</html>

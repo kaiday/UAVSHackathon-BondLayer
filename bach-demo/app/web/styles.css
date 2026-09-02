@@ -1,0 +1,499 @@
+/* BondLayer demo v2 — one screen, two panes, one switch.
+   Projector-first: large type, high contrast, no hairlines under 1px. */
+
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap");
+
+:root {
+  /* Light by default. The demo is shown on a projector in a lit room and read
+     over a shoulder on a laptop; a dark page loses to both. Every colour here
+     is a token so the two other stylesheets never hardcode one. */
+  --bg: #F4F6F8;
+  --surface: #FFFFFF;
+  --surface-2: #FFFFFF;
+  --raise: #F0F3F6;
+  --ink: #16202B;
+  --ink-2: #3F4E5E;
+  --muted: #6B7C8D;
+  --line: #DBE2E9;
+  --line-2: #E7ECF1;
+  --accent: #0F7C99;
+  --accent-soft: #E2F1F6;
+  --on-accent: #FFFFFF;
+  --seal: #9A6B10;
+  --seal-soft: #FBF0D8;
+  --on-seal: #FFFFFF;
+  --good: #1C7A4A;
+  --good-soft: #E0F3E8;
+  --bad: #B4382A;
+  --bad-soft: #FBE7E4;
+  --warn: #8A6300;
+  --shadow: 0 1px 2px rgba(22,32,43,.05), 0 10px 28px rgba(22,32,43,.09);
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Archivo, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+}
+
+h2 { font-size: 19px; margin: 0; letter-spacing: -.01em; font-weight: 600; }
+.muted { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+.small { font-size: 12px; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── top bar ─────────────────────────────────────────────────────── */
+.topbar {
+  display: flex; align-items: center; gap: 24px;
+  padding: 14px 26px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+  flex: none;
+}
+.brand { display: flex; align-items: baseline; gap: 10px; }
+.mark {
+  width: 11px; height: 11px; border-radius: 2px;
+  background: var(--seal);
+  box-shadow: 0 0 0 3px var(--seal-soft);
+  align-self: center;
+}
+.brand .name { font-weight: 700; letter-spacing: -.015em; font-size: 17px; }
+.brand .sub { color: var(--muted); font-size: 12.5px; }
+.banner {
+  margin-left: auto;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11.5px;
+  color: var(--muted);
+  text-align: right;
+  line-height: 1.4;
+}
+.banner .warn { color: var(--warn); }
+.banner .ok { color: var(--good); }
+.keys {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px; color: var(--muted);
+  border-left: 1px solid var(--line); padding-left: 20px;
+}
+.evlink { color: var(--accent); text-decoration: none; }
+.evlink:hover { text-decoration: underline; }
+kbd {
+  font-family: inherit; background: var(--raise); border: 1px solid var(--line);
+  border-radius: 3px; padding: 1px 5px; margin-right: 2px; color: var(--ink-2);
+}
+
+/* ── stage ───────────────────────────────────────────────────────── */
+.stage {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1px;
+  background: var(--line);
+  min-height: 0;
+}
+@media (max-width: 940px) { .stage { grid-template-columns: 1fr; } }
+
+.pane {
+  background: var(--bg);
+  padding: 26px 30px 30px;
+  display: flex; flex-direction: column;
+  min-height: 0; overflow-y: auto;
+}
+.console { background: var(--surface-2); }
+.pane-head {
+  display: flex; align-items: baseline; gap: 12px;
+  padding-bottom: 14px; margin-bottom: 20px;
+  border-bottom: 2px solid var(--line);
+}
+.pane-note { color: var(--muted); font-size: 12px; }
+
+/* ── chat ────────────────────────────────────────────────────────── */
+/* Bottom padding clears the sticky verdict bar, so the provenance line at the
+   end of the reply is never hidden underneath it. */
+.chat {
+  display: flex; flex-direction: column; gap: 14px;
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 8px;
+}
+.empty { color: var(--muted); font-size: 14px; max-width: 46ch; }
+.empty p { margin: 0 0 14px; }
+.suggestions { display: flex; flex-direction: column; gap: 7px; align-items: flex-start; }
+.suggest {
+  background: var(--surface); border: 1px solid var(--line); color: var(--ink-2);
+  border-radius: 16px; padding: 7px 14px; font: inherit; font-size: 13px;
+  cursor: pointer; text-align: left; transition: border-color .15s, color .15s;
+}
+.suggest:hover { border-color: var(--accent); color: var(--accent); }
+
+.composer { flex: none; display: flex; gap: 9px; padding: 14px 0 4px; }
+.composer input {
+  flex: 1; background: var(--surface); border: 1px solid var(--line);
+  color: var(--ink); font: inherit; font-size: 15px;
+  border-radius: 22px; padding: 12px 17px;
+}
+.composer input:focus { border-color: var(--accent); outline: none; }
+.composer input::placeholder { color: var(--muted); }
+.composer button {
+  background: var(--accent); color: var(--on-accent); border: none; border-radius: 22px;
+  padding: 12px 22px; font: inherit; font-weight: 600; cursor: pointer;
+}
+.composer button:disabled { opacity: .45; cursor: default; }
+.err { color: var(--bad); }
+.msg { max-width: 46ch; }
+.msg.you {
+  align-self: flex-end;
+  background: var(--accent-soft); border: 1px solid var(--accent);
+  color: var(--ink); font-size: 15px;
+  border-radius: 14px 14px 4px 14px; padding: 11px 15px;
+}
+.msg.bot {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px 14px 14px 4px;
+  padding: 15px 17px;
+  align-self: flex-start;
+  width: 100%; max-width: 52ch;
+}
+.reply-text {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 16.5px; line-height: 1.62; margin: 0;
+  color: var(--ink);
+}
+.reply-text:empty { display: none; }
+
+.thinking { display: none; gap: 5px; padding: 4px 0; }
+.thinking.on { display: flex; }
+.thinking span {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--muted);
+  animation: pulse 1.1s infinite ease-in-out;
+}
+.thinking span:nth-child(2) { animation-delay: .16s; }
+.thinking span:nth-child(3) { animation-delay: .32s; }
+@keyframes pulse { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .thinking span { animation: none; opacity: .6; } }
+
+.chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }
+.chip {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px; padding: 3px 8px; border-radius: 3px;
+  border: 1px solid var(--line); color: var(--ink-2); background: var(--surface-2);
+  display: inline-flex; gap: 6px; align-items: center;
+}
+.chip .n { color: var(--muted); }
+.chip.signed { border-color: var(--accent); color: var(--accent); }
+.chip.unsigned { border-color: var(--bad); color: var(--bad); }
+
+.provenance {
+  margin-top: 13px; padding-top: 11px; border-top: 1px solid var(--line-2);
+  font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--muted);
+}
+.provenance b { color: var(--ink-2); font-weight: 500; }
+.provenance .live { color: var(--good); }
+.provenance .replay { color: var(--accent); }
+.provenance .none { color: var(--bad); }
+
+.verdict {
+  flex: none;
+  margin-top: 4px; padding: 16px 18px;
+  border: 1px solid var(--line); border-left: 3px solid var(--seal);
+  background: var(--surface); border-radius: 3px;
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+}
+.verdict-label {
+  font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted);
+}
+.verdict-name { font-size: 27px; font-weight: 700; letter-spacing: -.02em; }
+
+/* ── switch ──────────────────────────────────────────────────────── */
+.switch {
+  flex: none;
+  display: flex; align-items: center; gap: 13px;
+  width: 100%; padding: 15px 18px; margin-bottom: 24px;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 4px;
+  cursor: pointer; font: inherit; font-size: 14px;
+  transition: border-color .18s, background .18s;
+}
+.switch:hover { border-color: var(--muted); }
+.switch[aria-checked="true"] { border-color: var(--seal); background: var(--seal-soft); }
+.switch-track {
+  width: 46px; height: 24px; border-radius: 13px; flex: none;
+  background: var(--raise); border: 1px solid var(--line); position: relative;
+  transition: background .18s;
+}
+.switch[aria-checked="true"] .switch-track { background: var(--seal); border-color: var(--seal); }
+.switch-knob {
+  position: absolute; top: 2px; left: 2px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--ink); transition: transform .18s ease;
+}
+.switch[aria-checked="true"] .switch-knob { transform: translateX(22px); background: var(--surface-2); }
+.switch-text { letter-spacing: .04em; }
+.switch-text b { font-weight: 700; }
+@media (prefers-reduced-motion: reduce) {
+  .switch, .switch-track, .switch-knob { transition: none; }
+}
+
+/* ── metrics ─────────────────────────────────────────────────────── */
+.metrics {
+  flex: none;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+  background: var(--line); border: 1px solid var(--line); border-radius: 4px;
+  margin: 0 0 18px; overflow: hidden;
+}
+.metric { background: var(--surface); padding: 15px 17px; }
+.metric dt {
+  font-size: 11.5px; color: var(--muted); line-height: 1.35;
+  min-height: 2.7em;
+}
+.metric dd { margin: 6px 0 0; display: flex; align-items: baseline; gap: 6px; }
+.metric .v {
+  font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums;
+  font-size: 30px; font-weight: 600; letter-spacing: -.02em; color: var(--ink);
+  transition: color .3s;
+}
+.metric .u { font-size: 12px; color: var(--muted); }
+.metric .u.pre {
+  font-family: "IBM Plex Mono", monospace; font-size: 19px; color: var(--ink-2);
+}
+.metric.up .v { color: var(--good); }
+.metric.down .v { color: var(--bad); }
+
+.outcome:empty { display: none; }
+.outcome {
+  flex: none;
+  margin: 0 0 22px; padding: 13px 16px; border-radius: 3px;
+  font-size: 14px; line-height: 1.5;
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--muted);
+}
+.outcome.win { border-left-color: var(--good); }
+.outcome.lose { border-left-color: var(--bad); }
+.outcome b { font-weight: 600; }
+
+/* ── drawers ─────────────────────────────────────────────────────── */
+.drawers { flex: none; display: flex; flex-direction: column; gap: 9px; }
+.drawer {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 4px;
+}
+.drawer > summary {
+  cursor: pointer; padding: 13px 16px; font-size: 14px; font-weight: 600;
+  display: flex; align-items: baseline; gap: 12px; list-style: none;
+}
+.drawer > summary::-webkit-details-marker { display: none; }
+.drawer > summary::before {
+  content: "▸"; color: var(--accent); flex: none; font-size: 12px;
+  transition: transform .15s;
+}
+.drawer[open] > summary::before { transform: rotate(90deg); }
+.summary-hint {
+  margin-left: auto; font-weight: 400; font-size: 11.5px; color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+}
+.drawer-body { padding: 4px 16px 16px; border-top: 1px solid var(--line-2); padding-top: 14px; }
+
+.adversary {
+  background: var(--surface-2); border: 1px solid var(--line-2);
+  border-radius: 3px; padding: 12px 14px; margin-bottom: 14px;
+  display: flex; flex-direction: column; gap: 8px; font-size: 13px;
+}
+.adversary label { display: flex; align-items: center; gap: 8px; }
+.adversary select {
+  background: var(--raise); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 3px; padding: 3px 6px; font: inherit; font-size: 12px;
+}
+
+/* ledger */
+.val { margin-bottom: 15px; }
+.val-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line-2);
+}
+.val-head .name { font-weight: 600; font-size: 14px; }
+.val-head .nums { font-family: "IBM Plex Mono", monospace; font-size: 13px; font-variant-numeric: tabular-nums; }
+.val-head .from { color: var(--muted); text-decoration: line-through; }
+.val-head .to { color: var(--ink); font-weight: 600; }
+.val.winner .val-head .to { color: var(--good); }
+.line {
+  display: grid; grid-template-columns: 72px 1fr auto; gap: 10px;
+  align-items: baseline; padding: 4px 0; font-size: 12.5px; color: var(--ink-2);
+}
+.line .amt {
+  font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums;
+  text-align: right; color: var(--ink);
+}
+.line .basis { color: var(--muted); font-size: 11px; }
+.tag {
+  font-family: "IBM Plex Mono", monospace; font-size: 10px; padding: 1px 6px;
+  border-radius: 2px; text-transform: uppercase; letter-spacing: .06em;
+}
+.tag.signed { background: var(--accent-soft); color: var(--accent); }
+.tag.provisional { background: var(--seal-soft); color: var(--seal); }
+.tag.unverified { background: var(--bad-soft); color: var(--bad); }
+.tag.ineligible { background: var(--raise); color: var(--muted); }
+.excluded { color: var(--bad); font-size: 11.5px; }
+
+.agree { font-size: 12.5px; margin: 12px 0 0; padding-top: 11px; border-top: 1px solid var(--line-2); }
+.agree.ok { color: var(--good); }
+.agree.split { color: var(--warn); }
+
+/* repeats */
+.bar-row {
+  display: grid; grid-template-columns: 84px 1fr 58px; gap: 11px;
+  align-items: center; margin-bottom: 9px; font-size: 13px;
+}
+.bar-track { height: 12px; background: var(--raise); border-radius: 2px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--accent); transition: width .4s ease; }
+.bar-fill.alpine { background: var(--seal); }
+.bar-count {
+  font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums;
+  text-align: right; font-size: 12.5px;
+}
+.bar-row .who { color: var(--ink-2); }
+.not-recorded { color: var(--warn); font-size: 12px; margin-top: 8px; }
+
+.code {
+  background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 3px;
+  padding: 12px; margin: 0; max-height: 340px; overflow: auto;
+  font-family: "IBM Plex Mono", monospace; font-size: 11px; line-height: 1.6;
+  color: var(--ink-2); white-space: pre;
+}
+
+/* ── overlay ─────────────────────────────────────────────────────── */
+[hidden] { display: none !important; }
+
+.overlay {
+  position: fixed; inset: 0; background: rgba(22, 32, 43, .55);
+  display: flex; align-items: center; justify-content: center; padding: 34px;
+  z-index: 20;
+}
+.overlay-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 5px;
+  box-shadow: var(--shadow);
+  max-width: 940px; width: 100%; max-height: 100%; overflow-y: auto; padding: 24px 28px 28px;
+}
+.overlay-head { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+.overlay-head button {
+  margin-left: auto; background: none; border: 1px solid var(--line);
+  color: var(--ink-2); border-radius: 3px; cursor: pointer;
+  font: inherit; padding: 3px 9px;
+}
+.call { border-top: 1px solid var(--line-2); padding: 16px 0; }
+.call h3 { font-size: 14px; margin: 0 0 6px; font-family: "IBM Plex Mono", monospace; }
+
+/* ── scoreboard: the standing question ──────────────────────────────
+   Two condition bars and a priced list of what the agent never saw. Kept
+   inside the drawers so the money shot stays uncluttered, but placed first
+   because it is the only panel a merchant would open twice. */
+.score-cond {
+  display: grid; grid-template-columns: 92px 1fr 104px; gap: 10px;
+  align-items: center; margin-bottom: 8px; font-size: 12px;
+}
+.score-cond .cond { color: var(--muted); font-family: "IBM Plex Mono", monospace; font-size: 11px; }
+.score-cond .condbar { height: 9px; background: var(--raise); border-radius: 5px; overflow: hidden; }
+.score-cond .condfill { display: block; height: 100%; background: var(--good); border-radius: 5px; }
+.score-cond .condnum {
+  font-family: "IBM Plex Mono", monospace; font-size: 11px;
+  color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums;
+}
+.score-note {
+  font-family: "Source Serif 4", Georgia, serif; font-size: 13.5px; line-height: 1.6;
+  color: var(--ink); margin: 14px 0 16px; padding-left: 12px;
+  border-left: 2px solid var(--seal);
+}
+.exlabel2 {
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--muted); font-weight: 600; margin: 0 0 8px;
+}
+.reason {
+  display: grid; grid-template-columns: 62px 1fr auto; gap: 10px;
+  align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--line-2);
+  font-size: 12.5px;
+}
+.reason .ramt {
+  font-family: "IBM Plex Mono", monospace; text-align: right;
+  font-variant-numeric: tabular-nums; color: var(--seal);
+}
+.reason.seen .ramt { color: var(--muted); }
+.reason .rstat {
+  font-family: "IBM Plex Mono", monospace; font-size: 10px;
+  padding: 2px 6px; border-radius: 2px; margin-left: 7px;
+  background: var(--raise); color: var(--muted);
+}
+.reason .rstat.signed { background: var(--good-soft); color: var(--good); }
+.reason .rseen { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.reason.hidden .rseen { color: var(--bad); }
+
+/* ── the shopper's own valuation ─────────────────────────────────────
+   Deliberately styled apart from the adversary toggles below it: those are
+   claims about our arithmetic, these are the shopper's preferences, and the
+   whole point is that the two never travel together. */
+.policy-panel {
+  background: var(--raise); border: 1px solid var(--line-2);
+  border-left: 3px solid var(--accent); border-radius: 3px;
+  padding: 13px 15px; margin-bottom: 14px;
+}
+.policy-panel label {
+  display: grid; grid-template-columns: 1fr 52px; gap: 8px;
+  align-items: center; font-size: 12.5px; color: var(--ink-2); margin-bottom: 7px;
+}
+.policy-panel output {
+  font-family: "IBM Plex Mono", monospace; font-size: 11.5px;
+  color: var(--accent); text-align: right;
+}
+.policy-panel input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
+.policy-panel .small { margin-top: 10px; margin-bottom: 0; }
+
+/* ── the merchant's levers ───────────────────────────────────────────
+   The one panel in the console a merchant can act on. Sits above the drawers
+   because "what do I do" outranks "how do I know you're not lying", and the
+   earlier layout answered only the second. */
+.levers {
+  flex: none;
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--seal); border-radius: 4px;
+  padding: 16px 18px; margin-bottom: 14px;
+}
+.leverhead {
+  display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px;
+}
+.leverhead h3 { font-size: 15px; margin: 0; }
+.standing {
+  margin-left: auto; font-family: "IBM Plex Mono", monospace; font-size: 11.5px;
+  padding: 3px 9px; border-radius: 3px; background: var(--raise); color: var(--muted);
+  white-space: nowrap;
+}
+.standing.first { background: var(--good-soft); color: var(--good); }
+.standing.behind { background: var(--bad-soft); color: var(--bad); }
+
+.lever {
+  display: grid; grid-template-columns: 18px 1fr auto; gap: 10px;
+  align-items: center; padding: 7px 0;
+  border-bottom: 1px solid var(--line-2); cursor: pointer; font-size: 13px;
+}
+.lever:last-of-type { border-bottom: none; }
+.lever:hover { color: var(--ink); }
+.levtitle { line-height: 1.4; }
+.levworth {
+  font-family: "IBM Plex Mono", monospace; font-size: 11.5px;
+  font-variant-numeric: tabular-nums; color: var(--muted);
+}
+.levworth.signed { color: var(--good); }
+.lever input:not(:checked) ~ .levtitle,
+.lever input:not(:checked) ~ .levworth { opacity: .42; text-decoration: line-through; }
+
+.leverfoot {
+  font-size: 13px; color: var(--ink-2); line-height: 1.55;
+  margin: 12px 0 0; padding-top: 11px; border-top: 1px solid var(--line-2);
+}

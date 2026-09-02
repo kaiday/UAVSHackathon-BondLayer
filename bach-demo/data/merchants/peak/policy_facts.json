@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Hand-extracted from policy.md for the fairness comparison on /evidence.",
+    "This file is NEVER served by the merchant service and never reaches the",
+    "shopping agent. It exists so the demo can state, with a number, how much",
+    "real value is stranded in prose. If Peak plugged in BondLayer, its policy",
+    "converter would produce records like these -- signed, and on the wire."
+  ],
+  "merchant_id": "peak",
+  "facts": [
+    {"title": "Free standard delivery over $99 (normally $9.95)",
+     "type": "free_shipping", "value_aud": 9.95},
+    {"title": "Change-of-mind returns within 30 days (customer pays $9.95)",
+     "type": "free_returns", "value_aud": 0.0,
+     "note": "Return postage is NOT paid, so this is worth less than Alpine's."},
+    {"title": "12 month warranty",
+     "type": "warranty_extension", "value_aud": 0.0,
+     "note": "Matches the statutory minimum, so it confers no extra value."}
+  ]
+}

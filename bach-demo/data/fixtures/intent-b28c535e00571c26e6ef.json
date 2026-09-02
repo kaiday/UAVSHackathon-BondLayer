@@ -1,0 +1,16 @@
+{
+  "label": "intent",
+  "model": "claude-sonnet-5",
+  "source": "claude_cli",
+  "recorded_at": "2026-08-31T08:12:34+00:00",
+  "latency_ms": 5179,
+  "usage": {
+    "input_tokens": 23796,
+    "output_tokens": 115,
+    "cost_usd": 0.0068968000000000015,
+    "cli_session_id": "3785a003-1a64-4bcf-97ab-d14a6ffda940"
+  },
+  "system": "Extract a shopper's requirements from their request.\n\nReturn JSON only:\n{\n  \"query\": \"<search terms>\",\n  \"budget_aud\": <number or null>,\n  \"fit_risk_aud\": <number>,\n  \"max_loyalty_premium_pct\": <number>,\n  \"notes\": \"<what you inferred about how they shop>\"\n}\n\nfit_risk_aud is what a return going wrong costs this shopper -- higher if they\nmention sizing worries, returns, or buying multiple sizes; lower if they sound\ndecisive. Default 9. max_loyalty_premium_pct is how much above the cheapest\noption they would tolerate; default 15.",
+  "prompt": "Find me a good waterproof jacket under $200.",
+  "completion": "{\"query\": \"waterproof jacket\", \"budget_aud\": 200, \"fit_risk_aud\": 9, \"max_loyalty_premium_pct\": 15, \"notes\": \"Shopper gave no sizing concerns or urgency signals, sounds like a straightforward, decisive purchase request focused on price cap and general quality (\\\"good\\\").\"}"
+}
