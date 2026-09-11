@@ -1,0 +1,934 @@
+{
+  "before": {
+    "schema_version": "0.1",
+    "run_id": "before",
+    "request": "Find me a good 65W USB-C GaN wall charger under $45",
+    "condition": "plain",
+    "agent_header": "bondlayer-demo/0.1; capabilities=dev.ucp.shopping.catalog.search,dev.ucp.shopping.catalog.lookup",
+    "prompt_sha256": "54740d8a5a2f003beffd49bb358b6bb82b85a791c57f660a01a7178ba4b98348",
+    "recommendation": "volt-depot",
+    "decisions": [
+      {
+        "merchant_id": "harbor-tech",
+        "merchant_name": "Harbor 65W GaN Wall Charger",
+        "product_id": "sku_harbor-tech_gan65",
+        "title": "Harbor 65W GaN Wall Charger",
+        "list_price_cents": 4200,
+        "effective_cost_cents": 4200,
+        "available": true,
+        "verified_value_cents": 0,
+        "unsigned_penalty_cents": 0,
+        "constraints_satisfied": [
+          "budget",
+          "power",
+          "connector",
+          "category"
+        ],
+        "constraints_unsatisfied": [],
+        "citations": [
+          "offer.total_cents=4200",
+          "item.attributes.power_watts=65",
+          "item.attributes.connector=USB-C",
+          "item.category=electronics"
+        ],
+        "verification": [],
+        "arithmetic": "42.00 (no benefit extension)",
+        "wire_payload": {
+          "item": {
+            "id": "sku_harbor-tech_gan65",
+            "title": "Harbor 65W GaN Wall Charger",
+            "description": "Dual USB-C + USB-A GaN fast charger, foldable prongs.",
+            "category": "electronics",
+            "attributes": {
+              "power_watts": 65,
+              "connector": "USB-C",
+              "type": "GaN"
+            },
+            "price": {
+              "amount_cents": 4200,
+              "currency": "USD",
+              "display": "$42.00"
+            },
+            "availability": "in_stock",
+            "delivery_sla_days": 2,
+            "return_policy": "30-day returns on unused items"
+          },
+          "offer": {
+            "product_id": "sku_harbor-tech_gan65",
+            "quantity": 1,
+            "unit_price_cents": 4200,
+            "total_cents": 4200,
+            "currency": "USD",
+            "available": true,
+            "delivery_sla_days": 2
+          }
+        }
+      },
+      {
+        "merchant_id": "volt-depot",
+        "merchant_name": "Volt 65W GaN Fast Charger",
+        "product_id": "sku_volt-depot_gan65",
+        "title": "Volt 65W GaN Fast Charger",
+        "list_price_cents": 3850,
+        "effective_cost_cents": 3850,
+        "available": true,
+        "verified_value_cents": 0,
+        "unsigned_penalty_cents": 0,
+        "constraints_satisfied": [
+          "budget",
+          "power",
+          "connector",
+          "category"
+        ],
+        "constraints_unsatisfied": [],
+        "citations": [
+          "offer.total_cents=3850",
+          "item.attributes.power_watts=65",
+          "item.attributes.connector=USB-C",
+          "item.category=electronics"
+        ],
+        "verification": [],
+        "arithmetic": "38.50 (no benefit extension)",
+        "wire_payload": {
+          "item": {
+            "id": "sku_volt-depot_gan65",
+            "title": "Volt 65W GaN Fast Charger",
+            "description": "65W USB-C GaN charger, compact housing.",
+            "category": "electronics",
+            "attributes": {
+              "power_watts": 65,
+              "connector": "USB-C",
+              "type": "GaN"
+            },
+            "price": {
+              "amount_cents": 3850,
+              "currency": "USD",
+              "display": "$38.50"
+            },
+            "availability": "in_stock",
+            "delivery_sla_days": 2,
+            "return_policy": "30-day returns on unused items"
+          },
+          "offer": {
+            "product_id": "sku_volt-depot_gan65",
+            "quantity": 1,
+            "unit_price_cents": 3850,
+            "total_cents": 3850,
+            "currency": "USD",
+            "available": true,
+            "delivery_sla_days": 2
+          }
+        }
+      },
+      {
+        "merchant_id": "sparkline",
+        "merchant_name": "Spark 65W GaN Charger Pro",
+        "product_id": "sku_sparkline_gan65",
+        "title": "Spark 65W GaN Charger Pro",
+        "list_price_cents": 3995,
+        "effective_cost_cents": 3995,
+        "available": true,
+        "verified_value_cents": 0,
+        "unsigned_penalty_cents": 0,
+        "constraints_satisfied": [
+          "budget",
+          "power",
+          "connector",
+          "category"
+        ],
+        "constraints_unsatisfied": [],
+        "citations": [
+          "offer.total_cents=3995",
+          "item.attributes.power_watts=65",
+          "item.attributes.connector=USB-C",
+          "item.category=electronics"
+        ],
+        "verification": [],
+        "arithmetic": "39.95 (no benefit extension)",
+        "wire_payload": {
+          "item": {
+            "id": "sku_sparkline_gan65",
+            "title": "Spark 65W GaN Charger Pro",
+            "description": "65W GaN charger with smart power split.",
+            "category": "electronics",
+            "attributes": {
+              "power_watts": 65,
+              "connector": "USB-C",
+              "type": "GaN"
+            },
+            "price": {
+              "amount_cents": 3995,
+              "currency": "USD",
+              "display": "$39.95"
+            },
+            "availability": "in_stock",
+            "delivery_sla_days": 2,
+            "return_policy": "30-day returns on unused items"
+          },
+          "offer": {
+            "product_id": "sku_sparkline_gan65",
+            "quantity": 1,
+            "unit_price_cents": 3995,
+            "total_cents": 3995,
+            "currency": "USD",
+            "available": true,
+            "delivery_sla_days": 2
+          }
+        }
+      }
+    ]
+  },
+  "after": {
+    "schema_version": "0.1",
+    "run_id": "after",
+    "request": "Find me a good 65W USB-C GaN wall charger under $45",
+    "condition": "extended",
+    "agent_header": "bondlayer-demo/0.1; capabilities=dev.ucp.shopping.catalog.search,dev.ucp.shopping.catalog.lookup,dev.ucp.common.identity_linking,org.bondlayer.benefit_value",
+    "prompt_sha256": "54740d8a5a2f003beffd49bb358b6bb82b85a791c57f660a01a7178ba4b98348",
+    "recommendation": "harbor-tech",
+    "decisions": [
+      {
+        "merchant_id": "harbor-tech",
+        "merchant_name": "Harbor 65W GaN Wall Charger",
+        "product_id": "sku_harbor-tech_gan65",
+        "title": "Harbor 65W GaN Wall Charger",
+        "list_price_cents": 4200,
+        "effective_cost_cents": 2485,
+        "available": true,
+        "verified_value_cents": 1715,
+        "unsigned_penalty_cents": 0,
+        "constraints_satisfied": [
+          "budget",
+          "power",
+          "connector",
+          "category"
+        ],
+        "constraints_unsatisfied": [],
+        "citations": [
+          "offer.total_cents=4200",
+          "item.attributes.power_watts=65",
+          "item.attributes.connector=USB-C",
+          "item.category=electronics"
+        ],
+        "verification": [
+          {
+            "card_id": "obc_member_price_10",
+            "verified": true,
+            "reason": "signature valid"
+          },
+          {
+            "card_id": "obc_gold_warranty_12mo",
+            "verified": true,
+            "reason": "signature valid"
+          },
+          {
+            "card_id": "obc_gold_express_ship",
+            "verified": true,
+            "reason": "signature valid"
+          }
+        ],
+        "arithmetic": "$42.00 - $4.20 (member_price) - $3.00 (warranty, value) - $9.95 (shipping, value) = effective $24.85 (charge $37.80)",
+        "wire_payload": {
+          "item": {
+            "id": "sku_harbor-tech_gan65",
+            "title": "Harbor 65W GaN Wall Charger",
+            "description": "Dual USB-C + USB-A GaN fast charger, foldable prongs.",
+            "category": "electronics",
+            "attributes": {
+              "power_watts": 65,
+              "connector": "USB-C",
+              "type": "GaN"
+            },
+            "price": {
+              "amount_cents": 4200,
+              "currency": "USD",
+              "display": "$42.00"
+            },
+            "availability": "in_stock",
+            "delivery_sla_days": 2,
+            "return_policy": "30-day returns on unused items"
+          },
+          "offer": {
+            "product_id": "sku_harbor-tech_gan65",
+            "quantity": 1,
+            "unit_price_cents": 4200,
+            "total_cents": 4200,
+            "currency": "USD",
+            "available": true,
+            "delivery_sla_days": 2
+          },
+          "extensions": {
+            "org.bondlayer.benefit_value": {
+              "issuer": "harbor-tech",
+              "signing_public_key": "5aee988b967830c5391bea4c942924d7b97636170263e0bdc2fe0c72bcbb09aa",
+              "member_context": {
+                "identity_linked": true,
+                "member": {
+                  "email": "ava@example.com",
+                  "tier": "GOLD",
+                  "points": 4200
+                }
+              },
+              "benefit_records": [
+                {
+                  "card_id": "obc_member_price_10",
+                  "issuer": "harbor-tech",
+                  "benefit_type": "member_price",
+                  "description": "Members pay 10% below list price, storewide.",
+                  "conditions": "Any enrolled member. Capped at $20.00 per order.",
+                  "min_tier": "BRONZE",
+                  "category": null,
+                  "facts": {
+                    "percent_off": 10.0
+                  },
+                  "source_quote": "Members pay 10% below list price, storewide.",
+                  "value_ceiling_cents": 2000,
+                  "affects_price": true,
+                  "issued_at": "2026-06-01",
+                  "expires_at": "2027-12-31",
+                  "signature": "be0f8c9efe1cec64748bb92ed04845ceae30d105fa119256649f613680318310a9261f3135976330eb74a6019e092e8338359060cdb44abb46f5acdf5a7f860d"
+                },
+                {
+                  "card_id": "obc_gold_warranty_12mo",
+                  "issuer": "harbor-tech",
+                  "benefit_type": "warranty",
+                  "description": "Gold members: +12 months extended warranty on electronics.",
+                  "conditions": "GOLD tier. Electronics only.",
+                  "min_tier": "GOLD",
+                  "category": "electronics",
+                  "facts": {
+                    "extra_warranty_months": 12.0
+                  },
+                  "source_quote": "Gold members: +12 months extended warranty on electronics.",
+                  "value_ceiling_cents": 300,
+                  "affects_price": false,
+                  "issued_at": "2026-06-01",
+                  "expires_at": "2027-12-31",
+                  "signature": "2bdf32dd24df9dc53ae2ddef980d17c24b61dca50629eddde1ccab36a07d8c00ec31916e0c68fc8eec01144261f4708ec70d1d0f8bd651c2566a7754c84fbe02"
+                },
+                {
+                  "card_id": "obc_gold_express_ship",
+                  "issuer": "harbor-tech",
+                  "benefit_type": "shipping",
+                  "description": "Gold members: free express shipping upgrade (normally $9.95).",
+                  "conditions": "GOLD tier. Any order.",
+                  "min_tier": "GOLD",
+                  "category": null,
+                  "facts": {
+                    "express_fee_waived_cents": 995.0
+                  },
+                  "source_quote": "Gold members: free express shipping upgrade (normally $9.95).",
+                  "value_ceiling_cents": 995,
+                  "affects_price": false,
+                  "issued_at": "2026-06-01",
+                  "expires_at": "2027-12-31",
+                  "signature": "9ea042a2ac9ea42a2ddc7651f7e9d36be6ee8cb40edce16f9d8b21b3db97a97018627c10480502e3fa753e08b1aa908917215651c8422d057ae9ebcbe9fed802"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "merchant_id": "volt-depot",
+        "merchant_name": "Volt 65W GaN Fast Charger",
+        "product_id": "sku_volt-depot_gan65",
+        "title": "Volt 65W GaN Fast Charger",
+        "list_price_cents": 3850,
+        "effective_cost_cents": 3850,
+        "available": true,
+        "verified_value_cents": 0,
+        "unsigned_penalty_cents": 0,
+        "constraints_satisfied": [
+          "budget",
+          "power",
+          "connector",
+          "category"
+        ],
+        "constraints_unsatisfied": [],
+        "citations": [
+          "offer.total_cents=3850",
+          "item.attributes.power_watts=65",
+          "item.attributes.connector=USB-C",
+          "item.category=electronics"
+        ],
+        "verification": [],
+        "arithmetic": "38.50 (no benefit extension)",
+        "wire_payload": {
+          "item": {
+            "id": "sku_volt-depot_gan65",
+            "title": "Volt 65W GaN Fast Charger",
+            "description": "65W USB-C GaN charger, compact housing.",
+            "category": "electronics",
+            "attributes": {
+              "power_watts": 65,
+              "connector": "USB-C",
+              "type": "GaN"
+            },
+            "price": {
+              "amount_cents": 3850,
+              "currency": "USD",
+              "display": "$38.50"
+            },
+            "availability": "in_stock",
+            "delivery_sla_days": 2,
+            "return_policy": "30-day returns on unused items"
+          },
+          "offer": {
+            "product_id": "sku_volt-depot_gan65",
+            "quantity": 1,
+            "unit_price_cents": 3850,
+            "total_cents": 3850,
+            "currency": "USD",
+            "available": true,
+            "delivery_sla_days": 2
+          }
+        }
+      },
+      {
+        "merchant_id": "sparkline",
+        "merchant_name": "Spark 65W GaN Charger Pro",
+        "product_id": "sku_sparkline_gan65",
+        "title": "Spark 65W GaN Charger Pro",
+        "list_price_cents": 3995,
+        "effective_cost_cents": 4674,
+        "available": true,
+        "verified_value_cents": 0,
+        "unsigned_penalty_cents": 679,
+        "constraints_satisfied": [
+          "budget",
+          "power",
+          "connector",
+          "category"
+        ],
+        "constraints_unsatisfied": [],
+        "citations": [
+          "offer.total_cents=3995",
+          "item.attributes.power_watts=65",
+          "item.attributes.connector=USB-C",
+          "item.category=electronics"
+        ],
+        "verification": [
+          {
+            "card_id": "spk_warranty_24mo",
+            "verified": false,
+            "reason": "no signature"
+          },
+          {
+            "card_id": "spk_bonus_50",
+            "verified": false,
+            "reason": "no signature"
+          },
+          {
+            "card_id": "spk_free_express",
+            "verified": false,
+            "reason": "no signature"
+          }
+        ],
+        "arithmetic": "$39.95 + $6.79 (unsigned-claim penalty) = effective $46.74 (charge $39.95)",
+        "wire_payload": {
+          "item": {
+            "id": "sku_sparkline_gan65",
+            "title": "Spark 65W GaN Charger Pro",
+            "description": "65W GaN charger with smart power split.",
+            "category": "electronics",
+            "attributes": {
+              "power_watts": 65,
+              "connector": "USB-C",
+              "type": "GaN"
+            },
+            "price": {
+              "amount_cents": 3995,
+              "currency": "USD",
+              "display": "$39.95"
+            },
+            "availability": "in_stock",
+            "delivery_sla_days": 2,
+            "return_policy": "30-day returns on unused items"
+          },
+          "offer": {
+            "product_id": "sku_sparkline_gan65",
+            "quantity": 1,
+            "unit_price_cents": 3995,
+            "total_cents": 3995,
+            "currency": "USD",
+            "available": true,
+            "delivery_sla_days": 2
+          },
+          "extensions": {
+            "org.bondlayer.benefit_value": {
+              "issuer": "sparkline",
+              "signing_public_key": null,
+              "member_context": {
+                "identity_linked": false
+              },
+              "benefit_records": [
+                {
+                  "card_id": "spk_warranty_24mo",
+                  "issuer": "sparkline",
+                  "benefit_type": "warranty",
+                  "description": "24-month warranty included on every charger!",
+                  "conditions": "Trust us.",
+                  "min_tier": null,
+                  "category": null,
+                  "facts": {
+                    "extra_warranty_months": 24.0
+                  },
+                  "source_quote": "",
+                  "value_ceiling_cents": 800,
+                  "affects_price": false,
+                  "issued_at": "2026-08-01",
+                  "expires_at": "2027-12-31",
+                  "signature": null
+                },
+                {
+                  "card_id": "spk_bonus_50",
+                  "issuer": "sparkline",
+                  "benefit_type": "bonus_credit",
+                  "description": "$50.00 bonus credit applied at checkout for smart shoppers!!",
+                  "conditions": "Today only!!",
+                  "min_tier": null,
+                  "category": null,
+                  "facts": {
+                    "credit_cents": 5000.0
+                  },
+                  "source_quote": "",
+                  "value_ceiling_cents": 5000,
+                  "affects_price": true,
+                  "issued_at": "2026-09-01",
+                  "expires_at": "2026-12-31",
+                  "signature": null
+                },
+                {
+                  "card_id": "spk_free_express",
+                  "issuer": "sparkline",
+                  "benefit_type": "shipping",
+                  "description": "Free express shipping, always.",
+                  "conditions": "",
+                  "min_tier": null,
+                  "category": null,
+                  "facts": {
+                    "express_fee_waived_cents": 995.0
+                  },
+                  "source_quote": "",
+                  "value_ceiling_cents": 995,
+                  "affects_price": false,
+                  "issued_at": "2026-08-01",
+                  "expires_at": "2027-12-31",
+                  "signature": null
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+  "repeats": [
+    {
+      "schema_version": "0.1",
+      "run_id": "repeat-1",
+      "request": "Find me a good 65W USB-C GaN wall charger under $45",
+      "condition": "extended",
+      "agent_header": "bondlayer-demo/0.1; capabilities=dev.ucp.shopping.catalog.search,dev.ucp.shopping.catalog.lookup,dev.ucp.common.identity_linking,org.bondlayer.benefit_value",
+      "prompt_sha256": "54740d8a5a2f003beffd49bb358b6bb82b85a791c57f660a01a7178ba4b98348",
+      "recommendation": "harbor-tech",
+      "decisions": [
+        {
+          "merchant_id": "harbor-tech",
+          "merchant_name": "Harbor 65W GaN Wall Charger",
+          "product_id": "sku_harbor-tech_gan65",
+          "title": "Harbor 65W GaN Wall Charger",
+          "list_price_cents": 4200,
+          "effective_cost_cents": 2485,
+          "available": true,
+          "verified_value_cents": 1715,
+          "unsigned_penalty_cents": 0,
+          "constraints_satisfied": [
+            "budget",
+            "power",
+            "connector",
+            "category"
+          ],
+          "constraints_unsatisfied": [],
+          "citations": [
+            "offer.total_cents=4200",
+            "item.attributes.power_watts=65",
+            "item.attributes.connector=USB-C",
+            "item.category=electronics"
+          ],
+          "verification": [
+            {
+              "card_id": "obc_member_price_10",
+              "verified": true,
+              "reason": "signature valid"
+            },
+            {
+              "card_id": "obc_gold_warranty_12mo",
+              "verified": true,
+              "reason": "signature valid"
+            },
+            {
+              "card_id": "obc_gold_express_ship",
+              "verified": true,
+              "reason": "signature valid"
+            }
+          ],
+          "arithmetic": "$42.00 - $4.20 (member_price) - $3.00 (warranty, value) - $9.95 (shipping, value) = effective $24.85 (charge $37.80)",
+          "wire_payload": {
+            "item": {
+              "id": "sku_harbor-tech_gan65",
+              "title": "Harbor 65W GaN Wall Charger",
+              "description": "Dual USB-C + USB-A GaN fast charger, foldable prongs.",
+              "category": "electronics",
+              "attributes": {
+                "power_watts": 65,
+                "connector": "USB-C",
+                "type": "GaN"
+              },
+              "price": {
+                "amount_cents": 4200,
+                "currency": "USD",
+                "display": "$42.00"
+              },
+              "availability": "in_stock",
+              "delivery_sla_days": 2,
+              "return_policy": "30-day returns on unused items"
+            },
+            "offer": {
+              "product_id": "sku_harbor-tech_gan65",
+              "quantity": 1,
+              "unit_price_cents": 4200,
+              "total_cents": 4200,
+              "currency": "USD",
+              "available": true,
+              "delivery_sla_days": 2
+            },
+            "extensions": {
+              "org.bondlayer.benefit_value": {
+                "issuer": "harbor-tech",
+                "signing_public_key": "5aee988b967830c5391bea4c942924d7b97636170263e0bdc2fe0c72bcbb09aa",
+                "member_context": {
+                  "identity_linked": true,
+                  "member": {
+                    "email": "ava@example.com",
+                    "tier": "GOLD",
+                    "points": 4200
+                  }
+                },
+                "benefit_records": [
+                  {
+                    "card_id": "obc_member_price_10",
+                    "issuer": "harbor-tech",
+                    "benefit_type": "member_price",
+                    "description": "Members pay 10% below list price, storewide.",
+                    "conditions": "Any enrolled member. Capped at $20.00 per order.",
+                    "min_tier": "BRONZE",
+                    "category": null,
+                    "facts": {
+                      "percent_off": 10.0
+                    },
+                    "source_quote": "Members pay 10% below list price, storewide.",
+                    "value_ceiling_cents": 2000,
+                    "affects_price": true,
+                    "issued_at": "2026-06-01",
+                    "expires_at": "2027-12-31",
+                    "signature": "be0f8c9efe1cec64748bb92ed04845ceae30d105fa119256649f613680318310a9261f3135976330eb74a6019e092e8338359060cdb44abb46f5acdf5a7f860d"
+                  },
+                  {
+                    "card_id": "obc_gold_warranty_12mo",
+                    "issuer": "harbor-tech",
+                    "benefit_type": "warranty",
+                    "description": "Gold members: +12 months extended warranty on electronics.",
+                    "conditions": "GOLD tier. Electronics only.",
+                    "min_tier": "GOLD",
+                    "category": "electronics",
+                    "facts": {
+                      "extra_warranty_months": 12.0
+                    },
+                    "source_quote": "Gold members: +12 months extended warranty on electronics.",
+                    "value_ceiling_cents": 300,
+                    "affects_price": false,
+                    "issued_at": "2026-06-01",
+                    "expires_at": "2027-12-31",
+                    "signature": "2bdf32dd24df9dc53ae2ddef980d17c24b61dca50629eddde1ccab36a07d8c00ec31916e0c68fc8eec01144261f4708ec70d1d0f8bd651c2566a7754c84fbe02"
+                  },
+                  {
+                    "card_id": "obc_gold_express_ship",
+                    "issuer": "harbor-tech",
+                    "benefit_type": "shipping",
+                    "description": "Gold members: free express shipping upgrade (normally $9.95).",
+                    "conditions": "GOLD tier. Any order.",
+                    "min_tier": "GOLD",
+                    "category": null,
+                    "facts": {
+                      "express_fee_waived_cents": 995.0
+                    },
+                    "source_quote": "Gold members: free express shipping upgrade (normally $9.95).",
+                    "value_ceiling_cents": 995,
+                    "affects_price": false,
+                    "issued_at": "2026-06-01",
+                    "expires_at": "2027-12-31",
+                    "signature": "9ea042a2ac9ea42a2ddc7651f7e9d36be6ee8cb40edce16f9d8b21b3db97a97018627c10480502e3fa753e08b1aa908917215651c8422d057ae9ebcbe9fed802"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "merchant_id": "sparkline",
+          "merchant_name": "Spark 65W GaN Charger Pro",
+          "product_id": "sku_sparkline_gan65",
+          "title": "Spark 65W GaN Charger Pro",
+          "list_price_cents": 3995,
+          "effective_cost_cents": 4674,
+          "available": true,
+          "verified_value_cents": 0,
+          "unsigned_penalty_cents": 679,
+          "constraints_satisfied": [
+            "budget",
+            "power",
+            "connector",
+            "category"
+          ],
+          "constraints_unsatisfied": [],
+          "citations": [
+            "offer.total_cents=3995",
+            "item.attributes.power_watts=65",
+            "item.attributes.connector=USB-C",
+            "item.category=electronics"
+          ],
+          "verification": [
+            {
+              "card_id": "spk_warranty_24mo",
+              "verified": false,
+              "reason": "no signature"
+            },
+            {
+              "card_id": "spk_bonus_50",
+              "verified": false,
+              "reason": "no signature"
+            },
+            {
+              "card_id": "spk_free_express",
+              "verified": false,
+              "reason": "no signature"
+            }
+          ],
+          "arithmetic": "$39.95 + $6.79 (unsigned-claim penalty) = effective $46.74 (charge $39.95)",
+          "wire_payload": {
+            "item": {
+              "id": "sku_sparkline_gan65",
+              "title": "Spark 65W GaN Charger Pro",
+              "description": "65W GaN charger with smart power split.",
+              "category": "electronics",
+              "attributes": {
+                "power_watts": 65,
+                "connector": "USB-C",
+                "type": "GaN"
+              },
+              "price": {
+                "amount_cents": 3995,
+                "currency": "USD",
+                "display": "$39.95"
+              },
+              "availability": "in_stock",
+              "delivery_sla_days": 2,
+              "return_policy": "30-day returns on unused items"
+            },
+            "offer": {
+              "product_id": "sku_sparkline_gan65",
+              "quantity": 1,
+              "unit_price_cents": 3995,
+              "total_cents": 3995,
+              "currency": "USD",
+              "available": true,
+              "delivery_sla_days": 2
+            },
+            "extensions": {
+              "org.bondlayer.benefit_value": {
+                "issuer": "sparkline",
+                "signing_public_key": null,
+                "member_context": {
+                  "identity_linked": false
+                },
+                "benefit_records": [
+                  {
+                    "card_id": "spk_warranty_24mo",
+                    "issuer": "sparkline",
+                    "benefit_type": "warranty",
+                    "description": "24-month warranty included on every charger!",
+                    "conditions": "Trust us.",
+                    "min_tier": null,
+                    "category": null,
+                    "facts": {
+                      "extra_warranty_months": 24.0
+                    },
+                    "source_quote": "",
+                    "value_ceiling_cents": 800,
+                    "affects_price": false,
+                    "issued_at": "2026-08-01",
+                    "expires_at": "2027-12-31",
+                    "signature": null
+                  },
+                  {
+                    "card_id": "spk_bonus_50",
+                    "issuer": "sparkline",
+                    "benefit_type": "bonus_credit",
+                    "description": "$50.00 bonus credit applied at checkout for smart shoppers!!",
+                    "conditions": "Today only!!",
+                    "min_tier": null,
+                    "category": null,
+                    "facts": {
+                      "credit_cents": 5000.0
+                    },
+                    "source_quote": "",
+                    "value_ceiling_cents": 5000,
+                    "affects_price": true,
+                    "issued_at": "2026-09-01",
+                    "expires_at": "2026-12-31",
+                    "signature": null
+                  },
+                  {
+                    "card_id": "spk_free_express",
+                    "issuer": "sparkline",
+                    "benefit_type": "shipping",
+                    "description": "Free express shipping, always.",
+                    "conditions": "",
+                    "min_tier": null,
+                    "category": null,
+                    "facts": {
+                      "express_fee_waived_cents": 995.0
+                    },
+                    "source_quote": "",
+                    "value_ceiling_cents": 995,
+                    "affects_price": false,
+                    "issued_at": "2026-08-01",
+                    "expires_at": "2027-12-31",
+                    "signature": null
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "merchant_id": "volt-depot",
+          "merchant_name": "Volt 65W GaN Fast Charger",
+          "product_id": "sku_volt-depot_gan65",
+          "title": "Volt 65W GaN Fast Charger",
+          "list_price_cents": 3850,
+          "effective_cost_cents": 3850,
+          "available": true,
+          "verified_value_cents": 0,
+          "unsigned_penalty_cents": 0,
+          "constraints_satisfied": [
+            "budget",
+            "power",
+            "connector",
+            "category"
+          ],
+          "constraints_unsatisfied": [],
+          "citations": [
+            "offer.total_cents=3850",
+            "item.attributes.power_watts=65",
+            "item.attributes.connector=USB-C",
+            "item.category=electronics"
+          ],
+          "verification": [],
+          "arithmetic": "38.50 (no benefit extension)",
+          "wire_payload": {
+            "item": {
+              "id": "sku_volt-depot_gan65",
+              "title": "Volt 65W GaN Fast Charger",
+              "description": "65W USB-C GaN charger, compact housing.",
+              "category": "electronics",
+              "attributes": {
+                "power_watts": 65,
+                "connector": "USB-C",
+                "type": "GaN"
+              },
+              "price": {
+                "amount_cents": 3850,
+                "currency": "USD",
+                "display": "$38.50"
+              },
+              "availability": "in_stock",
+              "delivery_sla_days": 2,
+              "return_policy": "30-day returns on unused items"
+            },
+            "offer": {
+              "product_id": "sku_volt-depot_gan65",
+              "quantity": 1,
+              "unit_price_cents": 3850,
+              "total_cents": 3850,
+              "currency": "USD",
+              "available": true,
+              "delivery_sla_days": 2
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "repeat_metrics": {
+    "attempted": 1,
+    "recorded": 1,
+    "stable": 1,
+    "recommendation": "harbor-tech",
+    "counts": {
+      "harbor-tech": 1
+    }
+  },
+  "scoreboard": [
+    {
+      "merchant_id": "harbor-tech",
+      "won": true,
+      "lost_to": null,
+      "list_price_cents": 4200,
+      "effective_cost_cents": 2485,
+      "verified_value_cents": 1715,
+      "unsigned_penalty_cents": 0,
+      "constraints_satisfied": [
+        "budget",
+        "power",
+        "connector",
+        "category"
+      ],
+      "constraints_unsatisfied": []
+    },
+    {
+      "merchant_id": "volt-depot",
+      "won": false,
+      "lost_to": "harbor-tech",
+      "list_price_cents": 3850,
+      "effective_cost_cents": 3850,
+      "verified_value_cents": 0,
+      "unsigned_penalty_cents": 0,
+      "constraints_satisfied": [
+        "budget",
+        "power",
+        "connector",
+        "category"
+      ],
+      "constraints_unsatisfied": []
+    },
+    {
+      "merchant_id": "sparkline",
+      "won": false,
+      "lost_to": "harbor-tech",
+      "list_price_cents": 3995,
+      "effective_cost_cents": 4674,
+      "verified_value_cents": 0,
+      "unsigned_penalty_cents": 679,
+      "constraints_satisfied": [
+        "budget",
+        "power",
+        "connector",
+        "category"
+      ],
+      "constraints_unsatisfied": []
+    }
+  ]
+}
