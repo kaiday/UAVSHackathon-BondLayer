@@ -33,21 +33,39 @@ class Sku:
 
 
 class BenefitType(str, Enum):
+    # Priced benefits -- ontology names per handover section 8 JSON contract
     MEMBER_PRICE = "member_price"
-    POINTS = "points"
-    RETURN_WINDOW = "return_window"
-    WARRANTY_MONTHS = "warranty_months"
+    POINTS_EARN = "points_earn"
+    FREE_RETURNS = "free_returns"
+    WARRANTY = "warranty"
     TRADE_IN_CREDIT = "trade_in_credit"
-    DELIVERY_THRESHOLD = "delivery_threshold"
+    DELIVERY = "delivery"
+
+    # Values claims -- validated, never priced. These answer a VALUES
+    # constraint ("only buy from ethical brands") the way a priced benefit
+    # answers a SERVICE one. They carry no value_ceiling_aud and contribute
+    # nothing to effective cost; their whole job is to be verifiable, so that
+    # a signed ethical claim beats unverifiable greenwashing.
+    SUSTAINABILITY = "sustainability"
+    ETHICAL_SOURCING = "ethical_sourcing"
+    DURABILITY = "durability"
+    REPAIRABILITY = "repairability"
 
 
 @dataclass(frozen=True)
 class BenefitRecord:
-    """A typed, bounded claim about non-price value.
+    """A typed claim about non-price value.
 
     ``value_ceiling_aud`` is the most the merchant asserts this benefit is
     worth. The agent credits min(ceiling, shopper's own policy value), so
     declaring a bigger number cannot buy a better ranking.
+
+    **A ceiling of None means the record is validated but never priced.** That
+    is the values-claim case: it can satisfy a VALUES constraint and be cited
+    in the justification, and it contributes exactly zero to effective cost.
+    Signing makes it attributable and tamper-evident, which is the whole point
+    -- a verified durability claim is worth something a marketing adjective is
+    not, without ever being converted into dollars.
     """
 
     record_id: str
@@ -58,8 +76,12 @@ class BenefitRecord:
     issuer: str  # merchant domain
     issued_at: datetime
     expires_at: datetime | None
-    value_ceiling_aud: Decimal
+    value_ceiling_aud: Decimal | None  # None = validated but never priced
     source_span: str | None = None  # quoted policy text, for the approval gate
+
+    @property
+    def is_priced(self) -> bool:
+        return self.value_ceiling_aud is not None
 
 
 @dataclass(frozen=True)
