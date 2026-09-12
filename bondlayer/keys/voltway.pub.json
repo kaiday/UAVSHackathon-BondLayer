@@ -1,0 +1,12 @@
+[
+  {
+    "kty": "EC",
+    "crv": "P-256",
+    "alg": "ES256",
+    "use": "sig",
+    "kid": "voltway-2026-09",
+    "key_id": "voltway-2026-09",
+    "x": "w5wZhTZ3xQhthecXAVMOfYb1_ZPLTQmPNzw5AtZeWvo",
+    "y": "sy_yIhOn-CaKPzTFZstaaOWbQocCl8wqdw9kszSeXpE"
+  }
+]

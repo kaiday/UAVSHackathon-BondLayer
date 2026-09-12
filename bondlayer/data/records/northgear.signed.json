@@ -1,0 +1,122 @@
+{
+  "merchant": "northgear",
+  "records": [
+    {
+      "record": {
+        "benefit_type": "free_returns",
+        "conditions": [],
+        "expires_at": "2027-07-01T00:00:00.000000Z",
+        "fact": {
+          "days": 45
+        },
+        "issued_at": "2026-09-12T00:00:00.000000Z",
+        "issuer": "northgear.example",
+        "record_id": "ng-returns-45",
+        "sku_id": null,
+        "source_span": "We offer a 45 day change of mind returns window on all products, with free return shipping on orders over $200.",
+        "value_ceiling_aud": "30"
+      },
+      "signature": "Ab9ioyK-g4Qy3lA4m8wclNAQ-HXyGv4dHTeRcUM9alEcf_vAGOijw-NaFwwTBhbmQ_3Br-6aFp8iUB7IdFl-7g",
+      "key_id": "northgear-2026-09"
+    },
+    {
+      "record": {
+        "benefit_type": "warranty",
+        "conditions": [],
+        "expires_at": "2027-07-01T00:00:00.000000Z",
+        "fact": {
+          "extra_months": 6,
+          "scope": "laptop,appliance"
+        },
+        "issued_at": "2026-09-12T00:00:00.000000Z",
+        "issuer": "northgear.example",
+        "record_id": "ng-warranty-6",
+        "sku_id": null,
+        "source_span": "NorthGear adds 6 months of extended cover on appliances and laptops at no charge.",
+        "value_ceiling_aud": "30"
+      },
+      "signature": "DfZxGRIc8xr8x2AbrfgMWvE6IlLYhTdmna5pdHSV48IYxK9_D1BkgMNpoSmR9f7JswcoTFL6-jS6PzHZumv7Ig",
+      "key_id": "northgear-2026-09"
+    },
+    {
+      "record": {
+        "benefit_type": "points_earn",
+        "conditions": [
+          "paid_member"
+        ],
+        "expires_at": "2027-07-01T00:00:00.000000Z",
+        "fact": {
+          "cents_per_point": 1,
+          "points_per_dollar": 2
+        },
+        "issued_at": "2026-09-12T00:00:00.000000Z",
+        "issuer": "northgear.example",
+        "record_id": "ng-points-2x",
+        "sku_id": null,
+        "source_span": "Plus members pay $49 per year. In return they receive ... 2 points per dollar (redeemable at 1 cent per point).",
+        "value_ceiling_aud": "30"
+      },
+      "signature": "1BlAIj9kT1oWU_3XYhZirLi1qNdnxXjatgUFPyPGsYUXKCPDWdItb7FlRWQinVFWXUMSLdkdKLysr9-Gxttm6w",
+      "key_id": "northgear-2026-09"
+    },
+    {
+      "record": {
+        "benefit_type": "trade_in_credit",
+        "conditions": [
+          "trade_in_device"
+        ],
+        "expires_at": "2027-07-01T00:00:00.000000Z",
+        "fact": {
+          "cap_aud": 300,
+          "scope": "phone"
+        },
+        "issued_at": "2026-09-12T00:00:00.000000Z",
+        "issuer": "northgear.example",
+        "record_id": "ng-tradein-phone-300",
+        "sku_id": null,
+        "source_span": "Phone trade-ins accepted, capped at $300. Laptops and tablets are not accepted.",
+        "value_ceiling_aud": "300"
+      },
+      "signature": "BRGP6fyfAQAlT6O8-kasixchDNuCysc9HF9ApuPClxQem6y3orvENuuXlymFKo3SRAwFXCAwDhgIZQ9Fp-xSew",
+      "key_id": "northgear-2026-09"
+    },
+    {
+      "record": {
+        "benefit_type": "delivery",
+        "conditions": [
+          "order_over_75"
+        ],
+        "expires_at": "2027-07-01T00:00:00.000000Z",
+        "fact": {
+          "free_over_aud": 75
+        },
+        "issued_at": "2026-09-12T00:00:00.000000Z",
+        "issuer": "northgear.example",
+        "record_id": "ng-delivery-free-75",
+        "sku_id": null,
+        "source_span": "Free standard delivery on orders over $75 -- the lowest threshold of any major Australian electronics retailer.",
+        "value_ceiling_aud": "8.95"
+      },
+      "signature": "yl9NAY5vpVg8mMlPO9hKkMF7zbCUK6kAAwvIoSEprqQLm34rruTkMyfXNj0-Dd6Wc2zFWfsU9v08dEcIAqP1Pw",
+      "key_id": "northgear-2026-09"
+    },
+    {
+      "record": {
+        "benefit_type": "sustainability",
+        "conditions": [],
+        "expires_at": "2027-07-01T00:00:00.000000Z",
+        "fact": {
+          "claim": "Australia's most sustainable electronics retailer, 100% carbon neutral, ethically sourced"
+        },
+        "issued_at": "2026-09-12T00:00:00.000000Z",
+        "issuer": "northgear.example",
+        "record_id": "ng-sustainability-claim",
+        "sku_id": null,
+        "source_span": null,
+        "value_ceiling_aud": null
+      },
+      "signature": null,
+      "key_id": null
+    }
+  ]
+}

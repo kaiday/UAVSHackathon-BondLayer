@@ -32,6 +32,7 @@ pitch title and the team-info block.
 | 3 | Intent-accuracy evaluation set | Nha | Phase 0 gate — 30 requests, not the 100+ of proposal Phase 4; say so rather than overclaim |
 | 4 | Synthetic electronics catalogue + merchant manifests | Nha | Phase 0 gate — **see manifest count below** |
 | 5 | **Q&A rehearsal**, especially Q2 (Talon.One UIP) | **Nha to schedule** | **newly assigned**, Day 2 15:00–16:30 |
+| 6 | Record signing algorithm | Bach + Nguyen | **Settled: ES256 (P-256/SHA-256)** per issue #7, `types.py`, `cryptography` dependency and submitted Round 1 design. The handover's Ed25519/PyNaCl stack is stale. Detached record signatures are distinct from RFC 9421 transport signatures; Nguyen publishes matching public keys in `signing_keys[]`. |
 
 ---
 
