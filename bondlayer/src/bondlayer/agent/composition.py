@@ -244,7 +244,9 @@ def _search_query(parsed: list) -> tuple[str, dict]:
     name the shopper actually said ("ThinkBook 14 G3") belongs in ``q``. With no
     such name the query is empty, the merchant returns its shelf, and the
     resolver does the filtering agent-side -- which is the architecture: the
-    merchant publishes, the agent decides.
+    merchant publishes, the agent decides -- and, when it negotiates
+    ``org.bondlayer.intent_match``, also receives the utterance and proposes;
+    the agent still verifies and ranks.
     """
     hard = [c for c in parsed
             if getattr(getattr(c, "kind", None), "value", "") == "hard"]
