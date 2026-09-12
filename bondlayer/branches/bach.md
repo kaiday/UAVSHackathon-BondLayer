@@ -5,10 +5,10 @@ layer — they make the interpreter's citations trustworthy. Components 3, 4 and
 of the Round 1 §5.2 table.
 
 You are not blocked by the Phase 0 gate. Canonical serialisation, signing and
-the invariant tests need no catalogue. **Write the three invariant tests first**
+the invariant tests need no catalogue. **Write the five invariant tests first**
 — they are what the pitch stands on.
 
-## Write these three tests before anything else
+## Write these five tests before anything else
 
 `tests/test_invariants.py`:
 
@@ -16,8 +16,12 @@ the invariant tests need no catalogue. **Write the three invariant tests first**
    record's payload; `verify()` returns False.
 2. **An unsigned record credits zero.** It is displayed, never valued.
 3. **Inflating `value_ceiling_aud` to $9,999 does not change the ranking.**
-   Because credited value is `min(merchant_ceiling, shopper_policy_value)`, a
-   merchant cannot buy rank by declaring a bigger number.
+   With the honest ceiling already at or above shopper value, re-sign the
+   inflated record and prove credit and ranking stay fixed. In general
+   `min(merchant_ceiling, shopper_policy_value)` caps credit at shopper value;
+   it does not freeze credit when the original ceiling was lower.
+4. **A signed values claim is citable but credits zero.**
+5. **An unsigned greenwashing claim is not citable and credits zero.**
 
 Test 3 is the one that survives the Q&A. The obvious attack on our design is
 "what stops a merchant claiming their warranty is worth ten thousand dollars" —
@@ -78,7 +82,7 @@ implementation when it lands.
 
 ## Done when
 
-The three invariants pass, the planted unsigned record earns zero on screen, and
+The five invariants pass, the planted unsigned record earns zero on screen, and
 `EffectiveCost` comes back with its arithmetic exposed.
 
 ---
@@ -114,9 +118,10 @@ One consequence worth a test: a *signed* values claim and an *unsigned* one both
 contribute zero dollars — but only the signed one may be cited. Verification and
 valuation are separate questions, and your invariants should say so.
 
-### Open: ES256 or Ed25519
+### Settled: ES256
 
-The submitted docx says **ES256** with `signing_keys[]`; the handover's canonical
-text and locked stack say **Ed25519 / PyNaCl**. These disagree and it is not
-settled. **Ask Ford before you write the signing code** — it is the one open
-question that blocks you.
+Issue #7, the shared `types.py` contract, `cryptography` dependency and submitted
+Round 1 design agree: **ES256 (P-256/SHA-256)**. The handover's **Ed25519 / PyNaCl**
+text is stale, not a blocker. Detached signatures encode the 64-byte `R || S`
+value as unpadded base64url; they are not ASN.1 DER or RFC 9421 transport signatures.
+Export public JWKs for Nguyen's `signing_keys[]`; never publish private keys.
