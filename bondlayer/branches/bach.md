@@ -80,3 +80,43 @@ implementation when it lands.
 
 The three invariants pass, the planted unsigned record earns zero on screen, and
 `EffectiveCost` comes back with its arithmetic exposed.
+
+---
+
+## Added from the Round 2 alignment analysis
+
+### Close the API loop (gap 7) — newly yours, Phase 3
+
+Step 5 of the problem statement's five-step walkthrough is *"closing the loop
+through a seamless, API-driven transaction."* Today it is a status flag.
+
+It pairs with your Phase 3 work: re-asserting records at checkout through UCP's
+loyalty extension is already yours, and the same call just needs to settle
+rather than mark. Make it **idempotent** and make it **confirm explicitly** —
+create and confirm are separate steps, and replaying a confirmation must not
+double-credit a benefit.
+
+Scope honestly: **no real payment flow.** A simulated settlement is enough and
+is inside the stated boundaries. Do not let it grow.
+
+### Values claims (gap 5) — nothing new for you, and that is the point
+
+`BenefitType` now carries `sustainability`, `ethical_sourcing`, `durability`,
+`repairability`, and `value_ceiling_aud` is optional. A values claim is just a
+`BenefitRecord` with `value_ceiling_aud = None`.
+
+**Do not special-case them.** They sign and verify through your existing path,
+and they contribute exactly zero to effective cost because there is no ceiling
+to take a minimum against. The analysis rates this the best effort-to-score gap
+precisely because your machinery already covers it.
+
+One consequence worth a test: a *signed* values claim and an *unsigned* one both
+contribute zero dollars — but only the signed one may be cited. Verification and
+valuation are separate questions, and your invariants should say so.
+
+### Open: ES256 or Ed25519
+
+The submitted docx says **ES256** with `signing_keys[]`; the handover's canonical
+text and locked stack say **Ed25519 / PyNaCl**. These disagree and it is not
+settled. **Ask Ford before you write the signing code** — it is the one open
+question that blocks you.
