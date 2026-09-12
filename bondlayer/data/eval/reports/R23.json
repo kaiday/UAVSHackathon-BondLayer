@@ -1,0 +1,110 @@
+{
+  "request_id": "R23",
+  "utterance": "Portable SSD, 2TB, delivered this week",
+  "bundle": false,
+  "expect_unsatisfied": false,
+  "constraints": [
+    {
+      "text": "Portable SSD",
+      "kind": "hard"
+    },
+    {
+      "text": "2TB",
+      "kind": "hard"
+    },
+    {
+      "text": "delivered this week",
+      "kind": "service"
+    }
+  ],
+  "metrics": {
+    "hard_precision": 1.0,
+    "gold_recall": 1.0,
+    "precision_at_gold": 1.0,
+    "citations": [
+      1,
+      1
+    ],
+    "clauses_answered": [
+      1,
+      1
+    ],
+    "clauses_answered_control": [
+      0,
+      1
+    ]
+  },
+  "unsatisfied": [
+    "delivered this week"
+  ],
+  "merchants": [
+    {
+      "request_id": "R23",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 10,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; voltway won on effective cost.",
+      "sku_id": "CIT-0096",
+      "shelf_price": "271.00",
+      "effective_cost": "271.00",
+      "unsatisfied": [
+        "delivered this week"
+      ]
+    },
+    {
+      "request_id": "R23",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 10,
+      "legible_share": 1.0,
+      "value_credited_aud": "149.95",
+      "value_withheld_aud": "1370.00",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "VOL-0095",
+      "shelf_price": "290.16",
+      "effective_cost": "140.21",
+      "unsatisfied": []
+    }
+  ],
+  "control": [
+    {
+      "request_id": "R23",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 10,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "CIT-0096",
+      "shelf_price": "271.00",
+      "effective_cost": "271.00",
+      "unsatisfied": [
+        "delivered this week"
+      ]
+    },
+    {
+      "request_id": "R23",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 10,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "1519.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "VOL-0095",
+      "shelf_price": "290.16",
+      "effective_cost": "290.16",
+      "unsatisfied": [
+        "delivered this week"
+      ]
+    }
+  ]
+}

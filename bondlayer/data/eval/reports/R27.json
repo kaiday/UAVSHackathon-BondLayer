@@ -1,0 +1,142 @@
+{
+  "request_id": "R27",
+  "utterance": "Microphone under $200 that I can send back if it doesn't suit my voice",
+  "bundle": false,
+  "expect_unsatisfied": false,
+  "constraints": [
+    {
+      "text": "Microphone",
+      "kind": "hard"
+    },
+    {
+      "text": "under $200",
+      "kind": "hard"
+    },
+    {
+      "text": "send back if it doesn't suit my voice",
+      "kind": "service"
+    }
+  ],
+  "metrics": {
+    "hard_precision": 1.0,
+    "gold_recall": 1.0,
+    "precision_at_gold": 1.0,
+    "citations": [
+      11,
+      11
+    ],
+    "clauses_answered": [
+      1,
+      1
+    ],
+    "clauses_answered_control": [
+      0,
+      1
+    ]
+  },
+  "unsatisfied": [
+    "send back if it doesn't suit my voice"
+  ],
+  "merchants": [
+    {
+      "request_id": "R27",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 9,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; voltway won on effective cost.",
+      "sku_id": "CIT-0081",
+      "shelf_price": "28.10",
+      "effective_cost": "28.10",
+      "unsatisfied": [
+        "send back if it doesn't suit my voice"
+      ]
+    },
+    {
+      "request_id": "R27",
+      "merchant": "northgear",
+      "control_merchant": false,
+      "fields_exposed": 9,
+      "legible_share": 1.0,
+      "value_credited_aud": "38.95",
+      "value_withheld_aud": "360",
+      "won": false,
+      "lost_because": "Published value the wire did not carry: $360 was withheld as unverified, unattested or out of scope, so voltway won on effective cost.",
+      "sku_id": "NOR-0082",
+      "shelf_price": "29.00",
+      "effective_cost": "-9.95",
+      "unsatisfied": []
+    },
+    {
+      "request_id": "R27",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 9,
+      "legible_share": 1.0,
+      "value_credited_aud": "149.95",
+      "value_withheld_aud": "1370.00",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "VOL-0080",
+      "shelf_price": "30.16",
+      "effective_cost": "-119.79",
+      "unsatisfied": []
+    }
+  ],
+  "control": [
+    {
+      "request_id": "R27",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 9,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "CIT-0081",
+      "shelf_price": "28.10",
+      "effective_cost": "28.10",
+      "unsatisfied": [
+        "send back if it doesn't suit my voice"
+      ]
+    },
+    {
+      "request_id": "R27",
+      "merchant": "northgear",
+      "control_merchant": false,
+      "fields_exposed": 9,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "398.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "NOR-0082",
+      "shelf_price": "29.00",
+      "effective_cost": "29.00",
+      "unsatisfied": [
+        "send back if it doesn't suit my voice"
+      ]
+    },
+    {
+      "request_id": "R27",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 9,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "1519.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "VOL-0080",
+      "shelf_price": "30.16",
+      "effective_cost": "30.16",
+      "unsatisfied": [
+        "send back if it doesn't suit my voice"
+      ]
+    }
+  ]
+}
