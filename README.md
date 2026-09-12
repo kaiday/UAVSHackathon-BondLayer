@@ -1,7 +1,8 @@
-<!-- Root README. Written 12-13/09/2026 against round2/dev at 47cd125 and re-verified
-     against the running code where marked. Sentences describing work still in flight on
-     WS-A / WS-B / WS-C at the time of writing carry <!-- VERIFY 13/09 --> and name what
-     they depend on. Rulebook section references are to docs/Hackathon-Rulebook-2026-Final-Updated-1.pdf
+<!-- Root README. Written 12-13/09/2026 against round2/dev, re-verified sentence by
+     sentence against the running code at 339a7ed on 13/09 (WS-D2 truth pass). Every
+     figure below is copied from bondlayer/docs/eval-results.md at that commit or was
+     reproduced by a command run in this worktree; nothing here is invented. Rulebook
+     section references are to docs/Hackathon-Rulebook-2026-Final-Updated-1.pdf
      section C (Round 2 - 16-Hour Hackathon). -->
 
 # BondLayer
@@ -26,6 +27,18 @@ installed on the agent side. An agent that does not know us gets plain, conforma
 agent that declares the extension gets the full offer, signed, with a stated ceiling on what
 each claim is worth.
 
+Two paths exist side by side, both negotiated capabilities on the same server, the same
+merchants, the same signed records. The **publishing path** (`catalog.search` / `catalog.lookup`
+plus `org.bondlayer.benefit_value`) is the default: the merchant publishes its shelf and its
+signed facts, and the agent decodes the shopper's sentence, resolves it against what came back,
+and ranks — the merchant never sees the utterance. The **intent path**
+(`org.bondlayer.intent_match`, extending `catalog.search`, declared only by a merchant that also
+publishes the benefit extension) is additive: an agent that negotiates it sends the shopper's
+utterance verbatim, and the merchant decodes and resolves it on its own wire, returning
+proposals with a per-constraint justification cited to its own records. Even there, the
+shopper's valuation policy, benefit weights and the cross-merchant comparison never leave the
+agent — only ranking moves merchant-side, never who wins.
+
 > In a room full of agents, we are building the thing agents read.
 
 This is deliberately not a shopping assistant — the Problem Statement puts consumer-facing
@@ -37,20 +50,27 @@ exists only to demonstrate the merchant side, never to be the product.
 ```mermaid
 flowchart TD
     Shopper["Shopper\nstates a need in natural language"]
-    Agent["Buyer-agent stand-in\nround2/chat-app -- FastAPI :8001 + chat UI"]
+    Agent["Buyer-agent stand-in\nround2/chat-app -- FastAPI :8001 + static chat page"]
     UCP["BondLayer UCP server -- bondlayer/ :8000\nucp/server.py, capabilities.py, profile.py"]
-    Interp["Intent interpreter\ninterpreter/parser.py, resolver.py"]
+    Intent["Intent route (merchant-side decode)\nucp/intent.py -- org.bondlayer.intent_match"]
+    Interp["Intent interpreter\ninterpreter/parser.py, resolver.py, interpreter/describe.py"]
+    Comp["Composition root + trace\nagent/composition.py -- resolve() on the live path, Phase.BUNDLE"]
+    Bundle["Bundler\nbundle/compose.py"]
     Adapter["Catalogue adapter\nadapters/catalog.py"]
     Records["Signed benefit records\nrecords/, keys/, data/records/*.signed.json"]
     Policy["Policy onboarding\npolicy.py, data/policies/*.md"]
     Data["Merchant data\ndata/catalog/electronics.csv, manifests.json"]
-    Dash["Merchant dashboard\napp/dashboard/ (vendored React)"]
+    Dash["Merchant dashboard (Requests tab)\napp/dashboard/, GET /onboard/requests*"]
 
     Shopper --> Agent
     Agent -- "UCP-Agent header declares/omits\norg.bondlayer.benefit_value" --> UCP
+    Agent -- "or negotiates org.bondlayer.intent_match\nsends the utterance verbatim" --> Intent
+    Intent --> Interp
     UCP --> Adapter --> Data
     UCP --> Records
-    UCP --> Interp
+    UCP --> Comp
+    Comp --> Interp
+    Comp --> Bundle
     Policy --> Records
     UCP --> Dash
 ```
@@ -59,14 +79,16 @@ flowchart TD
 |---|---|---|
 | Catalogue adapter | CSV export in, normalised `Sku` + `Diagnostic` out; repairs are logged, never silently applied | `bondlayer/src/bondlayer/adapters/catalog.py` |
 | UCP head | `/.well-known/ucp` profile, capability negotiation, `catalog.search` / `catalog.lookup` for three merchants on one code path | `bondlayer/src/bondlayer/ucp/{profile,capabilities,server}.py` |
-| Onboarding API | Merchant switcher, diagnostics report, CSV upload | `bondlayer/src/bondlayer/ucp/onboard.py` |
+| Onboarding API | Merchant switcher, diagnostics report, CSV upload, `GET /onboard/requests` and `GET /onboard/requests/{id}` serving the eval runner's `RequestReport` JSON | `bondlayer/src/bondlayer/ucp/onboard.py` |
 | Signed benefit records | ES256 detached signature over canonical JSON; a record is signed iff it carries both a signature and a key id | `bondlayer/src/bondlayer/records/`, `bondlayer/keys/`, `bondlayer/data/records/*.signed.json` |
 | Policy onboarding | Merchant T&C/warranty/loyalty prose imported behind a human approval gate | `bondlayer/src/bondlayer/policy.py`, `bondlayer/data/policies/*.md` |
 | Valuation | `credited = min(declared_ceiling, shopper_policy_value)`; zero for unsigned or unpriced claims | `bondlayer/src/bondlayer/valuation/` |
-| Intent interpreter | Parses HARD / SOFT / SERVICE / VALUES clauses; resolves each against catalogue attributes or verified records with a cited reason | `bondlayer/src/bondlayer/interpreter/{parser,resolver}.py` <!-- VERIFY 13/09: resolver.py is WS-A's in-flight work; parser.py is landed --> |
-| Composition root + trace | Wires interpreter, merchants and valuation into one request; renders the AI reasoning trace | `bondlayer/src/bondlayer/agent/{composition,trace}.py` |
-| Merchant dashboard | Onboarding screen, readiness (five dimensions, never averaged), per-request "why we lost" | `bondlayer/app/dashboard/` |
-| Buyer-agent stand-in | The demo harness: turns a shopper's sentence into a UCP request against the running merchant server | `round2/chat-app/src/agent/` <!-- VERIFY 13/09: WS-B is deleting src/merchant/ and data/ and repointing ucp_client.py at BONDLAYER_MERCHANT_URL; as of this commit MERCHANT_BASE_URL is still hardcoded to 127.0.0.1:8000 rather than read from that env var --> |
+| Intent interpreter | Parses HARD / SOFT / SERVICE / VALUES clauses; `resolve()` runs on the live path (not a stub) and justifies each clause against catalogue attributes or verified records with a cited reason; `interpreter/describe.py` renders that same decode as JSON for the wire | `bondlayer/src/bondlayer/interpreter/{parser,resolver,describe}.py` |
+| Merchant-side intent route | `POST /{merchant}/ucp/intent/propose` — the merchant receives the shopper's utterance verbatim, runs the same parser and resolver on its own wire, and returns `decoded_intent` plus `proposals` cited to its own verified records; negotiated as `org.bondlayer.intent_match`, declared only by a merchant that also publishes the benefit extension, 406 otherwise (and always on the control) | `bondlayer/src/bondlayer/ucp/intent.py` |
+| Bundler | Composes already-matched proposals from one merchant into a set with a togetherness rationale; never re-matches, never crosses merchants; a bundle of one is the valid degenerate case | `bondlayer/src/bondlayer/bundle/compose.py` |
+| Composition root + trace | Wires interpreter, merchants, valuation and the bundler into one request; renders the AI reasoning trace including the `Phase.RESOLVE` and `Phase.BUNDLE` steps | `bondlayer/src/bondlayer/agent/{composition,trace}.py` |
+| Merchant dashboard | Onboarding screen, readiness (five dimensions, never averaged), a Requests tab rendering the four figures and "why we lost/won" per request from `/onboard/requests*` | `bondlayer/app/dashboard/` |
+| Buyer-agent stand-in | The demo harness: turns a shopper's sentence into a UCP request against the running merchant server; static page only, no separate build step | `round2/chat-app/src/agent/` |
 
 `bondlayer/src/bondlayer/types.py` is the one shared contract every component above imports.
 It is frozen on feature branches; a change goes to the team before it lands.
@@ -87,9 +109,11 @@ Declared in full, as the rules require, so nothing here is an undisclosed depend
 - **React, vendored as UMD builds** (`bondlayer/app/vendor/react.production.min.js`,
   `react-dom.production.min.js`) — the merchant dashboard. No build step, no npm dependency
   for the dashboard itself.
-- **Vite + TypeScript** — the buyer-agent stand-in's optional chat UI (`round2/chat-app/src/ui/`),
-  served on :5173 when `npm` is present; `run.sh` falls back to the agent's own static page on
-  :8001 when it is not. <!-- VERIFY 13/09: confirm WS-B keeps the Vite UI rather than folding it into the agent's static page -->
+- **No separate chat UI build.** The buyer-agent stand-in serves one static page,
+  `round2/chat-app/src/agent/static/index.html`, from the agent's own FastAPI process on
+  :8001. There is no Vite/TypeScript `src/ui/` in this build — an earlier draft of this
+  README described one; it was deleted when the chat app was repointed at `bondlayer/`'s
+  server, and nothing in `round2/chat-app/` depends on `npm` or a dev server.
 - **UCP (Universal Commerce Protocol), draft spec `2026-04-08`** — `catalog.search`,
   `catalog.lookup`, capability negotiation and the `signing_keys[]` key-publication mechanism
   are all UCP's own. Our extension is declared `org.bondlayer.benefit_value`, reverse-domain
@@ -100,7 +124,8 @@ Declared in full, as the rules require, so nothing here is an undisclosed depend
   a model for one paragraph of rationale generated from the already-computed trace; if it is
   not set, a template sentence is rendered instead and the trace records
   `"prose: template (no model key)"`. No code path on the ranking or valuation side ever calls
-  a model, and no code path raises for a missing key. <!-- VERIFY 13/09: round2/chat-app/src/agent/llm.py currently raises LLMUnavailable when OPENAI_API_KEY is missing; WS-B's D4 ruling (never raise, template fallback) is not yet landed in this commit -->
+  a model, and `round2/chat-app/src/agent/llm.py` never raises for a missing key or a failed
+  model call — both fall back to the template sentence.
 - **No third-party dataset.** The electronics catalogue (`bondlayer/data/catalog/electronics.csv`),
   the three merchant manifests, the policy documents and the 30-request evaluation set are all
   synthetic, authored inside the competition window on 12/09/2026 from public product-page
@@ -114,15 +139,17 @@ Declared in full, as the rules require, so nothing here is an undisclosed depend
 One command from a clean clone:
 
 ```bash
-./run.sh              # venv, install, merchant server :8000, agent :8001 (+ Vite UI :5173 if npm present)
+./run.sh              # venv, install, merchant server :8000, agent :8001 (serves its own static page)
 ./run.sh --check       # venv, install, pytest -- what scripts/clean_clone_check.sh runs
 ./run.sh --setup       # install only, start nothing
 ./run.sh --no-agent    # merchant server only
 ```
 
-Needs Python 3.12+ only; `PYTHON`, `BONDLAYER_PORT`, `AGENT_PORT`, `UI_PORT` are the override
-environment variables if the defaults (8000 / 8001 / 5173) are already taken. Idempotent —
-re-running reuses `.venv` and leaves an already-serving port alone.
+Needs Python 3.12+ only; `PYTHON`, `BONDLAYER_PORT`, `AGENT_PORT` are the override
+environment variables if the defaults (8000 / 8001) are already taken. `run.sh` also checks
+for a `round2/chat-app/src/ui` Vite dev server and a `UI_PORT` (5173) to serve it on, but that
+directory does not exist in this build — the agent's own static page on :8001 is the only UI.
+Idempotent — re-running reuses `.venv` and leaves an already-serving port alone.
 
 **Manual path**, if you want the merchant server without the launcher:
 
@@ -156,14 +183,52 @@ values constraint — the four clause kinds in `bondlayer/data/eval/taxonomy.md`
    `extensions` now carries each product's benefit records, signed or not, each tagged
    `signed: bool`.
 
-3. **The toggle, end to end.** Through the buyer-agent stand-in (`round2/chat-app`), submit
-   R01 with the BondLayer switch off, then on. Off: cheapest shelf price wins, and no
-   merchant response in the log carries an `extensions` key. On: Voltway — never the
-   cheapest shelf price anywhere in the catalogue — wins on effective cost once its signed
-   return-window, warranty and repairability records are credited under the shopper's own
-   policy. <!-- VERIFY 13/09: depends on WS-B Part 2 and WS-A's resolver landing; the fallback is bondlayer/scripts/trace_run.py, WS-B's Path-B demo, if the chat app is not green by the freeze -->
+3. **The toggle, end to end.** Through the buyer-agent stand-in (`round2/chat-app`) or
+   `bondlayer/scripts/trace_run.py "a laptop under \$1,500 I can return easily if it turns out
+   not to suit my work, from a brand that actually repairs things."` (`--control` for off),
+   submit R01 with the BondLayer switch off, then on.
+   - **On:** the trace's `[resolve: ok]` step reads `4 of 4 constraints answered; 2 answered
+     only by a verified record.` Per constraint: the price and RAM/weight clauses resolve
+     against catalogue attributes; the return-easily (SERVICE) and repairs-things (VALUES)
+     clauses are each cited to a specific verified record on the winner, Voltway
+     `VOL-0031` — `vw-returns-60` and `vw-repairability-parts-5y`. Voltway wins on effective
+     cost **$933.01** against a $1,142.96 shelf price, never the cheapest shelf price anywhere
+     in the catalogue, once those signed return-window, warranty and repairability records are
+     credited under the shopper's own policy.
+   - **Off (`--control`):** the trace's `[resolve: degraded]` step reads `2 of 4 constraints
+     answered; 0 answered only by a verified record`, and the two unanswerable clauses each
+     carry the marker `← no catalogue attribute answers this`. No merchant response in the log
+     carries an `extensions` key. CityCircuit `CIT-0032` wins on shelf price alone at
+     **$1,066.00** — cheapest shelf, no flip.
 
-4. **The tamper test.** Inflate an unsigned claim's declared value and re-run: ranking does
+4. **The bundle.** `bondlayer/scripts/trace_run.py "Everything I need to start a podcast, under
+   $1,200 all up"` composes a five-item Voltway set — microphone, headphones, interface, XLR
+   cable, boom arm — at a combined shelf price of **$723.08**, with a togetherness rationale
+   and each item's own cited notes underneath, rendered as a `Phase.BUNDLE` step in the trace.
+   `bondlayer/docs/eval-results.md` scores this and one more bundle request (R06, R07) at 5/5
+   of the frozen gold set; a third (R24, "a work laptop and a dock, under $2,200 together")
+   composes 1 of 2 gold items because the frozen gold set names only laptops even though the
+   request asks for a dock too — reported as a gold-set gap, not fitted around.
+
+5. **The merchant-side intent route.** The same decode and match-with-justification can also
+   run on the merchant's own wire instead of the agent's. Declare the extra capability:
+   ```bash
+   curl -X POST "localhost:8000/voltway/ucp/intent/propose" \
+        -H "UCP-Agent: dev.ucp.shopping.catalog.search;dev.ucp.shopping.catalog.lookup;org.bondlayer.benefit_value;org.bondlayer.intent_match" \
+        -H "Content-Type: application/json" \
+        -d '{"utterance": "a laptop under $1,500 I can return easily if it turns out not to suit my work, from a brand that actually repairs things.", "limit": 5}'
+   ```
+   Voltway receives the utterance verbatim, decodes it with the same parser, and returns
+   `decoded_intent` (the parsed constraints, what the catalogue cannot answer, and a clarifying
+   question when nothing names a product) plus `proposals` cited to Voltway's own verified
+   records — `evidence_record_id` / `evidence_attribute` / `note` per clause, exactly as the
+   agent-side resolver reports them. `org.bondlayer.intent_match` is declared only by a merchant
+   that also publishes the benefit extension; CityCircuit and any agent that omits the
+   capability from its header get **406**. What never crosses this wire: the shopper's
+   valuation policy, its benefit weights, or the cross-merchant comparison — those stay
+   agent-side even here.
+
+6. **The tamper test.** Inflate an unsigned claim's declared value and re-run: ranking does
    not move, because an unsigned record is displayed and never credited, and a larger
    declared ceiling on a signed record is still only a ceiling — the shopper's own policy
    value caps it, so inflating it cannot buy rank either. Both are enforced as tests
@@ -174,20 +239,41 @@ values constraint — the four clause kinds in `bondlayer/data/eval/taxonomy.md`
 **30 requests, frozen at 10:50 on 12/09 (`7b086bb`) before the enriched feed existed; one
 gold-set correction at 13:16 (`5463287`).**
 
-The table below is a placeholder. It is filled from `bondlayer/docs/eval-results.md` at the
-11:30 run, per the numbers policy: a figure appears here only if it exists in that file with
+The table below is copied from `bondlayer/docs/eval-results.md` at commit `339a7ed`
+(generated by `python scripts/eval_run.py` at `90de308`, re-verified byte-identical at
+`339a7ed`), per the numbers policy: a figure appears here only if it exists in that file with
 a commit hash, and only after it has been reproduced once. No number below is invented.
+Reproduce with:
 
-| Metric | BondLayer | Control (CityCircuit) | Command | Commit |
+```bash
+cd bondlayer && pip install -e '.[dev]' && pytest -q && python scripts/eval_run.py
+```
+
+| Metric | BondLayer | Control (no records) | Command | Commit |
 |---|---|---|---|---|
-| Hard precision | pending `eval-results.md` | pending | `python scripts/eval_run.py` | pending |
-| Gold recall | pending | pending | — | pending |
-| Citation precision | pending (must be 1.00) | pending | — | pending |
-| Unsatisfied honesty | pending | pending | — | pending |
-| Answerable share (SERVICE + VALUES) | pending | pending (near 0 expected) | — | pending |
+| Hard precision (mean over 30) | 0.875 | — (control has no records to cite; it is scored the same way) | `python scripts/eval_run.py` | `339a7ed` |
+| Gold recall (mean over 30) | 0.991 | — | — | `339a7ed` |
+| Precision@\|gold\| (mean over 30) | 0.936 | — | — | `339a7ed` |
+| Citation precision | 1.00 (154/154, must be 1.00) | n/a — nothing to cite | — | `339a7ed` |
+| SERVICE + VALUES clauses answered | 15/18 (83%) | 0/18 (0%) | — | `339a7ed` |
+| Requests expecting an unsatisfied clause that reported one | 2/2 | 2/2 | — | `339a7ed` |
+| Decode precision (mean over 30) | 0.914 | — | — | `339a7ed` |
+| Decode recall (mean over 30) | 0.972 | — | — | `339a7ed` |
+| Kind confusions (total) | 2 | — | — | `339a7ed` |
+| Perfect decodes (precision = recall = 1.00, no confusion) | 22/30 | — | — | `339a7ed` |
 
-<!-- VERIFY 13/09: replace this whole table from bondlayer/docs/eval-results.md once WS-A's
-     scripts/eval_run.py has run on merged round2/dev; do not hand-fill any cell before then. -->
+**The one number that matters** is the SERVICE + VALUES row: HARD and SOFT clauses resolve
+identically whether or not records exist — a competent catalogue search handles price, RAM and
+weight. The gap is entirely in SERVICE and VALUES, the clauses no product export has a column
+for: 83% answered against 0%, because the control reports them honestly unsatisfied with the
+marker `← no catalogue attribute answers this` rather than guessing.
+
+**Bundle requests.** Three of the thirty requests have a *set* for a gold answer. R06 and R07
+("everything to start a podcast" / "beginner-friendly podcasting gear") each compose 5/5 of
+their frozen gold set from Voltway at a combined shelf price of $723.08. R24 ("a work laptop
+and a dock, under $2,200 together") composes 1/2 — the frozen gold set names only laptops,
+even though the request also asks for a dock, so the bundler's dock pick falls outside a gold
+set that was never widened to match; reported as the gold set's own gap, not fitted around.
 
 ## Market strategy (25 points)
 
@@ -260,9 +346,7 @@ certification · the negotiation / counter-offer protocol (named as an illustrat
 not a requirement; reversing the decision to drop it is Ford's call, not a technical one) ·
 the 100+ request evaluation set promised in the submitted proposal's §6 Phase 4 — we ship 30,
 frozen before the enriched feed existed, because a smaller honest number with a stated method
-beats a larger one nobody on the team can defend in Q&A. Dynamic bundling is scoped as a
-best-effort addition (`Bundler` on `types.py`); a bundle of one SKU is a valid degenerate case
-if it does not land in full. <!-- VERIFY 13/09: state final bundling status once WS-G's time box closes -->
+beats a larger one nobody on the team can defend in Q&A.
 
 ## Repo map
 
