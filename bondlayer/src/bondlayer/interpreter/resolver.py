@@ -75,10 +75,16 @@ _GPU = re.compile(r"\b(rtx|gtx)\s*(\d{4})?\b", re.IGNORECASE)
 _CPU = re.compile(r"\b(i[3579])\b", re.IGNORECASE)
 
 #: Product nouns the shopper uses -> the category the catalogue files them
-#: under, plus an optional typed attribute that narrows the category where one
-#: exists. "monitor" is an accessory with a screen size; "portable ssd" is an
-#: accessory with a storage capacity. "vacuum" is an appliance and the
-#: catalogue has no finer product type, so the note says so.
+#: under, plus an optional typed attribute the noun implies.
+#:
+#: The category is the *filter*; the implied attribute is not. The catalogue
+#: has one `category` column and no finer product type -- a monitor, a dock and
+#: a sleeve are all `accessory` -- so narrowing "monitor" to listings that
+#: publish `screen_in` would exclude products the shopper asked for. The frozen
+#: gold sets label these clauses at category level (R11's gold is all 23
+#: accessories, not the two monitors), and rule 4 says the eval wins. So the
+#: noun becomes an ordering hint over the token bag instead: listings whose
+#: tokens name it sort first, nothing is excluded, and the note says which.
 _CATEGORY_WORDS: dict[str, tuple[str, str | None]] = {
     "laptop": ("laptop", None),
     "laptops": ("laptop", None),
@@ -96,6 +102,9 @@ _CATEGORY_WORDS: dict[str, tuple[str, str | None]] = {
     "monitor": ("accessory", "screen_in"),
     "portable ssd": ("accessory", "storage_gb"),
     "ssd": ("accessory", "storage_gb"),
+    "power bank": ("accessory", None),
+    "sleeve": ("accessory", None),
+    "hub": ("accessory", None),
     "dock": ("accessory", None),
     "keyboard": ("accessory", None),
     "mouse": ("accessory", None),
@@ -242,11 +251,21 @@ def _check_hard(spec: HardSpec, sku: Sku, index: TfidfIndex | None, categories: 
         wanted = categories or {spec.value}
         if sku.category not in wanted:
             return False, "category", f"Category {sku.category!r} is not {sorted(wanted)!r}."
-        if spec.narrow and spec.narrow not in attrs:
-            return False, spec.narrow, f"Attribute absent: a {sorted(wanted)[0]} of this type publishes {spec.narrow}, and this listing does not."
-        narrowing = f" with a {spec.narrow} attribute" if spec.narrow else ""
-        finer = "" if spec.narrow else "; the catalogue has no finer product type, so every listing in the category passes"
-        return True, "category", f"Filed under category {sku.category!r}{narrowing}{finer}."
+        # The category is the filter; the noun's implied attribute only ranks.
+        # Excluding on it would drop listings the shopper asked for, because
+        # the catalogue files every accessory under one category.
+        if spec.narrow:
+            has = spec.narrow in attrs
+            implied = (
+                f", and it publishes the {spec.narrow} the product noun implies"
+                if has else
+                f", though it publishes no {spec.narrow}, so the product noun only orders it and never excludes it"
+            )
+            return True, "category", f"Filed under category {sku.category!r}{implied}."
+        return True, "category", (
+            f"Filed under category {sku.category!r}; the catalogue has no finer "
+            "product type, so every listing in the category passes."
+        )
     if spec.kind == "product":
         if index is None:
             return False, spec.attribute, "No catalogue index to match a product name against."
@@ -500,13 +519,14 @@ def resolve_detailed(
             if i and sig.key(sku) != sig.key(ordered[i - 1][0]):
                 position = i
             soft_rank[sku.sku_id] += (position / n) / len(active)
-    # A product noun the category could not narrow ("rice cooker" is one of
-    # many appliances) still orders: listings whose token bag names it come
-    # first. A hint, never a filter -- the shelf is the category's.
+    # The product noun inside a category clause ("rice cooker" is one of many
+    # appliances, "monitor" one of many accessories) still orders: listings
+    # whose token bag names it come first. A hint, never a filter -- the shelf
+    # belongs to the category.
     hints = dict(scoping)
     for c in hard:
         for spec in specs[c.text]:
-            if spec.kind == "category" and spec.narrow is None and c.text not in scoping:
+            if spec.kind == "category" and c.text not in scoping:
                 noun = next((w for w in sorted(_CATEGORY_WORDS, key=len, reverse=True)
                              if re.search(rf"\b{re.escape(w)}\b", c.text, re.IGNORECASE)), None)
                 if noun and noun != spec.value:
