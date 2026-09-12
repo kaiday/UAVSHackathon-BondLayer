@@ -11,9 +11,12 @@ between them is what their manifest declares.
 
 ```bash
 cd bondlayer
-pip install -e .          # note the trailing dot
+pip install -e '.[dev]'   # runtime deps + pytest; note the trailing dot
 python run_server.py      # :8000, or the next free port if it is busy
 ```
+
+Or, from the repository root, `./run.sh` (or `.\run.ps1`) does the venv,
+the install and the start in one command.
 
 Pass a port if you want a specific one: `python run_server.py 8123`, or set
 `PORT`. If something else already holds :8000 the launcher moves up and prints
@@ -24,7 +27,7 @@ No network call, no API key, no model call, no key generation. Everything is
 seeded from `data/`, because venue wifi is shared by twenty teams.
 
 ```bash
-pytest            # 35 tests
+pytest            # 95 tests, all offline
 ```
 
 ## What an agent sees
@@ -231,7 +234,7 @@ Contract notes:
 {
   "merchant": "voltway",
   "rows_read": 56, "rows_rejected": 0, "skus": 56,
-  "readiness": 78.7, "attributes_fixed": 33,
+  "readiness": 78.7, "attributes_fixed": 36,
   "by_severity": { "blocker": 25, "degrades_match": 9, "cosmetic": 3, "info": 74 },
   "by_rule": { "price_format": 25, "gtin_shared": 42, "…": 0 },
   "diagnostics": [
