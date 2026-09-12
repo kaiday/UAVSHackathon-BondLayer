@@ -119,12 +119,18 @@ tr.winner { background: #f7f9ff; }
 .reason-list aside p { margin-top: 3px; color: var(--muted); }
 .request-trend { overflow: hidden; }
 .line-chart { padding: 14px 18px 12px; }
-.line-chart svg { width: 100%; height: clamp(190px, 22vw, 240px); display: block; overflow: visible; }
+.line-chart svg { width: 100%; height: auto; aspect-ratio: 600 / 170; display: block; overflow: visible; }
 .chart-grid { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 4; fill: none; }
-.chart-line { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.chart-line { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .chart-dot { fill: var(--paper); stroke: var(--accent); stroke-width: 3; }
 .chart-point { fill: var(--paper); stroke: var(--accent); stroke-width: 2; opacity: 0; cursor: crosshair; transition: opacity .15s ease, r .15s ease; }
-.chart-point:hover, .chart-point:focus { opacity: 1; }
+.chart-point:hover, .chart-point:focus { opacity: 1; fill: var(--accent); stroke: none; }
+.chart-hover { pointer-events: none; }
+.chart-hover > line { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 3; opacity: .45; }
+.chart-hover > circle { fill: var(--accent); stroke: none; }
+.chart-hover g rect { fill: var(--text); opacity: .96; }
+.chart-hover text { fill: #fff; font-size: 10px; font-weight: 600; }
+.chart-hover tspan { font-weight: 500; }
 .chart-axis { display: flex; justify-content: space-between; margin-top: 5px; color: var(--muted); font-size: 10px; }
 .readiness-chart { padding: 20px 18px 14px; }
 .readiness-stack { display: flex; height: 11px; overflow: hidden; border-radius: 999px; background: var(--border); }

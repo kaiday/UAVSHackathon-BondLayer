@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 import { products } from "@/lib/dashboard-data";
 
 const metrics = [
@@ -22,6 +25,13 @@ const trendDates = requestTrend.map((_, index) => {
 });
 
 export default function Home() {
+  const [activeTrend, setActiveTrend] = useState<number | null>(null);
+  const handleTrendMove = (event: React.PointerEvent<SVGSVGElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const position = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+    setActiveTrend(Math.round(position * (requestTrend.length - 1)));
+  };
+
   return (
     <div className="content">
       <div className="page-heading">
@@ -53,15 +63,13 @@ export default function Home() {
           <section className="panel request-trend">
             <div className="panel-heading"><div><h2>Agent requests over time</h2><p>Daily requests · last 30 days</p></div><span className="pill success">↑ 12.4%</span></div>
             <div className="line-chart" role="img" aria-label="Agent requests rose from 28 to 108 per day over the last 30 days, up 12.4 percent from the preceding period.">
-              <svg viewBox="0 0 600 170" preserveAspectRatio="none" aria-hidden="true">
+              <svg viewBox="0 0 600 170" preserveAspectRatio="xMidYMid meet" aria-hidden="true" onPointerMove={handleTrendMove} onPointerLeave={() => setActiveTrend(null)}>
                 <defs><linearGradient id="request-area" x1="0" y1="0" x2="0" y2="1"><stop stopColor="#159a8c" stopOpacity=".24" /><stop offset="1" stopColor="#159a8c" stopOpacity="0" /></linearGradient></defs>
                 <path className="chart-grid" d="M0 30H600M0 90H600M0 150H600" />
                 <polygon points={`0,150 ${trendPoints} 600,150`} fill="url(#request-area)" />
                 <polyline points={trendPoints} className="chart-line" />
-                {requestTrend.map((value, index) => {
-                  const [x, y] = trendPoints.split(" ")[index].split(",");
-                  return <circle key={trendDates[index]} cx={x} cy={y} r="7" className="chart-point" tabIndex={0}><title>{trendDates[index]} · {value} agent requests</title></circle>;
-                })}
+                <rect x="0" y="0" width="600" height="150" fill="transparent" />
+                {activeTrend !== null && (() => { const [x, y] = trendPoints.split(" ")[activeTrend].split(","); const tooltipX = Math.max(8, Math.min(470, Number(x) - 8)); return <g className="chart-hover"><line x1={x} x2={x} y1="20" y2="150" /><circle cx={x} cy={y} r="4" /><g transform={`translate(${tooltipX} 4)`}><rect width="122" height="24" rx="5" /><text x="8" y="16">{trendDates[activeTrend]} · <tspan>{requestTrend[activeTrend]} requests</tspan></text></g></g>; })()}
               </svg>
               <div className="chart-axis"><span>30 days ago</span><span>Today</span></div>
             </div>
