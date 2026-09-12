@@ -38,6 +38,7 @@ from bondlayer.ucp.profile import (
     build_profile,
     load_merchants,
 )
+from bondlayer.ucp.records import for_sku, load_records
 
 CATALOG = DATA / "catalog" / "electronics.csv"
 
@@ -45,13 +46,15 @@ router = APIRouter(tags=["ucp"])
 
 _merchants: dict[str, Merchant] = {}
 _catalog: dict[str, list[Sku]] = {}
+_records: dict[str, list[dict]] = {}
 
 
 def seed() -> None:
-    """Load merchants and their normalised catalogues once, at start-up."""
+    """Load merchants, catalogues and published records once, at start-up."""
     _merchants.update(load_merchants())
     for mid in _merchants:
         _catalog[mid] = CsvCatalogAdapter(CATALOG, merchant=mid).load()
+        _records[mid] = load_records(mid)
 
 
 def _merchant(merchant_id: str) -> Merchant:
@@ -80,12 +83,22 @@ def _product(sku: Sku) -> dict:
 
 
 def _benefit_block(merchant: Merchant, sku: Sku) -> dict:
-    """The extension payload. Bach's signed records land here.
+    """The extension payload: Bach's published records, for this listing.
 
-    Empty until `feat/bach-records-signing` lands; the shape is what Minh's
-    console and Hieu's resolver code against, so it is frozen now.
+    ``issuer`` is the merchant **domain**, which is what a record's own
+    ``issuer`` field carries and what ``signing_keys[]`` is published under.
+    Merchant-wide records (``sku_id: null``) attach to every listing.
+
+    Unsigned records are served, flagged ``signed: false``, and never filtered
+    out here. Deciding what an unsigned claim is worth is the valuation
+    library's job, not the wire's -- and the demo needs the unsigned claim to
+    arrive so it can visibly earn nothing.
     """
-    return {"sku_id": sku.sku_id, "issuer": merchant.domain, "records": []}
+    return {
+        "sku_id": sku.sku_id,
+        "issuer": merchant.domain,
+        "records": for_sku(_records.get(merchant.id, []), sku.sku_id),
+    }
 
 
 def _respond(merchant: Merchant, skus: list[Sku], negotiated: Negotiated) -> dict:

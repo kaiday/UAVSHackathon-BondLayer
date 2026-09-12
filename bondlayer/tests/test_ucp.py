@@ -176,3 +176,65 @@ def test_hard_price_filter_applies_to_repaired_prices(client):
     ).json()
     assert body["products"], "R01's price filter must return something"
     assert all(float(p["price"]["amount"]) <= 1500 for p in body["products"])
+
+
+# --- the records seam (Bach's branch feeds this) ---------------------------
+
+
+def test_records_seam_is_empty_but_present_until_bach_publishes(client):
+    body = client.get(
+        "/voltway/ucp/catalog/search?category=laptop&limit=1",
+        headers={"UCP-Agent": AWARE},
+    ).json()
+    block = body["extensions"][BENEFIT_VALUE][0]
+    assert block["records"] == []
+    # issuer is the domain, not the merchant id: it is what a record's own
+    # issuer field carries and what signing_keys[] is published under.
+    assert block["issuer"] == "voltway.example"
+
+
+def test_merchant_wide_records_attach_to_every_listing(tmp_path):
+    from bondlayer.ucp.records import for_sku, load_records
+
+    (tmp_path / "voltway.signed.json").write_text(
+        json.dumps(
+            [
+                {
+                    "record": {"record_id": "r-1", "sku_id": None,
+                               "benefit_type": "free_returns",
+                               "issuer": "voltway.example"},
+                    "signature": "sig", "key_id": "k1",
+                },
+                {
+                    "record": {"record_id": "r-2", "sku_id": "VOL-0001",
+                               "benefit_type": "warranty",
+                               "issuer": "voltway.example"},
+                    "signature": "sig", "key_id": "k1",
+                },
+                {
+                    "record": {"record_id": "r-3", "sku_id": None,
+                               "benefit_type": "sustainability",
+                               "issuer": "voltway.example"},
+                },
+            ]
+        ),
+        encoding="utf-8",
+    )
+    records = load_records("voltway", records_dir=tmp_path)
+    assert len(records) == 3
+    # A record is signed iff it carries BOTH a signature and a key_id.
+    assert [r["signed"] for r in records] == [True, True, False]
+    # The unsigned claim is served, not filtered: it has to arrive to lose.
+    assert {r["record"]["record_id"] for r in for_sku(records, "VOL-0001")} == {
+        "r-1", "r-2", "r-3",
+    }
+    assert {r["record"]["record_id"] for r in for_sku(records, "VOL-0009")} == {
+        "r-1", "r-3",
+    }
+
+
+def test_missing_records_file_is_a_normal_state(tmp_path):
+    from bondlayer.ucp.records import load_records
+
+    # The control merchant publishes nothing by design.
+    assert load_records("citycircuit", records_dir=tmp_path) == []

@@ -142,3 +142,30 @@ def test_diagnostics_are_actionable(report):
     for d in report.diagnostics:
         assert d.row >= 2 and d.sku_id and d.field
         assert len(d.message) > 20
+
+
+def test_per_merchant_runs_sum_to_the_whole_file_run():
+    """Indexes are built over the whole file, then rows are filtered.
+
+    Doing it the other way round made cross-merchant signals impossible to see
+    from inside one merchant's slice: a shared GTIN vanished entirely, and the
+    modal brand and title were decided by whoever happened to be filtered in.
+    The onboarding console runs per-merchant, so that path has to see what the
+    whole-file run sees -- otherwise a number means different things depending
+    on which screen it appears on.
+    """
+    whole = CsvCatalogAdapter(CSV).analyse()
+    parts = [CsvCatalogAdapter(CSV, merchant=m).analyse() for m in EXPECTED_MERCHANTS]
+
+    assert sum(p.rows_read for p in parts) == whole.rows_read
+    assert sum(len(p.diagnostics) for p in parts) == len(whole.diagnostics)
+    for rule, total in whole.by_rule.items():
+        assert sum(p.by_rule.get(rule, 0) for p in parts) == total, rule
+
+
+def test_cross_merchant_gtin_is_visible_from_inside_one_merchant():
+    # The console's "also listed by voltway -- correct" line depends on this.
+    report = CsvCatalogAdapter(CSV, merchant="citycircuit").analyse()
+    shared = [d for d in report.diagnostics if d.rule == "gtin_shared"]
+    assert shared, "a merchant must be able to see its own cross-merchant matches"
+    assert any("voltway" in d.message or "northgear" in d.message for d in shared)

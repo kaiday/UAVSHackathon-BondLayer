@@ -181,22 +181,34 @@ class CsvCatalogAdapter:
     # -- the same pass, with its working shown -----------------------------
 
     def analyse(self) -> CatalogReport:
-        rows = self._read_rows()
-        if self.merchant:
-            rows = [r for r in rows if r["merchant"] == self.merchant]
+        # Indexes are built over the WHOLE file, then rows are filtered to the
+        # merchant under review. Doing it the other way round makes a
+        # cross-merchant signal impossible to see: a GTIN shared with another
+        # retailer is invisible inside one retailer's own slice, and the modal
+        # brand and title would be decided by whoever happens to be filtered
+        # in. The console runs per-merchant, so that path has to see what the
+        # whole-file run sees.
+        all_rows = self._read_rows()
+        rows = (
+            [r for r in all_rows if r["merchant"] == self.merchant]
+            if self.merchant
+            else all_rows
+        )
 
-        modal_brand = self._modal(rows, key="brand", group=lambda r: r["brand"].lower())
+        modal_brand = self._modal(
+            all_rows, key="brand", group=lambda r: r["brand"].lower()
+        )
         # Modal title is computed on the *whitespace-collapsed* spelling, so
         # "ThinkBook 14  G3" and "ThinkBook 14 G3" vote for the same candidate
         # instead of splitting it.
         modal_title = self._modal(
-            rows,
+            all_rows,
             key="title",
             group=lambda r: r["model_key"],
             clean=lambda v: re.sub(r"\s+", " ", v).strip(),
         )
         gtin_merchants: defaultdict[str, set[str]] = defaultdict(set)
-        for r in rows:
+        for r in all_rows:
             if r["gtin"].strip():
                 gtin_merchants[r["gtin"]].add(r["merchant"])
 
