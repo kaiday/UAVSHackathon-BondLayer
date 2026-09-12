@@ -19,7 +19,7 @@
           "original_packaging_required": false
         }
       },
-      "signature": "MEUCIFCA3dvEjwG9Y7WpX155SR3DhGnWgPnQ3Fa54rpzkltkAiEAu4nqs02MZTPYOUWH6DnpwHScS3APOJVtoB_I_bvnBK8",
+      "signature": "MEUCIQDVJBbCkJGs3cBXzYGXY0yOVTuVedgPsHSFNtFLwYc12QIgEZg9de0uzAX95oLJjjjf9uHYMXCGuXI47JJJ2psMS_Q",
       "key_id": "voltway-2026-09",
       "canonical_json": "{\"benefit_type\":\"warranty_extension\",\"created_at\":\"2026-09-12T09:00:00+00:00\",\"merchant_id\":\"voltway\",\"merchant_key_id\":\"voltway-2026-09\",\"product_id\":\"*\",\"shopper_id\":\"*\",\"source_span\":\"All Voltway-branded chargers, power banks and peripherals carry a 24-month replacement warranty from date of purchase. This is 12 months beyond the statutory minimum.\",\"terms\":{\"original_packaging_required\":false,\"remedy\":\"replacement, like-for-like\",\"statutory_minimum_months\":12,\"warranty_months\":24},\"value_aud\":0,\"value_ceiling_aud\":0}",
       "signed": true
@@ -41,7 +41,7 @@
           "delivery_days": "2-4 business"
         }
       },
-      "signature": "MEQCIHHIQIolO_sGSVKEVLgpXabbELMXTmLamWwteVQUn7QRAiAV8jJrOOuzyjbSRyNGNvftvCL0ZPJnmdBZxhWqZdrKcA",
+      "signature": "MEYCIQDKpUf55X_dEqtJwbxdupQrU4KjqaL19Pmu2hIazx7UCgIhALcBHzarVIIwln_I4eudZZxfzyjg6XfaxXQ6ffb0nLvq",
       "key_id": "voltway-2026-09",
       "canonical_json": "{\"benefit_type\":\"free_shipping\",\"created_at\":\"2026-09-12T09:00:00+00:00\",\"merchant_id\":\"voltway\",\"merchant_key_id\":\"voltway-2026-09\",\"product_id\":\"*\",\"shopper_id\":\"*\",\"source_span\":\"Free standard shipping on every order over $25.\",\"terms\":{\"delivery_days\":\"2-4 business\",\"free_over_aud\":25,\"otherwise_flat_rate_aud\":7.95},\"value_aud\":7.95,\"value_ceiling_aud\":7.95}",
       "signed": true
@@ -62,7 +62,7 @@
           "replacement_cells_years_after_discontinuation": 5
         }
       },
-      "signature": "MEUCIQDYy7Eu0IWkpPJe3VkHrlYkn8HEavpdC8eA1pZWfovZywIgGlvY7HDxFZhEWUChv12heIgFwTsG7cS2yf_a4cr8ZPY",
+      "signature": "MEUCIH7Y2oUvGFS0ASFidgqQib59UnXHrMN1Fu0Z9UAuWDFQAiEAw_BMRIEjDRsgEEKU7P8Bn3o1lz1nC0mqK7lj5zEh_5I",
       "key_id": "voltway-2026-09",
       "canonical_json": "{\"benefit_type\":\"sustainability_credit\",\"created_at\":\"2026-09-12T09:00:00+00:00\",\"merchant_id\":\"voltway\",\"merchant_key_id\":\"voltway-2026-09\",\"product_id\":\"*\",\"shopper_id\":\"*\",\"source_span\":\"Voltway publishes spare-part diagrams for all powered products and stocks replacement cells for 5 years after a product is discontinued.\",\"terms\":{\"replacement_cells_years_after_discontinuation\":5,\"spare_part_diagrams_published\":true},\"value_aud\":0,\"value_ceiling_aud\":0}",
       "signed": true

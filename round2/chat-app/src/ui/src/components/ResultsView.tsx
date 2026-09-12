@@ -1,103 +1,81 @@
-interface EvidenceRecord {
-  id: string
-  type: string
-  description: string
-  value: number | null
-  source: string
-  signed: boolean
-  verified: boolean
+import type { AgentResponse, AuditEntry } from '../types'
+import { STATE_LABEL } from '../types'
+
+interface Props {
+  response: AgentResponse
 }
 
-interface RankedResult {
-  rank: number
-  merchant: string
-  product_id: string
-  product_name: string
-  price: number
-  description: string
-  reasoning: string
-  evidence_records: EvidenceRecord[]
+function termsLine(terms: Record<string, unknown>): string {
+  return Object.entries(terms)
+    .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`)
+    .join(' · ')
 }
 
-interface ResultsViewProps {
-  response: {
-    user_query: string
-    parsed_intent: string
-    results: RankedResult[]
-    final_recommendation: string
-    bondlayer_enabled: boolean
-  }
-}
+export default function ResultsView({ response }: Props) {
+  const auditBySku = new Map<string, AuditEntry>(
+    (response.audit || []).map((a) => [a.sku_id, a])
+  )
 
-export default function ResultsView({ response }: ResultsViewProps) {
-  const getMerchantColor = (merchant: string) => {
-    switch (merchant) {
-      case 'voltway':
-        return '#FF6B6B'
-      case 'citycircuit':
-        return '#4ECDC4'
-      case 'northgear':
-        return '#95E1D3'
-      default:
-        return '#999'
-    }
+  if (!response.results.length) {
+    return <section className="results"><p>No merchant returned a matching listing.</p></section>
   }
 
   return (
-    <div className="results-view">
-      <div className="query-info">
-        <h3>Query: {response.user_query}</h3>
-        <p className="intent">Intent: {response.parsed_intent}</p>
-      </div>
+    <section className="results">
+      <h2>Ranking</h2>
+      <p className="recommendation">{response.final_recommendation}</p>
 
-      <div className="recommendation-highlight">
-        <h4>💡 Recommendation</h4>
-        <p>{response.final_recommendation}</p>
-      </div>
+      {response.results.map((result) => {
+        const audit = auditBySku.get(result.sku_id)
+        return (
+          <article key={result.sku_id} className={`result rank-${result.rank}`}>
+            <header className="result-head">
+              <span className="rank-badge">#{result.rank}</span>
+              <span className="result-title">{result.title}</span>
+              <span className="result-merchant">{result.merchant}</span>
+              <span className="result-price">${result.shelf_price_aud.toFixed(2)}</span>
+            </header>
 
-      <div className="results-list">
-        <h4>Ranked Results ({response.results.length})</h4>
-        {response.results.map((result) => (
-          <div
-            key={result.product_id}
-            className="result-card"
-            style={{ borderLeftColor: getMerchantColor(result.merchant) }}
-          >
-            <div className="result-header">
-              <div className="rank-badge">#{result.rank}</div>
-              <h5>{result.product_name}</h5>
-              <div className="merchant-badge" style={{ backgroundColor: getMerchantColor(result.merchant) }}>
-                {result.merchant}
-              </div>
-            </div>
+            <p className="result-reasoning">{result.reasoning}</p>
 
-            <div className="result-content">
-              <div className="price">${result.price.toFixed(2)}</div>
-              <p className="description">{result.description}</p>
-              <p className="reasoning">{result.reasoning}</p>
-            </div>
-
-            {result.evidence_records.length > 0 && (
-              <div className="evidence-summary">
-                <span className="evidence-count">
-                  📎 {result.evidence_records.length} benefit{result.evidence_records.length !== 1 ? 's' : ''}
-                </span>
-                <div className="evidence-icons">
-                  {result.evidence_records.map((rec) => (
-                    <span
-                      key={rec.id}
-                      className={`evidence-icon ${rec.signed ? 'signed' : 'unsigned'}`}
-                      title={rec.description}
-                    >
-                      {rec.verified && rec.signed ? '✓' : rec.signed ? '📋' : '⚠'}
-                    </span>
-                  ))}
-                </div>
+            {result.agent_decisive_terms?.length > 0 && (
+              <div className="decisive">
+                <span className="decisive-label">Terms that moved this decision</span>
+                <ul>
+                  {result.agent_decisive_terms.map((term, i) => <li key={i}>{term}</li>)}
+                </ul>
               </div>
             )}
-          </div>
-        ))}
-      </div>
-    </div>
+
+            {result.records.length > 0 && (
+              <ul className="records">
+                {result.records.map((record, i) => (
+                  <li key={i} className={`record state-${record.state}`}>
+                    <span className="record-type">{record.benefit_type.replace(/_/g, ' ')}</span>
+                    <span className="record-state">{STATE_LABEL[record.state]}</span>
+                    {record.cash_value_aud != null && (
+                      <span className="record-cash">${record.cash_value_aud.toFixed(2)}</span>
+                    )}
+                    <span className="record-terms">{termsLine(record.terms)}</span>
+                    <blockquote className="record-source">{record.source_span}</blockquote>
+                    <span className="record-reason">{record.reason}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {audit && (
+              <p className="audit-line">
+                Audit: {audit.verified_fact_count} verified fact
+                {audit.verified_fact_count === 1 ? '' : 's'}
+                {audit.verified_fees_waived_aud > 0 &&
+                  ` · $${audit.verified_fees_waived_aud.toFixed(2)} in fees waived`}
+                {audit.ignored_count > 0 && ` · ${audit.ignored_count} ignored`}
+              </p>
+            )}
+          </article>
+        )
+      })}
+    </section>
   )
 }

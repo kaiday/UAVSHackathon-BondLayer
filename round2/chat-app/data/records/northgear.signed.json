@@ -17,7 +17,7 @@
           "statutory_minimum_months": 12
         }
       },
-      "signature": "MEYCIQDIe6qwb4e1mQmB5Pzsr_HcwpRybRvsv3oh4fas7EIvrAIhAN236eZV3IiO67N_Xa0dV44mAxWGtAEFjRWVcWUoyhX0",
+      "signature": "MEUCIQDq9WFC-zNAlnG0a5vPuusUNCpFwUai3gtz15hr4OoWhAIgOWzNGYqB4tnqqyUvpn5sp3qbn6JbTwGAfuEGkGmIiPs",
       "key_id": "northgear-2026-09",
       "canonical_json": "{\"benefit_type\":\"warranty_extension\",\"created_at\":\"2026-09-12T09:00:00+00:00\",\"merchant_id\":\"northgear\",\"merchant_key_id\":\"northgear-2026-09\",\"product_id\":\"*\",\"shopper_id\":\"*\",\"source_span\":\"NorthGear products carry a 12-month warranty in line with Australian Consumer Law.\",\"terms\":{\"statutory_minimum_months\":12,\"warranty_months\":12},\"value_aud\":0,\"value_ceiling_aud\":0}",
       "signed": true

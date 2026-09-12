@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 from datetime import datetime
 
 
@@ -15,7 +15,18 @@ class BenefitType(Enum):
 
 @dataclass(frozen=True)
 class BenefitRecord:
-    """A signed, verifiable benefit offered to a shopper"""
+    """A signed, verifiable benefit offered to a shopper.
+
+    ``terms`` carries the benefit as a **fact**, not as a price: ``warranty_months:
+    24``, ``spare_parts_published: true``. That is what most benefits actually are.
+    Converting a 24-month warranty into a dollar figure and subtracting it from the
+    shelf price invents a number the merchant never offered, so we do not do it --
+    the record states what is true and the agent decides what that is worth.
+
+    ``value_aud`` is populated **only** where the benefit genuinely is a cash
+    amount (a shipping fee that is waived). Most records leave it at zero, and a
+    zero here means "not a monetary benefit", not "worthless".
+    """
     merchant_id: str
     shopper_id: str
     product_id: str
@@ -25,6 +36,7 @@ class BenefitRecord:
     created_at: str
     source_span: str
     merchant_key_id: str
+    terms: dict[str, Any] = field(default_factory=dict)
     signature: Optional[str] = None
     canonical_json: Optional[str] = None
 

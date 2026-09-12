@@ -1,62 +1,39 @@
-interface TranscriptPanelProps {
-  transcript: Record<string, string>
+import type { TranscriptCall } from '../types'
+
+interface Props {
+  transcript: TranscriptCall[]
 }
 
-export default function TranscriptPanel({ transcript }: TranscriptPanelProps) {
+/** Every model call, verbatim. A demo that shows only a parsed winner is asking
+ *  to be taken on trust. */
+export default function TranscriptPanel({ transcript }: Props) {
+  if (!transcript?.length) {
+    return <div className="transcript"><p>No model calls recorded yet.</p></div>
+  }
+
   return (
-    <div className="transcript-panel">
-      <div className="transcript-content">
-        {/* System Prompt */}
-        {transcript.system_prompt && (
-          <div className="transcript-section">
-            <h5>System Prompt</h5>
-            <pre>{transcript.system_prompt}</pre>
-          </div>
-        )}
-
-        {/* User Query */}
-        {transcript.user_query && (
-          <div className="transcript-section">
-            <h5>User Query</h5>
-            <p>{transcript.user_query}</p>
-          </div>
-        )}
-
-        {/* Parsed Intent */}
-        {transcript.parsed_intent && (
-          <div className="transcript-section">
-            <h5>Parsed Intent</h5>
-            <p>{transcript.parsed_intent}</p>
-          </div>
-        )}
-
-        {/* Processing Steps */}
-        {(transcript.intent_parse || transcript.fan_out || transcript.ranking) && (
-          <div className="transcript-section">
-            <h5>Processing Steps</h5>
-            <div className="steps-log">
-              {transcript.intent_parse && <p>• {transcript.intent_parse}</p>}
-              {transcript.fan_out && <p>• {transcript.fan_out}</p>}
-              {transcript.ranking && <p>• {transcript.ranking}</p>}
-            </div>
-          </div>
-        )}
-
-        {/* Model Completion */}
-        {transcript.completion && (
-          <div className="transcript-section">
-            <h5>Model Completion</h5>
-            <p>{transcript.completion}</p>
-          </div>
-        )}
-
-        {/* Model Info */}
-        {transcript.model && (
-          <div className="transcript-section model-info">
-            <small>Model: {transcript.model}</small>
-          </div>
-        )}
-      </div>
+    <div className="transcript">
+      {transcript.map((call, i) => (
+        <article key={i} className="transcript-call">
+          <header>
+            <span className="call-label">{call.label}</span>
+            <span className="call-model">{call.model}</span>
+            <span className="call-latency">{call.latency_ms} ms</span>
+          </header>
+          <details>
+            <summary>System prompt</summary>
+            <pre>{call.system}</pre>
+          </details>
+          <details>
+            <summary>Prompt</summary>
+            <pre>{call.prompt}</pre>
+          </details>
+          <details open>
+            <summary>Completion</summary>
+            <pre>{call.completion}</pre>
+          </details>
+        </article>
+      ))}
     </div>
   )
 }

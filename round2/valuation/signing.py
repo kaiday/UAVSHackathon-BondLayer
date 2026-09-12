@@ -68,6 +68,7 @@ def sign_benefit_record(
         "created_at": record.created_at,
         "source_span": record.source_span,
         "merchant_key_id": record.merchant_key_id,
+        "terms": record.terms,
     })
 
     # Sign with SHA-256
@@ -147,6 +148,7 @@ def create_signed_record(
         "created_at": unsigned_record.created_at,
         "source_span": unsigned_record.source_span,
         "merchant_key_id": unsigned_record.merchant_key_id,
+        "terms": unsigned_record.terms,
     })
 
     signature = sign_benefit_record(unsigned_record, private_key)
@@ -162,6 +164,7 @@ def create_signed_record(
         "created_at": unsigned_record.created_at,
         "source_span": unsigned_record.source_span,
         "merchant_key_id": unsigned_record.merchant_key_id,
+        "terms": unsigned_record.terms,
         "signature": signature,
         "canonical_json": canonical_json,
     }

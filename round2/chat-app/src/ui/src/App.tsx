@@ -5,52 +5,7 @@ import ResultsView from './components/ResultsView'
 import EvidenceTimeline from './components/EvidenceTimeline'
 import TranscriptPanel from './components/TranscriptPanel'
 import UCPLog from './components/UCPLog'
-
-interface EvidenceRecord {
-  id: string
-  type: string
-  description: string
-  value: number | null
-  source: string
-  signed: boolean
-  verified: boolean
-}
-
-interface RankedResult {
-  rank: number
-  merchant: string
-  product_id: string
-  product_name: string
-  price: number
-  description: string
-  reasoning: string
-  evidence_records: EvidenceRecord[]
-}
-
-interface UCPLogEntry {
-  step: string
-  detail: string
-  [key: string]: string | string[] | number | undefined
-}
-
-interface AgentResponse {
-  user_query: string
-  parsed_intent: string
-  results: RankedResult[]
-  final_recommendation: string
-  bondlayer_enabled: boolean
-  transcript: Record<string, string>
-  ucp_header: string | null
-  ucp_negotiation_log?: UCPLogEntry[]
-  records_state_log?: Array<{
-    record_id: string
-    status: string
-    value: number
-    credited: number
-    verified: boolean
-    reason?: string
-  }>
-}
+import type { AgentResponse, MerchantExchange } from './types'
 
 function App() {
   const [merchantHealth, setMerchantHealth] = useState<boolean | null>(null)
@@ -65,11 +20,11 @@ function App() {
 
   useEffect(() => {
     fetch('/merchant-api/health')
-      .then(() => setMerchantHealth(true))
+      .then((r) => setMerchantHealth(r.ok))
       .catch(() => setMerchantHealth(false))
 
     fetch('/agent-api/health')
-      .then(() => setAgentHealth(true))
+      .then((r) => setAgentHealth(r.ok))
       .catch(() => setAgentHealth(false))
   }, [])
 
@@ -115,7 +70,7 @@ function App() {
     <div className="app">
       <header className="header">
         <h1>🔗 BondLayer Demo</h1>
-        <p className="subtitle">Shopping Agent + Loyalty Layer Integration</p>
+        <p className="subtitle">A neutral shopping agent, over real UCP</p>
       </header>
 
       <main className="main-content">
@@ -177,12 +132,14 @@ function App() {
                 <EvidenceTimeline response={displayResponse!} />
 
                 {/* UCP Negotiation Log */}
-                {displayResponse!.ucp_negotiation_log && displayResponse!.ucp_negotiation_log.length > 0 && (
-                  <UCPLog
-                    log={displayResponse!.ucp_negotiation_log}
-                    bondlayerEnabled={displayResponse!.bondlayer_enabled}
-                  />
-                )}
+                <UCPLog
+                  header={displayResponse!.ucp_agent_header}
+                  bondlayerEnabled={displayResponse!.bondlayer_enabled}
+                  exchanges={
+                    (displayResponse!.evidence_log.find((s) => s.step === 'fan_out')
+                      ?.exchanges ?? []) as MerchantExchange[]
+                  }
+                />
 
                 {/* Transcript Toggle */}
                 <div className="transcript-section">
@@ -214,7 +171,7 @@ function App() {
       </main>
 
       <footer className="footer">
-        <p>BondLayer © 2026 Hackathon — P5 React UI: Chat Pane, Comparison Switch, Evidence Timeline</p>
+        <p>BondLayer 2026 Hackathon - the switch is one token in one UCP-Agent header</p>
       </footer>
     </div>
   )

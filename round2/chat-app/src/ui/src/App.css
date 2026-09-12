@@ -1348,3 +1348,72 @@ body {
     padding-left: var(--spacing-lg);
   }
 }
+
+
+/* ---------------------------------------------------------------------------
+   Facts-not-prices UI. The three record states must read at a glance: rows two
+   and three both add no money, and a viewer has to see instantly that one is
+   trusted evidence and the other is not.
+   ------------------------------------------------------------------------- */
+
+.recommendation { font-size: 1.05rem; line-height: 1.55; margin-bottom: 1rem; }
+
+.result { border: 1px solid #e3e6e8; border-radius: 8px; padding: 1rem; margin-bottom: .85rem; background: #fff; }
+.result.rank-1 { border-color: #1f8a70; box-shadow: 0 0 0 1px #1f8a70 inset; }
+.result-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .6rem; margin-bottom: .5rem; }
+.rank-badge { font-weight: 700; color: #1f8a70; }
+.result-title { font-weight: 600; }
+.result-merchant { text-transform: uppercase; font-size: .72rem; letter-spacing: .08em; color: #6b7684; }
+.result-price { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; }
+.result-reasoning { margin: .25rem 0 .6rem; line-height: 1.5; }
+
+.decisive { background: #f2f8f6; border-left: 3px solid #1f8a70; padding: .5rem .75rem; border-radius: 4px; margin-bottom: .6rem; }
+.decisive-label { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: #1f8a70; margin-bottom: .25rem; }
+.decisive ul { margin: 0; padding-left: 1.1rem; }
+
+.records { list-style: none; padding: 0; margin: 0 0 .6rem; display: flex; flex-direction: column; gap: .45rem; }
+.record { border-left: 4px solid #c9d1d6; background: #fafbfc; padding: .5rem .7rem; border-radius: 4px; font-size: .86rem; }
+.record.state-verified_monetary { border-left-color: #1f8a70; background: #f2f8f6; }
+.record.state-verified_fact     { border-left-color: #b8860b; background: #fbf7ee; }
+.record.state-unverified        { border-left-color: #9aa4ab; background: #f4f5f6; opacity: .8; }
+.record-type { font-weight: 600; text-transform: capitalize; margin-right: .5rem; }
+.record-state { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: #6b7684; }
+.record-cash { float: right; font-variant-numeric: tabular-nums; font-weight: 600; color: #1f8a70; }
+.record-terms { display: block; color: #4a5560; margin-top: .2rem; }
+.record-source { margin: .35rem 0; padding-left: .6rem; border-left: 2px solid #dfe4e8; color: #6b7684; font-style: italic; }
+.record-reason { display: block; font-size: .76rem; color: #6b7684; }
+
+.audit-line { font-size: .8rem; color: #4a5560; margin: 0; padding-top: .4rem; border-top: 1px dashed #e3e6e8; }
+
+.ucp-log { margin: 1rem 0; }
+.ucp-header { padding: .6rem .75rem; border-radius: 6px; margin-bottom: .6rem; border: 1px solid #e3e6e8; }
+.ucp-header.on  { border-color: #1f8a70; background: #f2f8f6; }
+.ucp-header.off { border-color: #c9d1d6; background: #f4f5f6; }
+.ucp-header-label { display: block; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; margin-bottom: .3rem; color: #6b7684; }
+.ucp-header code { font-size: .78rem; word-break: break-all; }
+.ucp-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.ucp-table th, .ucp-table td { text-align: left; padding: .35rem .5rem; border-bottom: 1px solid #eef1f3; }
+.ucp-table th { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: #6b7684; }
+.exchange-error td { color: #b3261e; }
+.ucp-note { font-size: .78rem; color: #6b7684; margin-top: .5rem; }
+
+.timeline { list-style: none; padding: 0; margin: 0; }
+.timeline-step { border-left: 2px solid #e3e6e8; padding: 0 0 .9rem 1rem; position: relative; }
+.timeline-step::before { content: ''; position: absolute; left: -5px; top: .35rem; width: 8px; height: 8px; border-radius: 50%; background: #1f8a70; }
+.step-title { font-weight: 600; font-size: .9rem; }
+.step-detail { font-size: .82rem; color: #4a5560; margin: .15rem 0 .3rem; line-height: 1.45; }
+.step-code { display: block; font-size: .76rem; word-break: break-all; background: #f4f5f6; padding: .4rem .5rem; border-radius: 4px; }
+.step-list { margin: .2rem 0 0; padding-left: 1.1rem; font-size: .82rem; }
+.records-list .state-unverified { color: #6b7684; }
+.records-list .state-verified_monetary { color: #1f8a70; }
+
+.transcript-call { border: 1px solid #e3e6e8; border-radius: 6px; padding: .6rem .75rem; margin-bottom: .6rem; }
+.transcript-call header { display: flex; gap: .6rem; align-items: baseline; font-size: .78rem; margin-bottom: .35rem; }
+.call-label { font-weight: 600; }
+.call-model, .call-latency { color: #6b7684; }
+.transcript-call pre { white-space: pre-wrap; word-break: break-word; font-size: .76rem; background: #f7f8f9; padding: .5rem; border-radius: 4px; max-height: 16rem; overflow: auto; }
+
+@media (max-width: 640px) {
+  .result-price { margin-left: 0; }
+  .ucp-table { display: block; overflow-x: auto; }
+}
