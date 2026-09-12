@@ -1,0 +1,166 @@
+# BondLayer — merchant service
+
+A retailer's existing catalogue export and policy documents, published as UCP
+data an AI shopping agent can read, verify and value **while it is still
+comparing merchants**.
+
+Three merchants run from one server on one code path. The only difference
+between them is what their manifest declares.
+
+## Run it
+
+```bash
+cd bondlayer
+pip install -e .
+python run_server.py
+```
+
+No network call, no API key, no model call, no key generation. Everything is
+seeded from `data/`, because venue wifi is shared by twenty teams.
+
+```bash
+pytest            # 35 tests
+```
+
+## What an agent sees
+
+```bash
+# the profile it reads first
+curl localhost:8000/voltway/.well-known/ucp
+
+# plain UCP — what every agent in the world does today
+curl "localhost:8000/voltway/ucp/catalog/search?category=laptop&max_price=1500"
+
+# an agent that declares the extension
+curl -H "UCP-Agent: dev.ucp.shopping.catalog.lookup;org.bondlayer.benefit_value" \
+     "localhost:8000/voltway/ucp/catalog/lookup?sku_id=VOL-0034"
+```
+
+The second and third calls hit the same route and the same response builder.
+The third one carries `extensions` and the second does not — **not because of
+a branch anywhere in the code**, but because capability negotiation pruned an
+extension the agent never declared. An agent that declares nothing gets valid,
+conformant UCP.
+
+That property is what makes the control merchant honest. CityCircuit is this
+server with the extension absent from its manifest, not a second
+implementation. If it were a second implementation the comparison would prove
+nothing (assumption A2).
+
+| Merchant | Role | Extension | Readiness |
+|---|---|---|---|
+| Voltway | BondLayer | yes | 78.7 |
+| CityCircuit | control | no | 82.1 |
+| NorthGear | competitor | yes | 83.6 |
+
+## Where the extension attaches, and why
+
+`org.bondlayer.benefit_value` extends **`catalog.search` and
+`catalog.lookup`** — never `checkout`.
+
+UCP's own loyalty extension hangs off `dev.ucp.shopping.checkout`, so loyalty
+data only exists once the shopper has already chosen the merchant. By then the
+comparison is over. Catalog is where the agent decides, so that is where
+verifiable benefit data has to arrive.
+
+It is namespaced `org.bondlayer.*` because `dev.ucp.*` is reserved for
+capabilities governed by the UCP Tech Council.
+
+## The adapter: normalising the mess is the deliverable
+
+`data/catalog/electronics.csv` is 148 listings across 62 products with the
+defects a real retailer's export actually carries. All 148 load; none are
+rejected. Every repair is **recorded** rather than silently applied, because
+the merchant needs to know what was wrong with their feed.
+
+Severity is defined by **agent consequence**, not data purity:
+
+| Severity | Meaning | Hits |
+|---|---|---|
+| `blocker` | invisible to a filter an agent will apply | 56 |
+| `degrades_match` | findable, but loses a comparison it should win | 25 |
+| `cosmetic` | tidiness; nothing downstream breaks | 7 |
+| `info` | correct as it stands | 214 |
+
+**214 of the 302 diagnostics confirm things are already correct.** Two rules
+can only ever emit `info`: `legitimately_empty` (a rice cooker has no battery
+capacity, and that is the truth rather than an omission) and `gtin_shared` (a
+GTIN two merchants both list is how an agent knows it is comparing like with
+like — keep publishing it). A tool that flags everything gets ignored.
+
+| Rule | Severity | What it catches |
+|---|---|---|
+| `price_format` | blocker | `$2133.03`, `1,849.00` — an agent applying "under $1,500" drops the listing entirely |
+| `ram_units` | degrades_match | `16GB` / `16 GB` / `16384MB` are one spec spelled three ways |
+| `near_dup_title` | degrades_match | two spellings of one product compete against each other |
+| `missing_weight` | degrades_match | "light enough to carry daily" cannot be answered |
+| `screen_format` | degrades_match | `14"` is text; `14.0` is comparable |
+| `spec_in_title` | degrades_match | `RTX4060` published only inside the title, with no GPU column |
+| `brand_casing` | cosmetic | `Lenovo` / `LENOVO` / `lenovo` split one brand facet |
+| `legitimately_empty` | info | correctly empty — no action |
+| `gtin_shared` | info | cross-merchant match — good, keep it |
+
+Counts are the same whichever way `analyse()` is called: indexes are built over
+the whole file and rows are filtered afterwards, so per-merchant runs sum
+exactly to the whole-file run and a cross-merchant signal stays visible from
+inside one merchant's slice.
+
+### Derived attributes carry their provenance
+
+The catalogue has no GPU column, but `RTX4060` sits inside the Legion 5's
+title. The adapter lifts it into a typed field by an exact `RTX|GTX` token and
+marks where it came from:
+
+```python
+sku.attributes["gpu"]         # "RTX4060"
+sku.attributes["gpu_source"]  # "title" — never "published"
+```
+
+Lifting a known token into a typed field in the adapter is normalisation. A
+*matcher* scanning titles for substrings would be the thing intent matching is
+supposed to go beyond. A consumer that will not accept derived evidence for a
+hard constraint can require `gpu_source == "published"` and reject it.
+
+## Onboarding API
+
+The Dashboard's backend. Same process, its own router.
+
+| Route | Returns |
+|---|---|
+| `GET /onboard/merchants` | switcher + comparison strip |
+| `GET /onboard/report/{merchant}` | diagnostics, worst first, with readiness |
+| `POST /onboard/catalog?merchant=…` | a retailer's own export, UTF-8, fails loudly |
+
+## Records
+
+`data/records/{merchant}.signed.json`, served in the benefit block on the
+catalogue call.
+
+A record is signed **iff** it carries both a `signature` and a `key_id` —
+`signed` is derived, never authored. Unsigned records are served and flagged,
+never filtered: an unverifiable claim has to arrive in order to visibly earn
+nothing. `sku_id: null` means the record applies to the whole merchant, so a
+returns window attaches to every listing.
+
+Public keys live in `keys/{merchant}.pub.json` and are published in the
+profile's `signing_keys[]`. `keys/*.pem` is gitignored and `keys/*.json` is
+not: private keys stay out, public keys must ship so a fresh clone verifies
+with no network.
+
+## Layout
+
+```
+src/bondlayer/
+  types.py              shared contract — do not edit on a feature branch
+  adapters/catalog.py   CSV in, normalised Sku + Diagnostic out
+  ucp/capabilities.py   negotiation: intersection, version, pruning
+  ucp/profile.py        /.well-known/ucp and signing_keys[]
+  ucp/records.py        published records, signed or not
+  ucp/server.py         the three merchants, one response builder
+  ucp/onboard.py        onboarding API
+```
+
+## Not attempted
+
+Real payment flows · production authentication · live merchant integration ·
+protocol certification · cart, checkout and order capabilities.
