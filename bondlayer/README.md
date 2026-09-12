@@ -138,6 +138,8 @@ The Dashboard's backend. Same process, its own router.
 | `GET /onboard/merchants` | switcher + comparison strip |
 | `GET /onboard/report/{merchant}` | diagnostics, worst first, with readiness |
 | `POST /onboard/catalog?merchant=…` | a retailer's own export, UTF-8, fails loudly |
+| `GET /onboard/requests` | the 30 frozen requests: id, utterance, per-merchant won/lost summary |
+| `GET /onboard/requests/{id}[?merchant=…]` | the `RequestReport` JSON for one request — every merchant row three-way, or just one with `merchant=` |
 
 ## Records
 

@@ -226,6 +226,58 @@ input[type=file] { font: inherit; font-size: 13px; max-width: 260px; }
 
 .note { color: var(--ink-3); font-size: 13px; margin-top: 12px; }
 
+/* --- requests: "why we lost" ----------------------------------------- */
+
+.req-list { max-height: 320px; overflow-y: auto; }
+
+.req-row {
+  display: flex; align-items: center; gap: 14px; width: 100%;
+  text-align: left; font: inherit; background: var(--card); border: 0;
+  border-bottom: 1px solid var(--line); padding: 12px 20px; cursor: pointer;
+}
+.req-row:last-child { border-bottom: 0; }
+.req-row:hover { background: #fcfcfd; }
+.req-row[aria-pressed="true"] { background: var(--accent-soft); }
+
+.req-id { flex: 0 0 auto; font-weight: 700; color: var(--ink); width: 40px; }
+.req-utterance {
+  flex: 1; min-width: 0; color: var(--ink-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.req-winner {
+  flex: 0 0 auto; font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .03em; color: var(--ink-3);
+}
+
+.merchant-row { padding: 18px 20px; border-bottom: 1px solid var(--line); }
+.merchant-row:last-child { border-bottom: 0; }
+.merchant-row.won { background: var(--accent-soft); }
+
+.merchant-row-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.merchant-row-name {
+  font-weight: 800; font-size: 16px; text-transform: capitalize;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.verdict {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .04em; padding: 3px 9px; border-radius: 999px;
+}
+.verdict.win { background: var(--info); color: #fff; }
+.verdict.loss { background: var(--line); color: var(--ink-3); }
+
+.four-figures {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px; margin-bottom: 12px;
+}
+.figure .v { font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
+.figure .v.credited { color: var(--info); }
+.figure .v.withheld { color: var(--degrades); }
+.figure .k { color: var(--ink-3); font-size: 12.5px; margin-top: 2px; }
+
+.why { color: var(--ink-2); font-size: 13.5px; line-height: 1.5; }
+.why b { color: var(--ink); }
+
 /* --- analytics placeholder ------------------------------------------ */
 
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
