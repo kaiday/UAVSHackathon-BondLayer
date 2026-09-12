@@ -83,3 +83,61 @@ as a table; a table is the answer, not the input.
 
 Four artefacts are on this branch, the eval set is frozen in its own commit, and
 you have told the team in the channel that the gate is open.
+
+---
+
+## Added from the Round 2 alignment analysis
+
+### The demo scenario has to change — this is the important one
+
+Analysis §3.1(c): all three merchants in the old spike sell the **same jacket**,
+barcode `9312345678907`, in all three catalogue exports. That is an excellent
+vehicle for verification and valuation and a **null vehicle for intent
+matching** — there is nothing to match.
+
+Rebuilding that scenario would demonstrate the criterion judged *third* and not
+the one judged *first*. So the merchants need **different, comparable-but-not-
+identical products**, such that matching decides something before valuation
+does.
+
+Handover §8 assumes **three** merchant profiles; the current plan has two
+(control + BondLayer). Three makes ranking a ranking rather than a coin flip.
+Your call, since it is your data — but tell Nguyen the count before he wires the
+server.
+
+### Values claims in the policy prose (gap 5)
+
+The ontology now carries `sustainability`, `ethical_sourcing`, `durability`,
+`repairability` as claims that are **validated but never priced**.
+
+Author them into the policy documents, and put one **unsigned greenwashing
+claim** in the control merchant's data. That is the demo moment: a verified
+durability claim beats an unverifiable green adjective, using the same signing
+story already being told about money — at almost no build cost.
+
+### Electronics throughout (gap 9)
+
+Decision-log item 3 switched the vertical footwear → consumer electronics, and
+all new material must use electronics examples. This is about the deck, the
+README and anything spoken — the old jacket spike is not submission code, so it
+is not the problem. Anything a judge reads or hears is.
+
+### Q&A rehearsal (open item 5) — yours to schedule
+
+Handover §9 has ten questions with rehearsed answers and per-person assignments
+(Ford 1 & 5 · Manh 3 & 8 · Bach 2 & 9 · Chan 7 & 10 · Hieu 4 & 6). Round 3 Q&A
+is **25 points**.
+
+**Q2 is the one to drill** — Talon.One UIP was deliberately removed from the
+written proposal, so the answer exists only as rehearsal. Slot it into Day 2
+15:00–16:30 alongside the demo run-throughs.
+
+Also confirm the "Chan" ↔ Minh Truong mapping in those assignments — the
+handover roster and the submitted team block use different names.
+
+### Say 30, not 100+
+
+Proposal §6 Phase 4 promised an evaluation set of 100+ multi-constraint
+requests. We ship 30. Say "30, frozen before the enriched feed existed" — a
+smaller honest number with a method behind it beats a larger one that cannot be
+defended in Q&A.
