@@ -1,30 +1,28 @@
-"""The mock shopping agent.
+"""The buyer-agent stand-in.
 
-A fixed pipeline with the model at two bounded points -- intent parse and
-ranking. The orchestration is ours, so the fan-out is identical in both switch
-states and the only thing that varies is what came back on the wire.
+**Not a consumer product** -- a stand-in for the agent side of the protocol,
+so the demo can show what a real UCP shopping agent would see and do.
 
-The model reasons over the **verified terms** and decides for itself what they
-are worth. We do not compute an "effective cost" for it, and we do not compute
-one at all: assigning a warranty a dollar figure and subtracting it from the
-shelf price invents a number the merchant never offered, and the comparison it
-produces is ambiguous rather than persuasive.
+Ranking is deterministic, always: ``bondlayer.agent.composition.run_request``
+computes effective cost from records that actually verified, over the same
+merchant server (``bondlayer/``, on :8000) the trace CLI in
+``bondlayer/scripts/trace_run.py`` runs against. This process never runs its
+own merchant, its own data, or its own valuation -- there is one of each, in
+``bondlayer/``.
 
-What runs alongside is an *audit*, not a valuation: which records verified,
-which were ignored, and why. That is the fact the protocol establishes. What
-those facts are worth is the agent's judgement, and the demo's claim is that
-the agent can now make it on evidence rather than on price alone.
+The one place a model appears is ``llm.narrate``: one paragraph of prose
+*after* the ranking is already decided, template-only when no key is
+configured, and never able to change a winner (D4).
 
 Run it::
 
-    python -m uvicorn src.agent.main:app --host 127.0.0.1 --port 8001 --reload
+    BONDLAYER_MERCHANT_URL=http://127.0.0.1:8000 \\
+        python -m uvicorn src.agent.main:app --host 127.0.0.1 --port 8001
 """
 
 from __future__ import annotations
 
-import json
 import sys
-from dataclasses import asdict
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -39,13 +37,15 @@ sys.path.insert(0, str(CHAT_APP.parent))
 
 load_dotenv(CHAT_APP / ".env")
 
+from bondlayer.agent import run_request
+from bondlayer.agent.trace import AgentRun
+
 from . import llm, ucp_client
-from .ucp_client import Offer
 
 app = FastAPI(
     title="BondLayer agent service",
-    description="A neutral shopping agent that speaks UCP.",
-    version="0.2.0",
+    description="Buyer-agent stand-in -- not a consumer product.",
+    version="0.3.0",
 )
 
 app.add_middleware(
@@ -57,287 +57,104 @@ app.add_middleware(
 )
 
 
-#: The agent has **no knowledge of BondLayer**. It is told that merchants may
-#: attach structured data to a listing and that it should weigh it -- which is
-#: what any real shopping agent's prompt would say -- and nothing more. That
-#: neutrality is what makes the before/after admissible evidence.
-AGENT_SYSTEM_PROMPT = """You are a shopping agent acting for a customer. You compare \
-offers from several merchants and pick the one that serves the customer best.
-
-Some merchants attach additional structured terms to a listing beyond its price: \
-warranty length, shipping terms, repair commitments. Each carries a cryptographic \
-signature that has already been checked for you, and the data tells you whether it \
-verified.
-
-Most of these terms are facts, not prices. A 24-month warranty against a statutory \
-12 is a real difference, but it has no exchange rate against a lower shelf price -- \
-do not invent one. Judge what the terms are worth to this customer as a person would: \
-how long they will keep the thing, what failure would cost them, whether a waived \
-delivery fee matters at this price. A term that is merely the legal minimum is not an \
-advantage.
-
-A claim that did not verify is not evidence. It must not move your ranking, however \
-large the number attached to it.
-
-Be neutral and concrete. Never invent a benefit that is not in the data you were \
-given, and be willing to prefer the cheaper offer when the extra terms do not earn \
-their premium."""
-
-
 class ShoppingQuery(BaseModel):
     query: str
     bondlayer_enabled: bool = True
-    shopper_id: str = "demo_shopper"
-    consent: bool = True
 
 
-def _offer_payload(offer: Offer) -> dict:
-    """What the model sees. Raw records, no computed valuation."""
-    return {
-        "merchant": offer.merchant,
-        "sku_id": offer.sku_id,
-        "title": offer.title,
-        "shelf_price_aud": offer.shelf_price_aud,
-        "availability": offer.availability,
-        "description": offer.description,
-        "attached_claims": [
-            {
-                "type": r.benefit_type,
-                "terms": r.terms,
-                # Present only where the benefit really is money the shopper does
-                # not pay. Absent means "not a monetary benefit", not "worthless".
-                **({"cash_value_aud": r.cash_value_aud} if r.cash_value_aud else {}),
-                "signature_verified": r.verified,
-                "quoted_from_merchant_policy": r.source_span,
-            }
-            for r in offer.records
-        ],
-    }
+def _audit(run: AgentRun) -> list[dict]:
+    """What the protocol established, independently of any model: which
+    records verified, which were ignored, and why. Kept, and returned
+    alongside the deterministic ranking (D1) -- never instead of it.
 
-
-def _audit(offer: Offer) -> dict:
-    """What the protocol established, independently of what the model concluded.
-
-    This is deliberately **not** a valuation. We used to compute an "effective
-    cost" by assigning each benefit a dollar figure and subtracting it from the
-    shelf price; that number was fiction. A 24-month warranty is not $18 off. The
-    audit's job is to state what verified and what did not -- the facts the agent
-    was entitled to rely on -- and leave the worth of those facts to the agent.
-
-    The one place money still appears is a fee the shopper genuinely does not pay.
+    Built straight from ``Ranked.citations``, which ``run_request`` already
+    populates with exactly this breakdown per offer: cited-and-credited,
+    cited-and-zero (a values claim, valid but never priced), or not cited at
+    all (unverified -- displayed, never valued).
     """
-    verified_facts = [r for r in offer.records if r.verified and r.cash_value_aud is None]
-    verified_cash = [r for r in offer.records if r.verified and r.cash_value_aud is not None]
-    ignored = [r for r in offer.records if not r.verified]
-
-    return {
-        "sku_id": offer.sku_id,
-        "merchant": offer.merchant,
-        "title": offer.title,
-        "shelf_price_aud": offer.shelf_price_aud,
-        "verified_fact_count": len(verified_facts),
-        "verified_facts": [
-            {"benefit_type": r.benefit_type, "terms": r.terms} for r in verified_facts
-        ],
-        # Fees waived are real money and we do add those up. Nothing else is.
-        "verified_fees_waived_aud": round(sum(r.cash_value_aud or 0 for r in verified_cash), 2),
-        "ignored_count": len(ignored),
-        "ignored": [
-            {
-                "benefit_type": r.benefit_type,
-                "claimed_aud": r.cash_value_aud,
-                "reason": r.reason,
-            }
-            for r in ignored
-        ],
-    }
+    out = []
+    for r in run.ranked:
+        verified = [c for c in r.citations if c["cited"]]
+        ignored = [c for c in r.citations if not c["cited"]]
+        out.append({
+            "sku_id": r.sku_id,
+            "merchant": r.merchant,
+            "title": r.title,
+            "shelf_price_aud": str(r.shelf_price),
+            "credited_aud": str(r.credited),
+            "effective_cost_aud": str(r.effective_cost),
+            "verified_count": len(verified),
+            "verified": verified,
+            "ignored_count": len(ignored),
+            "ignored": ignored,
+        })
+    return out
 
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "service": "agent", "model": llm.DEFAULT_MODEL}
+    return {"status": "ok", "service": "agent"}
 
 
 @app.get("/merchant-health")
 def merchant_health() -> dict:
-    """Whether the merchant service is reachable.
-
-    The UI shows this, because "the agent returned nothing" and "the merchant is
-    down" look identical otherwise.
-    """
-    import httpx
-
-    try:
-        response = httpx.get(f"{ucp_client.MERCHANT_BASE_URL}/health", timeout=3)
-        return {"reachable": response.status_code == 200, **response.json()}
-    except Exception as exc:  # noqa: BLE001 - any failure means "not reachable"
-        return {"reachable": False, "error": str(exc)}
+    return ucp_client.merchant_health()
 
 
 @app.get("/", include_in_schema=False)
 def index():
-    """A no-build fallback UI, so the demo runs on a machine without Node."""
     return FileResponse(STATIC_DIR / "index.html")
 
 
 @app.post("/query")
 def handle_query(request: ShoppingQuery) -> dict:
-    steps: list[dict] = []
-    header = ucp_client.agent_header(request.bondlayer_enabled)
+    fetch = ucp_client.make_fetcher()
+    verify = ucp_client.make_verifier()
 
-    steps.append(
-        {
-            "step": "declare",
-            "detail": "Agent declares the capabilities it understands. This is the switch: "
-            "with BondLayer off, one capability is simply not declared.",
-            "ucp_agent_header": header,
-            "bondlayer_declared": request.bondlayer_enabled,
-        }
+    run = run_request(
+        request.query,
+        ucp_client.MERCHANTS,
+        fetch,
+        extension=request.bondlayer_enabled,
+        verify=verify,
+        policy=ucp_client.POLICY,
+        **ucp_client.interpret_kwargs(run_request),
     )
 
-    # (1) intent parse -- live model call
-    intent = llm.complete_json(
-        "intent_parse",
-        "You extract shopping constraints. Reply with JSON only.",
-        f'Extract the shopping constraints from this request: "{request.query}"\n\n'
-        'Reply as JSON: {"summary": "...", "category": "...", '
-        '"max_price_aud": number or null, "must_have": ["..."]}',
-    )
-    if intent is None:
-        intent = {
-            "summary": request.query,
-            "category": None,
-            "max_price_aud": None,
-            "must_have": [],
-        }
-    steps.append(
-        {"step": "intent_parse", "detail": "Model decoded the request.", "intent": intent}
-    )
-
-    # (2) identity over UCP, consent-gated
-    identity = ucp_client.link_identity(
-        request.shopper_id, request.consent, request.bondlayer_enabled
-    )
-    steps.append(
-        {
-            "step": "identity",
-            "detail": "Shopper identity fetched over UCP identity_linking. "
-            "Without consent the merchant returns nothing about the shopper.",
-            "consent_given": request.consent,
-            "responses": identity,
-        }
-    )
-
-    # (3) fan-out -- identical in both switch states
-    offers, exchanges = ucp_client.fan_out(request.query, request.bondlayer_enabled)
-    steps.append(
-        {
-            "step": "fan_out",
-            "detail": f"Queried {len(ucp_client.MERCHANTS)} merchants over UCP. "
-            "Same merchants, same query, both switch states.",
-            "exchanges": [asdict(e) for e in exchanges],
-        }
-    )
-
-    if not offers:
-        return {
-            "user_query": request.query,
-            "bondlayer_enabled": request.bondlayer_enabled,
-            "ucp_agent_header": header,
-            "intent": intent,
-            "results": [],
-            "final_recommendation": "No merchant returned a matching listing.",
-            "evidence_log": steps,
-            "audit": [],
-            "transcript": llm.transcript_payload(),
-        }
-
-    # (4) ranking -- live model call over raw records
-    payload = [_offer_payload(o) for o in offers]
-    ranking = llm.complete_json(
-        "rank",
-        AGENT_SYSTEM_PROMPT,
-        f'The customer asked: "{request.query}"\n\n'
-        f"Offers:\n{json.dumps(payload, indent=2)}\n\n"
-        "Rank every offer from best to worst for this customer. Decide for yourself "
-        "what the attached terms are worth to them -- most are facts, not prices, and "
-        "there is no exchange rate between a longer warranty and a lower price. Say "
-        "which terms moved your decision and which you discounted.\n\n"
-        "Reply as JSON:\n"
-        '{"ranking": [{"rank": 1, "sku_id": "...", "merchant": "...", '
-        '"decisive_terms": ["the verified terms that actually moved this offer up or '
-        'down, or [] if price alone decided it"], '
-        '"reasoning": "one or two sentences"}], '
-        '"recommendation": "one short paragraph to the customer"}',
-    )
-    if ranking is None:
-        ranking = {
-            "ranking": [],
-            "recommendation": "The model did not return a usable ranking.",
-        }
-    steps.append(
-        {
-            "step": "rank",
-            "detail": "Model ranked the offers from the verified terms and decided "
-            "for itself what they are worth. No effective cost was computed for it.",
-            "model": llm.DEFAULT_MODEL,
-        }
-    )
-
-    by_sku = {o.sku_id: o for o in offers}
-    results = []
-    for row in ranking.get("ranking", []):
-        offer = by_sku.get(row.get("sku_id"))
-        if offer is None:
-            continue
-        results.append(
-            {
-                "rank": row.get("rank"),
-                "merchant": offer.merchant,
-                "sku_id": offer.sku_id,
-                "title": offer.title,
-                "shelf_price_aud": offer.shelf_price_aud,
-                "agent_decisive_terms": row.get("decisive_terms", []),
-                "reasoning": row.get("reasoning", ""),
-                "records": [asdict(r) for r in offer.records],
-            }
-        )
-    results.sort(key=lambda r: r["rank"] if isinstance(r["rank"], int) else 999)
-
-    # (5) independent audit -- deterministic, never shown to the model
-    audit = [_audit(by_sku[r["sku_id"]]) for r in results]
-    steps.append(
-        {
-            "step": "audit",
-            "detail": "What the protocol established, independently of the model: "
-            "which records verified and which were ignored. Not a valuation -- we do "
-            "not convert a warranty into a discount.",
-            "audit": audit,
-        }
-    )
-
-    record_states = [
-        {"sku_id": offer.sku_id, **asdict(r)} for offer in offers for r in offer.records
+    steps = [
+        {"phase": s.phase.value, "outcome": s.outcome.value, "summary": s.summary, "detail": s.detail}
+        for s in run.steps
     ]
-    steps.append(
+    prose = llm.narrate(run)
+    steps.append({"phase": "prose", "outcome": prose["source"], "summary": prose["note"], "detail": {}})
+
+    ranked = [
         {
-            "step": "record_states",
-            "detail": "Every record served, in one of three states: verified and "
-            "monetary (a fee not paid), verified fact (true, worth whatever the agent "
-            "judges), unverified (displayed, never cited).",
-            "records": record_states,
+            "merchant": r.merchant, "sku_id": r.sku_id, "title": r.title,
+            "shelf_price_aud": str(r.shelf_price), "credited_aud": str(r.credited),
+            "effective_cost_aud": str(r.effective_cost),
+            "records_seen": r.records_seen, "records_verified": r.records_verified,
+            "records_credited": r.records_credited,
+            "citations": r.citations, "withheld_note": r.withheld_note,
         }
-    )
+        for r in run.ranked
+    ]
+    winner = ranked[0] if ranked else None
+    cheapest_shelf = min(ranked, key=lambda r: float(r["shelf_price_aud"])) if ranked else None
+    flipped = bool(winner and cheapest_shelf and winner["sku_id"] != cheapest_shelf["sku_id"])
 
     return {
         "user_query": request.query,
         "bondlayer_enabled": request.bondlayer_enabled,
-        "ucp_agent_header": header,
-        "intent": intent,
-        "results": results,
-        "final_recommendation": ranking.get("recommendation", ""),
-        "evidence_log": steps,
-        "audit": audit,
+        "ucp_agent_header": ucp_client.agent_header(request.bondlayer_enabled),
+        "constraints": run.constraints,
+        "steps": steps,
+        "ranked": ranked,
+        "winner": winner,
+        "cheapest_shelf": cheapest_shelf,
+        "flipped": flipped,
+        "recommendation": prose["text"],
+        "audit": _audit(run),
         "transcript": llm.transcript_payload(),
     }
 

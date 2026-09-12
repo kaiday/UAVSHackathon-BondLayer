@@ -1,6 +1,14 @@
 # Unpinned on purpose: the pinned versions this file used to carry
 # (fastapi==0.104.1, pydantic==2.5.0, openai==1.3.0) have no wheels for
 # Python 3.14 and fail to install on the demo machine.
+#
+# bondlayer itself is NOT listed here -- it is a local sibling package, not a
+# published one. Install it editable, from this directory:
+#
+#   pip install -e ../../bondlayer
+#   pip install -r requirements.txt
+#
+# root run.sh does both, in that order, before starting either service.
 fastapi>=0.115
 uvicorn[standard]>=0.30
 pydantic>=2.7

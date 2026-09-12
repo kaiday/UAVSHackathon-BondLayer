@@ -1,3 +1,5 @@
+> Superseded 12/09 evening by DAY2-PLAN §4 WS-B
+
 # Implementation Summary: Issue #13
 
 ## Overview
