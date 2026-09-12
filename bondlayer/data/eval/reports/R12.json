@@ -151,5 +151,31 @@
         "most sustainable"
       ]
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 2,
+    "gold_total": 2,
+    "parsed_total": 2,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "phone",
+        "gold_kind": "HARD",
+        "parsed": "phone",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "most sustainable",
+        "gold_kind": "VALUES",
+        "parsed": "most sustainable",
+        "parsed_kind": "values"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

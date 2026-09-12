@@ -147,5 +147,48 @@
       "effective_cost": "82.20",
       "unsatisfied": []
     }
-  ]
+  ],
+  "decode": {
+    "precision": 0.6667,
+    "recall": 0.6667,
+    "kind_accuracy": 0.6667,
+    "matched": 2,
+    "gold_total": 3,
+    "parsed_total": 3,
+    "perfect": false,
+    "pairs": [
+      {
+        "gold": "under $2,200 together",
+        "gold_kind": "HARD",
+        "parsed": "under $2,200",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "dock",
+        "gold_kind": "HARD",
+        "parsed": "dock",
+        "parsed_kind": "hard"
+      }
+    ],
+    "misses": [
+      {
+        "text": "work laptop",
+        "kind": "SOFT"
+      }
+    ],
+    "extras": [
+      {
+        "text": "laptop",
+        "kind": "hard"
+      }
+    ],
+    "kind_confusions": [
+      {
+        "gold": "work laptop",
+        "gold_kind": "SOFT",
+        "parsed": "laptop",
+        "parsed_kind": "hard"
+      }
+    ]
+  }
 }

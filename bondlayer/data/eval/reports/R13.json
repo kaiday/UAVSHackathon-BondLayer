@@ -155,5 +155,37 @@
         "trade in my old one"
       ]
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 3,
+    "gold_total": 3,
+    "parsed_total": 3,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "under $1,200",
+        "gold_kind": "HARD",
+        "parsed": "Laptop under $1,200",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "16GB",
+        "gold_kind": "HARD",
+        "parsed": "16GB",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "trade in my old one",
+        "gold_kind": "SERVICE",
+        "parsed": "trade in my old one",
+        "parsed_kind": "service"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

@@ -153,5 +153,37 @@
         "long warranty"
       ]
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 3,
+    "gold_total": 3,
+    "parsed_total": 3,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "under $1,000",
+        "gold_kind": "HARD",
+        "parsed": "under $1,000",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "vacuum",
+        "gold_kind": "HARD",
+        "parsed": "vacuum",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "long warranty",
+        "gold_kind": "SERVICE",
+        "parsed": "long warranty",
+        "parsed_kind": "service"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

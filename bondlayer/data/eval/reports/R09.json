@@ -153,5 +153,37 @@
         "returnable if I don't get on with it"
       ]
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 3,
+    "gold_total": 3,
+    "parsed_total": 3,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "under $800",
+        "gold_kind": "HARD",
+        "parsed": "under $800",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "coffee machine",
+        "gold_kind": "HARD",
+        "parsed": "Coffee machine",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "returnable if I don't get on with it",
+        "gold_kind": "SERVICE",
+        "parsed": "returnable if I don't get on with it",
+        "parsed_kind": "service"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

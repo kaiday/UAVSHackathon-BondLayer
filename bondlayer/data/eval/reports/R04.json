@@ -152,5 +152,42 @@
       "effective_cost": "30.16",
       "unsatisfied": []
     }
-  ]
+  ],
+  "decode": {
+    "precision": 0.75,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 3,
+    "gold_total": 3,
+    "parsed_total": 4,
+    "perfect": false,
+    "pairs": [
+      {
+        "gold": "under 1.3kg",
+        "gold_kind": "HARD",
+        "parsed": "under 1.3kg",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "around $2,000",
+        "gold_kind": "SOFT",
+        "parsed": "around $2,000",
+        "parsed_kind": "soft"
+      },
+      {
+        "gold": "carry every day",
+        "gold_kind": "SOFT",
+        "parsed": "carry every day",
+        "parsed_kind": "soft"
+      }
+    ],
+    "misses": [],
+    "extras": [
+      {
+        "text": "light",
+        "kind": "soft"
+      }
+    ],
+    "kind_confusions": []
+  }
 }

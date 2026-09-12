@@ -164,5 +164,43 @@
         "from a brand that actually repairs things"
       ]
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 4,
+    "gold_total": 4,
+    "parsed_total": 4,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "under $1,500",
+        "gold_kind": "HARD",
+        "parsed": "laptop under $1,500",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "suits my work",
+        "gold_kind": "SOFT",
+        "parsed": "not to suit my work",
+        "parsed_kind": "soft"
+      },
+      {
+        "gold": "I can return it easily",
+        "gold_kind": "SERVICE",
+        "parsed": "I can return easily",
+        "parsed_kind": "service"
+      },
+      {
+        "gold": "a brand that actually repairs things",
+        "gold_kind": "VALUES",
+        "parsed": "from a brand that actually repairs things",
+        "parsed_kind": "values"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

@@ -147,5 +147,31 @@
       "effective_cost": "30.16",
       "unsatisfied": []
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 2,
+    "gold_total": 2,
+    "parsed_total": 2,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "beginner-friendly",
+        "gold_kind": "SOFT",
+        "parsed": "Beginner-friendly",
+        "parsed_kind": "soft"
+      },
+      {
+        "gold": "podcasting gear",
+        "gold_kind": "SOFT",
+        "parsed": "podcasting gear",
+        "parsed_kind": "soft"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

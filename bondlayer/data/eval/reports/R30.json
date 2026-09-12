@@ -125,5 +125,31 @@
       "effective_cost": "30.16",
       "unsatisfied": []
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 2,
+    "gold_total": 2,
+    "parsed_total": 2,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "under $100",
+        "gold_kind": "HARD",
+        "parsed": "under $100",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "a good gift",
+        "gold_kind": "SOFT",
+        "parsed": "good gift",
+        "parsed_kind": "soft"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

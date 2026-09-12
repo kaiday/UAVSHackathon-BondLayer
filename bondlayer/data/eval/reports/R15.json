@@ -157,5 +157,37 @@
         "easy to return if the audio is no good"
       ]
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 3,
+    "gold_total": 3,
+    "parsed_total": 3,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "under $500",
+        "gold_kind": "HARD",
+        "parsed": "under $500",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "record interviews on the go",
+        "gold_kind": "SOFT",
+        "parsed": "record interviews on the go",
+        "parsed_kind": "soft"
+      },
+      {
+        "gold": "easy to return",
+        "gold_kind": "SERVICE",
+        "parsed": "easy to return if the audio is no good",
+        "parsed_kind": "service"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

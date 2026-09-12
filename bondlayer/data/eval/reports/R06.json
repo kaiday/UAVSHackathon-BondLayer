@@ -147,5 +147,31 @@
       "effective_cost": "30.16",
       "unsatisfied": []
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 2,
+    "gold_total": 2,
+    "parsed_total": 2,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "under $1,200 all up",
+        "gold_kind": "HARD",
+        "parsed": "under $1,200",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "everything to start a podcast",
+        "gold_kind": "SOFT",
+        "parsed": "Everything I need to start a podcast",
+        "parsed_kind": "soft"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

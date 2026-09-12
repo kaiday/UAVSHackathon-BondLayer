@@ -139,5 +139,42 @@
       "effective_cost": "30.16",
       "unsatisfied": []
     }
-  ]
+  ],
+  "decode": {
+    "precision": 0.5,
+    "recall": 0.5,
+    "kind_accuracy": 0.5,
+    "matched": 1,
+    "gold_total": 2,
+    "parsed_total": 2,
+    "perfect": false,
+    "pairs": [
+      {
+        "gold": "under $300",
+        "gold_kind": "HARD",
+        "parsed": "under $300",
+        "parsed_kind": "hard"
+      }
+    ],
+    "misses": [
+      {
+        "text": "headset for calls",
+        "kind": "SOFT"
+      }
+    ],
+    "extras": [
+      {
+        "text": "headset",
+        "kind": "hard"
+      }
+    ],
+    "kind_confusions": [
+      {
+        "gold": "headset for calls",
+        "gold_kind": "SOFT",
+        "parsed": "headset",
+        "parsed_kind": "hard"
+      }
+    ]
+  }
 }
