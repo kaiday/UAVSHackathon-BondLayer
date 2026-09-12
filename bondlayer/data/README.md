@@ -24,6 +24,45 @@ rule definitions. Independent counts genuinely disagree: "price format" alone
 lands between 56 and 98 depending on whether a bare integer is a defect. Quote
 the adapter's report, or quote nothing.
 
+### Verified figures, and the run that produced them
+
+Measured against `CsvCatalogAdapter` at `cf6134a`. **Counts depend on how
+`analyse()` is called**, so any figure in the deck must say which run it came
+from.
+
+Whole file, no merchant filter — 148 listings, **299 diagnostics**, readiness 81.7:
+
+| Severity | Count | | Rule | Count |
+|---|---|---|---|---|
+| blocker | **56** | | price_format | 56 |
+| degrades_match | 22 | | gtin_shared | 129 |
+| cosmetic | 7 | | legitimately_empty | 85 |
+| info | 214 | | ram_units | 13 |
+| | | | near_dup_title | 5 |
+| | | | brand_casing / screen_format / missing_weight | 5 / 3 / 3 |
+
+Per merchant: voltway 56 SKUs, 67 diagnostics, readiness 79.1 · citycircuit 49,
+55, 82.6 · northgear 43, 47, 84.1. Summed that is 169, not 299, and
+`gtin_shared` vanishes entirely — it is a cross-merchant signal that only exists
+on the unfiltered run.
+
+**The sentence for the pitch:**
+
+> 34 authored defect variants across 62 products expand to 299 diagnostics
+> across the emitted 148-row catalogue, 56 of them blockers that make a listing
+> invisible to a filter an agent will apply.
+
+The expansion is the point: one bad habit in a source system becomes hundreds of
+unreadable listings downstream. That is the adoption story in one number.
+
+Do **not** write "214 diagnostics, of which 56 are blockers" — 214 is the info
+count, and the blockers are a separate severity, not a subset of it.
+
+And say the quiet part out loud: 214 of the 299 are INFO, mostly
+`legitimately_empty` and `gtin_shared`. The adapter spends most of its output
+confirming things are *correct*. A tool that flags everything gets ignored, and
+that answers a sceptical judge better than a large defect number would.
+
 ## Rules
 
 - **`eval/requests.json` is frozen.** Do not regenerate it. Assumption A2 claims
