@@ -20,6 +20,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, Header, HTTPException, Query
+from fastapi.staticfiles import StaticFiles
 
 from bondlayer.adapters import CsvCatalogAdapter
 from bondlayer.types import Sku
@@ -174,10 +175,22 @@ def catalog_lookup(
     return _respond(merchant, matches, negotiated)
 
 
+DASHBOARD = Path(__file__).resolve().parents[3] / "app" / "dashboard"
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="BondLayer merchant service")
     app.include_router(router)
     app.include_router(onboard.router)
+    if DASHBOARD.is_dir():
+        # React is vendored under app/dashboard/vendor and served from here.
+        # No CDN: a script tag pointing at the internet is a live fetch at demo
+        # time, on venue wifi shared by twenty teams.
+        app.mount(
+            "/dashboard",
+            StaticFiles(directory=DASHBOARD, html=True),
+            name="dashboard",
+        )
     seed()
     onboard.seed()
     return app

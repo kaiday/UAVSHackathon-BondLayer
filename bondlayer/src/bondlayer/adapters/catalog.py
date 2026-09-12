@@ -451,8 +451,8 @@ class CsvCatalogAdapter:
                     gtin,
                     "Also listed by "
                     + ", ".join(sorted(others))
-                    + ". This is how an agent knows it is the same product -- "
-                    "keep publishing it.",
+                    + ". This is how an agent knows it is the same product "
+                    "— keep publishing it.",
                     autofixed=False,
                 )
 
