@@ -37,7 +37,8 @@ publishes the benefit extension) is additive: an agent that negotiates it sends 
 utterance verbatim, and the merchant decodes and resolves it on its own wire, returning
 proposals with a per-constraint justification cited to its own records. Even there, the
 shopper's valuation policy, benefit weights and the cross-merchant comparison never leave the
-agent — only ranking moves merchant-side, never who wins.
+agent — only decoding moves merchant-side; verification, valuation and ranking stay
+agent-side, so who wins is still the agent's own arithmetic.
 
 > In a room full of agents, we are building the thing agents read.
 
