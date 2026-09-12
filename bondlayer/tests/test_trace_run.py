@@ -54,30 +54,19 @@ def test_voltway_wins_with_the_extension():
     assert run.winner.credited > 0
 
 
-def test_known_gap_composition_credits_repeat_benefit_types_without_a_cap():
-    """Documents a known bug rather than working around it (steering, 12/09).
+def test_trace_and_valuation_agree_on_r01():
+    """One valuation path (ruling D4): the trace shows the library's number.
 
-    With the reference shopper policy, R01's winner should be voltway's
-    VOL-0031 at an effective cost of $933.01 against a $1,142.96 shelf price
-    -- the number ``bondlayer.valuation.DeterministicValuation`` would produce,
-    once composition.py's inline crediting routes through it (WS-A, in
-    progress on a separate branch).
-
-    Today composition.py credits every verified record independently, with no
-    per-benefit-type spend cap and no scope binding -- unlike
-    ``DeterministicValuation``. VOL-0031 carries two ``free_returns`` records
-    and two ``warranty`` records (all merchant-wide), so both of each pair are
-    credited, landing on $863.01. If this assertion ever fails because the
-    number moved to $933.01, that is WS-A's fix landing -- delete this test,
-    it will have done its job.
+    VOL-0031, $1,142.96 shelf, wins R01 at $933.01 effective -- the same cent
+    ``test_flip`` and ``docs/eval-results.md`` report. Replaces the
+    known-gap pin ($863.01) that documented composition.py's inline crediting
+    before WS-A routed it through ``DeterministicValuation``.
     """
     from decimal import Decimal
 
     run = _run(extension=True)
-    assert run.winner.effective_cost == Decimal("863.01"), (
-        "composition.py's crediting changed -- if this is now $933.01, "
-        "WS-A's DeterministicValuation wiring has landed; delete this test"
-    )
+    assert run.winner.sku_id == "VOL-0031"
+    assert run.winner.effective_cost == Decimal("933.01")
 
 
 def test_voltway_does_not_win_in_control():

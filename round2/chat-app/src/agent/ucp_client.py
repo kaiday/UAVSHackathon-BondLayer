@@ -86,7 +86,27 @@ def agent_header(bondlayer_enabled: bool) -> str:
     return ";".join(declared)
 
 
+def _params_from_plan(plan: dict) -> dict:
+    """Typed search plan from ``composition.run_request`` -> query params.
+
+    The interpreter already decoded category, ceiling and any product name;
+    this only spells them the way the search route reads them.
+    """
+    params: dict = {}
+    if plan.get("category"):
+        params["category"] = str(plan["category"])
+    if plan.get("max_price") is not None:
+        params["max_price"] = float(plan["max_price"])
+    if plan.get("terms"):
+        params["q"] = " ".join(str(t) for t in plan["terms"])
+    return params
+
+
 def _search_params(utterance: str) -> dict:
+    if not utterance or not utterance.strip():
+        # composition.run_request sends an empty ``query`` when the shopper
+        # named no product; the typed plan carries category and ceiling instead.
+        return {}
     hard_text = " ".join(
         c.text for c in parse_utterance(utterance) if c.kind is ConstraintKind.HARD
     ) or utterance
@@ -114,13 +134,13 @@ def make_fetcher(client: httpx.Client | None = None) -> Callable[..., dict]:
     owns_client = client is None
     http = client or httpx.Client(base_url=MERCHANT_BASE_URL, timeout=10)
 
-    def fetch(merchant: str, query: str, *, extension: bool) -> dict:
+    def fetch(merchant: str, query: str, *, extension: bool, plan: dict | None = None) -> dict:
         header = CATALOG_SEARCH + ";" + CATALOG_LOOKUP
         if extension:
             header += ";" + BENEFIT_VALUE
         response = http.get(
             f"/{merchant}/ucp/catalog/search",
-            params=_search_params(query),
+            params=_params_from_plan(plan) if plan else _search_params(query),
             headers={"UCP-Agent": header},
         )
         if response.status_code == 406:
