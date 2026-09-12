@@ -164,3 +164,92 @@ src/bondlayer/
 
 Real payment flows · production authentication · live merchant integration ·
 protocol certification · cart, checkout and order capabilities.
+
+## Response contract
+
+Captured from the running server, not hand-written. If these disagree with the
+code, the code is right and this section is stale — say so.
+
+### `GET /{merchant}/ucp/catalog/search` · `…/lookup`
+
+Query params — search: `q`, `category`, `max_price`, `limit` (≤100).
+Lookup: `sku_id` (required). Header: `UCP-Agent`.
+
+```json
+{
+  "business": { "id": "voltway", "name": "Voltway" },
+  "active_capabilities": {
+    "dev.ucp.shopping.catalog.search": "2026-04-08",
+    "org.bondlayer.benefit_value": "draft"
+  },
+  "products": [
+    {
+      "id": "VOL-0001",
+      "title": "ThinkBook 14 G3 i5 16 GB 512GB",
+      "category": "laptop",
+      "price": { "amount": "1455.00", "currency": "AUD" },
+      "attributes": {
+        "brand": "Lenovo", "cpu": "i5-1335U", "ram_gb": 16,
+        "storage_gb": 512, "screen_in": 14.0, "weight_kg": 1.4,
+        "battery_wh": 60.0, "gtin": "9312001000011", "condition": "new"
+      }
+    }
+  ],
+  "extensions": {
+    "org.bondlayer.benefit_value": [
+      { "sku_id": "VOL-0001", "issuer": "voltway.example", "records": [] }
+    ]
+  }
+}
+```
+
+Contract notes:
+
+- **`extensions` is absent entirely** when the extension did not survive
+  negotiation — not empty, absent. Plain UCP is exactly
+  `["business", "active_capabilities", "products"]`.
+- `price.amount` is a **string** — a quantized decimal, never a float.
+- `attributes` keys are present only when the listing has them. `ram_gb` and
+  `storage_gb` are ints, `screen_in` / `weight_kg` / `battery_wh` are floats,
+  everything else is a string. `gpu` appears with `gpu_source` beside it.
+- `merchant` and `model_key` are **stripped** from the wire — the merchant is
+  `business.id`, and GTIN is the public cross-merchant key.
+- `extensions[…]` is one block **per product, in product order**.
+- A record inside `records` is
+  `{"record": {…}, "signature": str|null, "key_id": str|null, "signed": bool}`.
+  `signed` is derived, never authored.
+- A capability the agent did not declare returns **406**, not a degraded 200.
+
+### `GET /onboard/report/{merchant}`
+
+```json
+{
+  "merchant": "voltway",
+  "rows_read": 56, "rows_rejected": 0, "skus": 56,
+  "readiness": 78.7, "attributes_fixed": 33,
+  "by_severity": { "blocker": 25, "degrades_match": 9, "cosmetic": 3, "info": 74 },
+  "by_rule": { "price_format": 25, "gtin_shared": 42, "…": 0 },
+  "diagnostics": [
+    {
+      "row": 4, "sku_id": "VOL-0004", "field": "price",
+      "rule": "price_format", "severity": "blocker",
+      "found": "$1922.96", "normalised": "1922.96",
+      "message": "Price is not a number. An agent applying \"under $1,500\" drops this listing entirely rather than ranking it low.",
+      "autofixed": true
+    }
+  ]
+}
+```
+
+`diagnostics` arrives **pre-sorted worst-first** (blocker → degrades_match →
+cosmetic → info, then by row), so the fix list reads top-down without the
+client sorting it. `message` is the merchant-facing sentence — render it, don't
+compose your own. `readiness` is already rounded to one decimal.
+
+### `GET /onboard/merchants`
+
+```json
+[{ "merchant": "citycircuit", "rows_read": 49, "readiness": 82.1, "blockers": 17 }]
+```
+
+Sorted by merchant id, for the switcher and the comparison strip.
