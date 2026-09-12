@@ -1,3 +1,5 @@
+> Superseded 12/09 evening by DAY2-PLAN §4 WS-B
+
 # Issue #18 Implementation Summary
 
 ## Issue: P5 — React UI: chat pane, switch with pinned comparison, evidence timeline

@@ -1,3 +1,5 @@
+> Superseded 12/09 evening by DAY2-PLAN §4 WS-B
+
 # Issue #15: Agent Pipeline - Quick Start Guide
 
 ## Overview

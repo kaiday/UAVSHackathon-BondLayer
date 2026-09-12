@@ -1,3 +1,5 @@
+> Superseded 12/09 evening by DAY2-PLAN §4 WS-B
+
 # P5 Implementation: React UI Chat Pane, Comparison Switch, Evidence Timeline
 
 ## Overview
