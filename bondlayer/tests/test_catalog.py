@@ -33,6 +33,7 @@ EXPECTED_BY_RULE = {
     "brand_casing": 5,        # 2 LENOVO + 3 lenovo against 13 Lenovo
     "legitimately_empty": 85, # battery_wh empty where that is correct
     "gtin_shared": 129,       # cross-merchant matches -- good, not a defect
+    "spec_in_title": 3,       # RTX4060 published only inside the title
 }
 
 
@@ -169,3 +170,19 @@ def test_cross_merchant_gtin_is_visible_from_inside_one_merchant():
     shared = [d for d in report.diagnostics if d.rule == "gtin_shared"]
     assert shared, "a merchant must be able to see its own cross-merchant matches"
     assert any("voltway" in d.message or "northgear" in d.message for d in shared)
+
+
+def test_gpu_is_lifted_out_of_the_title_with_its_provenance(report):
+    """R25 has "RTX" as a HARD constraint and the catalogue has no gpu column.
+
+    Deriving it in the adapter is normalisation; deriving it in the matcher
+    would be the substring matching criterion 1 says to go beyond. So it is
+    lifted once, by an exact token, and carries gpu_source so a consumer can
+    refuse derived evidence for a hard constraint if it wants to.
+    """
+    gpus = {s.sku_id: s.attributes for s in report.skus if "gpu" in s.attributes}
+    assert len(gpus) == 3, "only the Legion 5 listings publish a GPU, in the title"
+    assert {a["gpu"] for a in gpus.values()} == {"RTX4060"}
+    assert all(a["gpu_source"] == "title" for a in gpus.values())
+    # Nothing without an exact RTX/GTX token acquires one.
+    assert all("gpu" not in s.attributes for s in report.skus if "Legion" not in s.title)

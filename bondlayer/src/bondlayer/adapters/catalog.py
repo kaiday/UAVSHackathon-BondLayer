@@ -118,6 +118,10 @@ class CatalogReport:
 # the row cannot be salvaged at all.
 
 _MONEY_NOISE = re.compile(r"[^0-9.\-]")
+#: Discrete GPU, as retailers actually publish it: buried in the title, with no
+#: column of its own. An exact token, never a fuzzy match -- "RTX4060" or
+#: "RTX 4060" and nothing else. See the ``spec_in_title`` rule.
+_GPU_RE = re.compile(r"\b(RTX|GTX)\s?(\d{4})(?:\s?(Ti))?\b", re.IGNORECASE)
 _RAM_RE = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*(gb|mb|tb)\s*$", re.IGNORECASE)
 _SIZE_RE = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*(gb|tb)\s*$", re.IGNORECASE)
 
@@ -451,6 +455,40 @@ class CsvCatalogAdapter:
                     "keep publishing it.",
                     autofixed=False,
                 )
+
+        # 9 -- a hard spec published only inside the title.
+        #
+        # The catalogue has no gpu column, and "RTX" is a HARD constraint in
+        # R25. Deriving it here is adapter work, not matcher work, and the
+        # difference matters: a matcher scanning titles for substrings is
+        # exactly what criterion 1 says to go beyond, whereas an adapter
+        # lifting a known token into a typed field is the normalisation the
+        # adoption story is about. So the value is derived in one place, by an
+        # exact token, and carries its provenance:
+        #
+        #   gpu         -> "RTX4060"
+        #   gpu_source  -> "title"   (never "published" until they add a column)
+        #
+        # A consumer that will not accept derived evidence for a HARD
+        # constraint can require gpu_source == "published" and reject this --
+        # which is the honest default, and their decision to make, not ours.
+        gpu_match = _GPU_RE.search(raw_title)
+        if gpu_match:
+            family, model, suffix = gpu_match.groups()
+            gpu = f"{family.upper()}{model}{(' ' + suffix.upper()) if suffix else ''}"
+            attributes["gpu"] = gpu
+            attributes["gpu_source"] = "title"
+            note(
+                "title",
+                "spec_in_title",
+                Severity.DEGRADES_MATCH,
+                raw_title.strip(),
+                gpu,
+                f"{gpu} appears only inside the product title. An agent "
+                'filtering on "must have a discrete GPU" cannot see it, '
+                "because there is no GPU field to filter on. Publish it as a "
+                "column and this becomes a hard, checkable fact.",
+            )
 
         for extra in ("cpu",):
             if row[extra].strip():
