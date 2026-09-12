@@ -132,6 +132,28 @@ class Proposal:
     records: list[SignedRecord]
 
 
+@dataclass(frozen=True)
+class Bundle:
+    """Several SKUs composed against one intent.
+
+    The problem statement names dynamic bundling twice -- in the in-scope list
+    and inside evaluation criterion 2 -- and its worked example ends on it:
+    an agent asks for "beginner-friendly podcasting gear" and the merchant
+    "pitches the ideal bundle based on that intent". A bundle is composed from
+    matched candidates; it does not re-do the matching.
+
+    ``rationale`` says why these items belong together, not why each one
+    matched -- that is already in each item's ResolvedConstraint notes.
+    """
+
+    bundle_id: str
+    items: list[Proposal]
+    rationale: str
+    combined_shelf_price: Decimal
+    resolved: list[ResolvedConstraint]  # constraints the bundle satisfies as a whole
+    unsatisfied: list[Constraint]
+
+
 # --- valuation -------------------------------------------------------------
 
 
