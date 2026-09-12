@@ -354,6 +354,11 @@ def render_bundles(run: AgentRun) -> list[str]:
             f"   [{role}]"
         )
         for note in item.resolved:
+            if note.note == UNANSWERED:
+                # Verbatim and unwrapped here too, so the marker reads the same
+                # inside a set as it does under a single offer.
+                lines.append("        " + UNANSWERED)
+                continue
             mark = "cites" if note.evidence_record_id else "note "
             lines.extend(_wrap(f"{mark} {note.note}", "        "))
         if item.resolved:

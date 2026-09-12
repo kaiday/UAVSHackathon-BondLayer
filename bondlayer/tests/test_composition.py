@@ -404,3 +404,179 @@ def test_the_default_policy_is_the_reference_shopper_with_no_sentinels_left():
     # Trade-in is $0 on purpose: this shopper has no device to trade, which is
     # what neutralises the largest ceiling either merchant publishes.
     assert DEFAULT_POLICY["trade_in_credit"] == Decimal("0.00")
+
+
+# --- the justification, on the live path (WS-A2) ----------------------------
+#
+# The resolver always produced the per-constraint reasoning the problem
+# statement weighs highest, but only `scripts/eval_run.py` ever called it. These
+# pin it to the path the demo and the chat app actually run, and to the one rule
+# that makes a citation mean anything: only a record that verified can be one.
+
+
+def _live_run(utterance, *, extension=True, **kwargs):
+    """One request over the real in-process server, as the demo runs it."""
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+
+    from bondlayer.records.serialise import record_from_json
+    from bondlayer.records.signing import ES256Signer
+    from bondlayer.types import SignedRecord
+    from bondlayer.ucp.server import app
+    from bondlayer.valuation import MERCHANT_DOMAINS
+
+    client = TestClient(app)
+
+    # Real ES256 against each merchant's published JWK -- not a `signed: true`
+    # flag. An unsigned record has to fail *here* for "never cited" to mean
+    # anything at all downstream.
+    keys: dict = {}
+    for merchant in MERCHANT_DOMAINS:
+        body = client.get(f"/{merchant}/.well-known/ucp").json()
+        domain = body.get("business", {}).get("domain")
+        keys[domain] = {j["kid"]: j for j in body.get("signing_keys", []) if j.get("kid")}
+
+    def verify(entry):
+        record = entry.get("record") or {}
+        jwk = keys.get(record.get("issuer"), {}).get(entry.get("key_id"))
+        if jwk is None or not entry.get("signature"):
+            return False
+        try:
+            signer = ES256Signer.from_jwk(jwk, issuer=record["issuer"])
+            return signer.verify(SignedRecord(record=record_from_json(record),
+                                              signature=entry["signature"],
+                                              key_id=entry["key_id"]))
+        except (ValueError, KeyError, TypeError):
+            return False
+
+    return run_request(utterance, list(MERCHANT_DOMAINS), _live_fetch(client),
+                       extension=extension, interpret=parse, verify=verify,
+                       policy=policy_from(REFERENCE_SHOPPER_POLICY), **kwargs)
+
+
+def _cited(offer):
+    return {r.evidence_record_id for r in offer.resolved if r.evidence_record_id}
+
+
+def _markers(offer):
+    from bondlayer.interpreter.resolver import UNANSWERED
+
+    return [r for r in offer.resolved if r.note == UNANSWERED]
+
+
+def test_r01_winner_justifies_every_clause_and_cites_two_records():
+    """The gap this closes: the live trace now says WHY, clause by clause.
+
+    Not "here is a cheaper laptop" but "'I can return it easily' is answered by
+    vw-returns-60, and 'a brand that actually repairs things' by
+    vw-repairability-parts-5y" -- the second signed, worth $0, and cited
+    anyway, which is the whole argument for validating a claim without pricing
+    it.
+    """
+    run = _live_run(R01)
+    top = run.winner
+
+    assert top.merchant == "voltway"
+    assert top.effective_cost == Decimal("933.01")  # the flip is unmoved
+
+    # One ResolvedConstraint per clause the shopper said, and every note is a
+    # sentence. A blank justification is worse than none: it looks like one.
+    assert len(top.resolved) == len(run.constraints) == 4
+    assert all(r.note.strip() for r in top.resolved)
+
+    assert {"vw-returns-60", "vw-repairability-parts-5y"} <= _cited(top)
+
+    by_kind = {r.constraint.kind.value: r for r in top.resolved}
+    # HARD is answered by a typed catalogue column, never by a record.
+    assert by_kind["hard"].evidence_attribute == "shelf_price"
+    assert by_kind["hard"].evidence_record_id is None
+    # SOFT ranks and never filters.
+    assert by_kind["soft"].satisfied and by_kind["soft"].evidence_record_id is None
+    # SERVICE and VALUES are answered by records, and by nothing else.
+    assert by_kind["service"].evidence_record_id == "vw-returns-60"
+    assert by_kind["values"].evidence_record_id == "vw-repairability-parts-5y"
+
+    assert not top.unsatisfied
+    assert any(s.phase is Phase.RESOLVE and s.outcome is Outcome.OK for s in run.steps)
+
+
+def test_r01_control_answers_neither_clause_and_cites_nothing():
+    """Same code path, one capability short: the justification goes honest.
+
+    With the extension undeclared no merchant publishes a record, so both the
+    SERVICE and the VALUES clause carry the marker and nothing anywhere is
+    cited. This is the half of the demo that proves the other half is real.
+    """
+    from bondlayer.interpreter.resolver import UNANSWERED
+
+    run = _live_run(R01, extension=False)
+    top = run.winner
+
+    assert top.merchant != "voltway"
+    assert top.credited == Decimal("0")
+
+    markers = _markers(top)
+    assert len(markers) == 2
+    assert {m.constraint.kind.value for m in markers} == {"service", "values"}
+    assert all(m.note == UNANSWERED and not m.satisfied for m in markers)
+
+    # Nothing is cited, on any offer, anywhere in the run.
+    assert not any(_cited(offer) for offer in run.ranked)
+    assert {c["kind"] for c in run.unsatisfied} == {"service", "values"}
+
+
+def test_an_unsigned_record_is_never_cited_even_though_it_is_on_the_wire():
+    """R12: NorthGear publishes `ng-sustainability-claim` with no signature.
+
+    It is the one record on the shelf that answers "the most sustainable phone
+    you sell", and it is exactly the greenwashing case the proposal is aimed
+    at. It must stay visible -- the merchant did publish it -- and it must
+    never become evidence. A verified record, or no citation.
+    """
+    run = _live_run("I want the most sustainable phone you sell")
+
+    seen = {c["record_id"] for offer in run.ranked for c in offer.citations}
+    assert "ng-sustainability-claim" in seen, "the record must still be visible"
+
+    for offer in run.ranked:
+        assert "ng-sustainability-claim" not in _cited(offer)
+        for c in offer.citations:
+            if c["record_id"] == "ng-sustainability-claim":
+                assert c["cited"] is False and c["credited"] == "0.00"
+
+    # NorthGear's own listings therefore answer the values clause with the
+    # marker, not with the unsigned claim.
+    northgear = [o for o in run.ranked if o.merchant == "northgear"]
+    assert northgear, "northgear must be in the ranking for this to prove anything"
+    for offer in northgear:
+        values = [r for r in offer.resolved if r.constraint.kind.value == "values"]
+        assert values and all(not r.satisfied for r in values)
+
+
+def test_resolution_attaches_a_reason_and_never_changes_the_answer():
+    """The resolver explains the ranking; it must not steer it.
+
+    A resolver that returns nothing must leave the order, the credited amounts
+    and the winner exactly as they were -- otherwise the justification is
+    quietly moving the arithmetic it is supposed to be describing.
+    """
+    run = _live_run(R01)
+    silent = _live_run(R01, resolve=lambda constraints, skus, records: [])
+
+    assert [r.sku_id for r in silent.ranked] == [r.sku_id for r in run.ranked]
+    assert ([r.effective_cost for r in silent.ranked]
+            == [r.effective_cost for r in run.ranked])
+    assert all(not r.resolved for r in silent.ranked)
+    assert any(r.resolved for r in run.ranked)
+
+
+def test_a_resolver_that_raises_degrades_instead_of_losing_the_run():
+    """Degrade honestly: no reason is bad, no ranking is worse."""
+    def boom(constraints, skus, records):
+        raise RuntimeError("resolver exploded")
+
+    run = _live_run(R01, resolve=boom)
+
+    assert run.winner is not None and run.winner.effective_cost == Decimal("933.01")
+    assert any(s.phase is Phase.RESOLVE and s.outcome is Outcome.DEGRADED
+               for s in run.steps)
