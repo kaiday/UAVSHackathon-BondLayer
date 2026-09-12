@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 from dataclasses import asdict
 from pathlib import Path
 
@@ -24,10 +25,16 @@ router = APIRouter(prefix="/onboard", tags=["onboarding"])
 DATA = Path(__file__).resolve().parents[3] / "data"
 SEED_CATALOG = DATA / "catalog" / "electronics.csv"
 UPLOADS = DATA / "uploads"
+REPORTS = DATA / "eval" / "reports"
 
 #: Seeded reports survive a venue with twenty teams on one wifi. An upload
 #: replaces the entry for that merchant; nothing else changes.
 _reports: dict[str, CatalogReport] = {}
+
+#: The 30 frozen-request reports WS-A's eval runner writes to
+#: ``data/eval/reports/<id>.json`` -- read once, from disk, at start-up. This
+#: module only serves them; it computes nothing.
+_requests: dict[str, dict] = {}
 
 
 def _serialise(report: CatalogReport) -> dict:
@@ -57,6 +64,21 @@ def seed() -> None:
     """Load the three merchants from the frozen catalogue at start-up."""
     for merchant in ("voltway", "citycircuit", "northgear"):
         _reports[merchant] = CsvCatalogAdapter(SEED_CATALOG, merchant=merchant).analyse()
+    _seed_requests()
+
+
+def _seed_requests() -> None:
+    """Load the frozen-request reports WS-A's eval runner already wrote.
+
+    Read at start-up, from disk, verbatim -- this dashboard renders the
+    ``RequestReport`` shape, it never derives it.
+    """
+    _requests.clear()
+    if not REPORTS.is_dir():
+        return
+    for path in sorted(REPORTS.glob("*.json")):
+        report = json.loads(path.read_text(encoding="utf-8"))
+        _requests[report["request_id"]] = report
 
 
 @router.get("/report/{merchant}")
@@ -105,3 +127,54 @@ async def upload_catalog(merchant: str, file: UploadFile) -> dict:
 
     _reports[merchant] = CsvCatalogAdapter(path, merchant=merchant).analyse()
     return _serialise(_reports[merchant])
+
+
+# --- "why we lost": the per-request console (WS-E) --------------------------
+
+
+def _request_summary(report: dict) -> dict:
+    """One row for the Requests list -- enough to pick a request, nothing
+    more. The four figures live on the detail route, not here."""
+    return {
+        "request_id": report["request_id"],
+        "utterance": report["utterance"],
+        "merchants": [
+            {
+                "merchant": m["merchant"],
+                "control_merchant": m["control_merchant"],
+                "won": m["won"],
+            }
+            for m in report["merchants"]
+        ],
+    }
+
+
+@router.get("/requests")
+def requests_list() -> list[dict]:
+    """The 30 frozen requests, for the dashboard's request picker."""
+    return [_request_summary(r) for _, r in sorted(_requests.items())]
+
+
+@router.get("/requests/{request_id}")
+def request_detail(request_id: str, merchant: str | None = None) -> dict:
+    """The ``RequestReport`` JSON for one request, straight off disk.
+
+    Without ``merchant``: the whole report -- every merchant's row, three-way,
+    control included. With ``merchant``: just that merchant's row, so the
+    dashboard can ask for exactly the row it is about to render.
+    """
+    if request_id not in _requests:
+        raise HTTPException(404, f"no report for request {request_id!r}")
+    report = _requests[request_id]
+    if merchant is None:
+        return report
+    for row in report["merchants"]:
+        if row["merchant"] == merchant:
+            return {
+                "request_id": report["request_id"],
+                "utterance": report["utterance"],
+                **row,
+            }
+    raise HTTPException(
+        404, f"no merchant {merchant!r} on request {request_id!r}"
+    )
