@@ -76,7 +76,7 @@ def test_unverified_nonempty_signature_is_not_cited_and_unsatisfied_is_explicit(
     assert proposal.records == []
     assert proposal.unsatisfied == constraints
     assert proposal.resolved[0].evidence_record_id is None
-    assert "No verified repairability" in proposal.resolved[0].note
+    assert proposal.resolved[0].note == "← no catalogue attribute answers this"
 
 
 def test_unsatisfiable_values_clause_is_returned_with_the_partial_catalogue_answer():

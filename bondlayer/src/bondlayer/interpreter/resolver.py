@@ -70,6 +70,74 @@ def _attribute_number(sku: Sku, name: str) -> float | None:
     return float(value)
 
 
+#: Units that mean a numeric clause is NOT about money. "under 1.3kg" and
+#: "under $200" are the same English comparator over different quantities.
+_NON_CURRENCY_UNIT = re.compile(
+    r'\b\d+(?:\.\d+)?\s*(?:kg|g|gb|tb|mb|gigs?|inch(?:es)?|in)\b|\d\s*"'
+)
+
+
+def _is_money_clause(text: str) -> bool:
+    if _has_any(text, ("$", "aud", "usd", "budget", "price", "spend")):
+        return True
+    if _NON_CURRENCY_UNIT.search(text):
+        return False
+    return _has_any(text, ("under ", "below ", "no more than ", "up to ", "less than "))
+
+
+def _category_phrase(text: str) -> tuple[str, str] | None:
+    """Longest whole-word ontology phrase in the clause, or None.
+
+    Substring matching is what this whole project argues against, and it bites
+    here: "phone" is inside "microphone", so a microphone resolved as a phone
+    and the request returned nothing. Match on word boundaries, and prefer the
+    longest phrase so "coffee machine" beats any shorter fragment.
+    """
+    best: tuple[str, str] | None = None
+    for phrase, category in _CATEGORY_ONTOLOGY.items():
+        if re.search(rf"\b{re.escape(phrase)}\b", text) and (
+            best is None or len(phrase) > len(best[0])
+        ):
+            best = (phrase, category)
+    return best
+
+
+#: Explicit model families the parser emits (R18/R19/R20), mapped to the
+#: model_key prefix the adapter publishes as a typed attribute.
+_MODEL_FAMILY = (
+    ("thinkbook", "tb"),
+    ("xps", "xps"),
+)
+
+
+def _model_match(text: str, sku: Sku) -> tuple[bool, str] | None:
+    """Match an explicit model reference against the typed model_key.
+
+    Returns None when the clause names no known model family, so the caller
+    falls through instead of scanning titles. Matching on title substrings
+    is forbidden: the adapter already lifted the model identity into the
+    model_key attribute, and that is what we compare.
+    """
+    words = re.sub(r"[^a-z0-9]+", " ", text).strip().split()
+    family = next((code for name, code in _MODEL_FAMILY if name in words), None)
+    if family is None:
+        return None
+    key = str(sku.attributes.get("model_key", ""))
+    if not key:
+        return False, "No typed model_key is published for this listing."
+    wanted = [dict(_MODEL_FAMILY).get(word, word) for word in words]
+    normalised = re.sub(r"[^a-z0-9]+", "", key.lower())
+    missing = [word for word in wanted if word not in normalised]
+    if not missing:
+        return True, f"Typed model_key {key} matches the requested model."
+    return False, f"Typed model_key {key} is not the requested model."
+
+
+#: Contract marker for an unanswered SERVICE/VALUES clause (DAY2-PLAN WS-A).
+#: Rendered verbatim by WS-E; do not paraphrase.
+_UNANSWERED_MARKER = "← no catalogue attribute answers this"
+
+
 def _hard_resolution(constraint: Constraint, sku: Sku) -> tuple[bool, str | None, str]:
     """Resolve a catalogue-only hard clause without generic keyword matching."""
     text = _normal(constraint.text)
@@ -78,32 +146,39 @@ def _hard_resolution(constraint: Constraint, sku: Sku) -> tuple[bool, str | None
         return ok, "category", ("Matches the standalone warranty-cover product category."
                                 if ok else "This is not a standalone warranty-cover product.")
     # Here laptop scopes a warranty SKU, rather than naming the SKU's category.
+    # Coverage is read from the typed model_key (wty-lap-24), never the title.
     if text == "laptop" and sku.category == "warranty":
-        ok = "laptop" in _normal(sku.title)
-        return ok, "title", ("Warranty product explicitly covers laptops."
+        key = re.sub(r"[^a-z0-9]+", "", str(sku.attributes.get("model_key", "")).lower())
+        ok = "lap" in key
+        return ok, "model_key", ("Warranty product explicitly covers laptops."
                               if ok else "Warranty product does not state laptop coverage.")
-    for phrase, category in _CATEGORY_ONTOLOGY.items():
-        if phrase in text:
-            category_ok = sku.category == category
-            # R01 deliberately combines its product and budget wording into a
-            # single HARD constraint.  Both predicates still have to pass.
-            if any(token in text for token in ("$", "aud", "usd", "under ", "below ", "no more than ")):
-                amount = _number(text)
-                if amount is not None:
-                    price_ok = _numeric_comparison(text, float(sku.shelf_price), amount)
-                    ok = category_ok and price_ok
-                    return ok, "category,shelf_price", (
-                        f"Category is {sku.category} and shelf price ${sku.shelf_price} satisfy the '{phrase}' and ${amount:,.0f} limits."
-                        if ok else f"The combined category/budget constraint is not met (category={sku.category}, price=${sku.shelf_price})."
-                    )
-            return category_ok, "category", (f"Category is {sku.category}, the ontology match for '{phrase}'."
-                                               if category_ok else f"Category is {sku.category}, not the '{phrase}' product class.")
-    if any(token in text for token in ("$", "aud", "usd", "under ", "below ", "no more than ")):
+    matched = _category_phrase(text)
+    if matched is not None:
+        phrase, category = matched
+        category_ok = sku.category == category
+        # R01 deliberately combines its product and budget wording into a
+        # single HARD constraint.  Both predicates still have to pass.
+        if any(token in text for token in ("$", "aud", "usd", "under ", "below ", "no more than ")):
+            amount = _number(text)
+            if amount is not None:
+                price_ok = _numeric_comparison(text, float(sku.shelf_price), amount)
+                ok = category_ok and price_ok
+                return ok, "category,shelf_price", (
+                    f"Category is {sku.category} and shelf price ${sku.shelf_price} satisfy the '{phrase}' and ${amount:,.0f} limits."
+                    if ok else f"The combined category/budget constraint is not met (category={sku.category}, price=${sku.shelf_price})."
+                )
+        return category_ok, "category", (f"Category is {sku.category}, the ontology match for '{phrase}'."
+                                           if category_ok else f"Category is {sku.category}, not the '{phrase}' product class.")
+    # "under 1.3kg" and "under $200" both contain "under ". Only the second is
+    # about money. A comparator word alone must never claim a clause that
+    # carries a non-currency unit, or a weight limit is silently compared
+    # against a shelf price and nothing matches.
+    if _is_money_clause(text):
         amount = _number(text)
         if amount is not None:
             ok = _numeric_comparison(text, float(sku.shelf_price), amount)
-            return ok, "shelf_price", (f"Shelf price ${sku.shelf_price} is within the stated ${amount:,.0f} limit."
-                                         if ok else f"Shelf price ${sku.shelf_price} exceeds the stated ${amount:,.0f} limit.")
+            return ok, "shelf_price", (f"Shelf price ${sku.shelf_price} is within the stated ${amount:,.2f} limit."
+                                         if ok else f"Shelf price ${sku.shelf_price} exceeds the stated ${amount:,.2f} limit.")
     if re.search(r"\b\d+(?:\.\d+)?\s*tb\b", text) or _has_any(text, ("storage", "ssd", "hdd")):
         amount = _number(text)
         if amount is not None:
@@ -151,10 +226,12 @@ def _hard_resolution(constraint: Constraint, sku: Sku) -> tuple[bool, str | None
         ok = wanted in actual
         return ok, "cpu", (f"CPU is {sku.attributes.get('cpu')}, matching {cpu_match.group(0)}."
                             if ok else "No matching typed cpu value is published.")
-    # Explicit model references are intentional: the adapter canonicalises title per model_key.
-    model, title = _normal(constraint.text), _normal(sku.title)
-    if model and model in title:
-        return True, "title", f"Canonical model title identifies '{constraint.text}'."
+    # Explicit model references compare the typed model_key the adapter
+    # publishes, never title substrings (WS-A Forbidden).
+    model_hit = _model_match(text, sku)
+    if model_hit is not None:
+        ok, note = model_hit
+        return ok, "model_key", note
     return False, None, "No ontology rule can verify this hard clause."
 
 
@@ -237,10 +314,10 @@ def _verified_records(sku: Sku, records: list[SignedRecord], verify: Callable[[S
 def _record_resolution(constraint: Constraint, verified: list[SignedRecord]) -> tuple[bool, SignedRecord | None, str]:
     wanted = _wanted_benefit(constraint)
     if wanted is None:
-        return False, None, "No benefit ontology maps this clause to a verifiable record type."
+        return False, None, _UNANSWERED_MARKER
     match = next((signed for signed in verified if signed.record.benefit_type is wanted), None)
     if match is None:
-        return False, None, f"No verified {wanted.value} benefit record is available for this listing."
+        return False, None, _UNANSWERED_MARKER
     return True, match, f"Verified {wanted.value} claim: {match.record.fact}."
 
 
