@@ -16,8 +16,8 @@ pitch title and the team-info block.
 | 1 | Multi-constraint intent schema — lifestyle, values, use-case — replacing the four-field policy extractor | **Critical** | Hieu | `feat/hieu-interpreter` | Phase 1, core scope |
 | 2 | Semantic catalogue matching — embeddings + attribute filters, **replacing substring match** | **Critical** | Hieu | `feat/hieu-interpreter` | Phase 1, **made explicit — see below** |
 | 3 | Electronics catalogue, 60–100 SKUs, near-duplicates, attribute noise | **Critical** | Nha | `feat/nha-eval-data` | Phase 0 gate |
-| 4 | **Dynamic bundling** — propose a bundle against decoded intent | High | **Nguyen** | `feat/nguyen-ucp-head` | **newly assigned** |
-| 5 | **Values claims** as signed, validated (not priced) records | High — best effort-to-score ratio | **Bach + Hieu + Nha** | three branches | **schema landed `2043cac`** |
+| 4 | **Dynamic bundling** — propose a bundle against decoded intent | High | **Nguyen** + Minh (render) | `feat/nguyen-ucp-head`, `feat/minh-console` | **newly assigned** |
+| 5 | **Values claims** as signed, validated (not priced) records | High — best effort-to-score ratio | **Bach + Hieu + Nha + Minh** | four branches | **schema landed `2043cac`** |
 | 6 | Multi-constraint evaluation set with reported match accuracy | High | Nha | `feat/nha-eval-data` | Phase 0 gate |
 | 7 | **Close the API loop** — checkout beyond a status flag | Medium | **Bach** | `feat/bach-records-signing` | **newly assigned**, Phase 3 |
 | 8 | Negotiation / counter-offer protocol | Optional | — | — | **Ford's call, not a technical one.** Reverses decision-log item 2; the analysis says do not silently reverse it. Default: stays dropped. |
@@ -66,6 +66,10 @@ ways:
   actually repairs things"* cites a signed `repairability` record.
 - **Nha** — author them into the policy prose and put one **unsigned**
   greenwashing claim in the control merchant's data.
+- **Minh** — render three distinct states: signed-and-priced (credited),
+  signed-and-unpriced (cited, $0), unsigned (displayed, never cited). The last
+  two both credit nothing, and the screen must still show that one is trusted
+  evidence and the other is not.
 
 That last detail is the demo moment: a verified durability claim beats
 unverifiable greenwashing, using the same signing story already being told about
