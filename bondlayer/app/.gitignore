@@ -1,0 +1,10 @@
+/node_modules
+/.next
+/out
+/build
+/.npm-cache
+*.log
+*.tsbuildinfo
+.env*
+!.env.example
+.DS_Store
