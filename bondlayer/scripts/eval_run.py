@@ -65,6 +65,7 @@ if str(ROOT / "src") not in sys.path:  # runnable without an editable install
     sys.path.insert(0, str(ROOT / "src"))
 
 from bondlayer.adapters.catalog import CsvCatalogAdapter  # noqa: E402
+from bondlayer.agent.composition import realisable_credit  # noqa: E402
 from bondlayer.interpreter.parser import parse  # noqa: E402
 from bondlayer.interpreter.resolver import resolve_detailed  # noqa: E402
 from bondlayer.records.serialise import load_signed  # noqa: E402
@@ -279,7 +280,13 @@ def merchant_rows(
                  if line.merchant_ceiling_aud > line.credited_aud),
                 Decimal("0"),
             )
-            return cost.effective_cost, cost.total_credited, withheld_
+            # The same ranking floor the agent applies, from the same function:
+            # a benefit cannot be worth more than the listing it attaches to,
+            # and the console must not show a $30 cable at minus $119.
+            credited_, unusable_ = realisable_credit(cost.total_credited,
+                                                     proposal.sku.shelf_price)
+            return (proposal.sku.shelf_price - credited_, credited_,
+                    withheld_ + unusable_)
 
         best, (effective, credited, withheld) = min(
             ((p, priced(p)) for p in proposals),
