@@ -141,6 +141,18 @@ The Dashboard's backend. Same process, its own router.
 | `GET /onboard/requests` | the 30 frozen requests: id, utterance, per-merchant won/lost summary |
 | `GET /onboard/requests/{id}[?merchant=…]` | the `RequestReport` JSON for one request — every merchant row three-way, or just one with `merchant=` |
 
+## Intent route
+
+The problem statement's desired outcome is a merchant system that receives the
+buyer agent's multi-constraint query, decodes the intent, analyses its
+catalogue against it and returns a justified proposal. `catalog.search`
+receives a typed plan the agent decoded for itself. This route receives the
+sentence.
+
+| Route | Returns |
+|---|---|
+| `POST /{merchant}/ucp/intent/propose` | body `{"utterance": "…", "limit": 20}`; header `UCP-Agent` must negotiate `org.bondlayer.intent_match` (extends `catalog.search`; declared by voltway and northgear, not by the control) or the call is **406**. Returns `decoded_intent` (one entry per clause with its kind and the merchant's reading, the count of clauses no catalogue column can answer, plain-sentence assumptions, and one clarifying question when nothing names a product) and `proposals` (`product` exactly as `catalog.search` serves it, `resolved` per clause with `evidence_record_id`/`evidence_attribute`/`note`, `unsatisfied`). Only records that verify against the merchant's own key in `keys/` reach the resolver. `extensions` carries the same benefit blocks as search iff `org.bondlayer.benefit_value` also negotiated; absent otherwise. **The merchant receives the shopper's utterance verbatim; it never receives the shopper's valuation policy, benefit weights, or the cross-merchant comparison. Ranking against the shopper's policy stays agent-side.** |
+
 ## Records
 
 `data/records/{merchant}.signed.json`, served in the benefit block on the
