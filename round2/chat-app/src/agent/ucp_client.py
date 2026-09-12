@@ -8,8 +8,13 @@ server. It is this agent declining to declare one capability in its
 (``bondlayer``'s -- there is no other one) prunes the extension. Same route,
 same builder, same fan-out, same merchants.
 
-    on  -> dev.ucp.shopping.catalog.search;dev.ucp.shopping.catalog.lookup;org.bondlayer.benefit_value
+    on  -> dev.ucp.shopping.catalog.search;dev.ucp.shopping.catalog.lookup;org.bondlayer.benefit_value;org.bondlayer.intent_match
     off -> dev.ucp.shopping.catalog.search;dev.ucp.shopping.catalog.lookup
+
+"On" declares two BondLayer capabilities, both extensions of ``catalog.search``:
+the benefit extension, and ``org.bondlayer.intent_match``, which lets this agent
+hand the shopper's sentence to the merchant and get the merchant's own decode
+and proposals back (``make_proposer``). Neither changes the ranking.
 
 ``catalog.search`` has to be declared for search itself to succeed -- an agent
 that sends only ``catalog.lookup;org.bondlayer.benefit_value`` gets a 406 on
@@ -36,6 +41,7 @@ from bondlayer.interpreter.parser import parse as parse_utterance
 from bondlayer.records.serialise import record_from_json
 from bondlayer.records.signing import ES256Signer
 from bondlayer.types import ConstraintKind, SignedRecord
+from bondlayer.ucp.capabilities import INTENT_MATCH
 from bondlayer.valuation.reference_policy import REFERENCE_SHOPPER_POLICY
 
 #: Overridable so the demo, a test, or a judge's laptop can point this agent at
@@ -77,12 +83,14 @@ def agent_header(bondlayer_enabled: bool) -> str:
 
     The switch, in full. Nothing else in the system branches on it. Note that
     ``catalog.search`` is declared in *both* states -- the toggle only ever
-    adds or removes the benefit extension, never the base capability the
-    search route requires to answer at all.
+    adds or removes the two BondLayer extensions (the benefit extension and
+    ``intent_match``), never the base capability the search route requires to
+    answer at all.
     """
     declared = [CATALOG_SEARCH, CATALOG_LOOKUP]
     if bondlayer_enabled:
         declared.append(BENEFIT_VALUE)
+        declared.append(INTENT_MATCH)
     return ";".join(declared)
 
 
@@ -151,6 +159,41 @@ def make_fetcher(client: httpx.Client | None = None) -> Callable[..., dict]:
     fetch.client = http  # type: ignore[attr-defined]
     fetch.owns_client = owns_client  # type: ignore[attr-defined]
     return fetch
+
+
+def make_proposer(client: httpx.Client | None = None) -> Callable[..., dict | None]:
+    """A ``bondlayer.agent.merchant_decode.Proposer`` over real HTTP.
+
+    ``POST /{merchant}/ucp/intent/propose`` with the shopper's sentence
+    verbatim and the same ``UCP-Agent`` header ``make_fetcher`` sends, so the
+    merchant negotiates ``org.bondlayer.intent_match`` from the same
+    declaration it negotiates everything else from. 406 -- the merchant did
+    not negotiate it, which is the control merchant's answer every time -- is
+    ``None``; any other HTTP failure raises. ``extension`` off is ``None``
+    without a call: the toggle-off header declares nothing the route would
+    accept, and the wrapper does not ask anyway.
+
+    Same ``client`` convention as ``make_fetcher``: hand one in to point at an
+    in-process app, or let it open a localhost connection to
+    ``MERCHANT_BASE_URL``.
+    """
+    http = client or httpx.Client(base_url=MERCHANT_BASE_URL, timeout=10)
+
+    def propose(merchant: str, utterance: str, *, extension: bool) -> dict | None:
+        if not extension:
+            return None
+        response = http.post(
+            f"/{merchant}/ucp/intent/propose",
+            json={"utterance": utterance, "limit": 5},
+            headers={"UCP-Agent": agent_header(True)},
+        )
+        if response.status_code == 406:
+            return None
+        response.raise_for_status()
+        return response.json()
+
+    propose.client = http  # type: ignore[attr-defined]
+    return propose
 
 
 def make_verifier(client: httpx.Client | None = None) -> Callable[[dict], bool]:

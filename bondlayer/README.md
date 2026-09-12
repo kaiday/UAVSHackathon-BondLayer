@@ -153,6 +153,22 @@ sentence.
 |---|---|
 | `POST /{merchant}/ucp/intent/propose` | body `{"utterance": "…", "limit": 20}`; header `UCP-Agent` must negotiate `org.bondlayer.intent_match` (extends `catalog.search`; declared by voltway and northgear, not by the control) or the call is **406**. Returns `decoded_intent` (one entry per clause with its kind and the merchant's reading, the count of clauses no catalogue column can answer, plain-sentence assumptions, and one clarifying question when nothing names a product) and `proposals` (`product` exactly as `catalog.search` serves it, `resolved` per clause with `evidence_record_id`/`evidence_attribute`/`note`, `unsatisfied`). Only records that verify against the merchant's own key in `keys/` reach the resolver. `extensions` carries the same benefit blocks as search iff `org.bondlayer.benefit_value` also negotiated; absent otherwise. **The merchant receives the shopper's utterance verbatim; it never receives the shopper's valuation policy, benefit weights, or the cross-merchant comparison. Ranking against the shopper's policy stays agent-side.** |
 
+The buyer agent calls it. `bondlayer.agent.merchant_decode.run_with_merchant_decode`
+runs `run_request` unchanged, then sends the same sentence to every merchant
+that negotiated `org.bondlayer.intent_match` and appends **one** step to the
+trace (`Phase.INTENT`, `detail["kind"] == "merchant_decode"`) carrying, per
+merchant, the merchant's `decoded_intent` verbatim, its first five proposals
+trimmed to id/title/price plus the resolver's per-clause notes, and a
+clause-by-clause agreement check against the agent's own decode (same `kind`
+and overlapping tokens pair; the rule is spelled out in `agreement`'s
+docstring). `scripts/trace_run.py` prints it as the `merchant decode (POST
+/ucp/intent/propose)` section between the parsed constraints and the steps; in
+`--control` it says the sentence was not sent. It never touches `ranked`,
+`bundles` or `constraints`, and `tests/test_merchant_decode.py` pins that the
+run is byte-identical to a plain `run_request` apart from the appended step.
+The block is *what the merchant understood and proposed*; the ranking is *what
+the agent verified and decided*.
+
 ## Checkout route
 
 FPT's step 5, "closing the loop through a seamless, API-driven transaction".

@@ -39,6 +39,11 @@ sys.path.insert(0, str(SRC))
 from fastapi.testclient import TestClient  # noqa: E402
 
 from bondlayer.agent import Outcome, Phase, run_request  # noqa: E402
+from bondlayer.agent.merchant_decode import (  # noqa: E402
+    EXTENSION_OFF_SUMMARY,
+    merchant_decode_step,
+    run_with_merchant_decode,
+)
 from bondlayer.agent.trace import AgentRun, Ranked, Step  # noqa: E402
 from bondlayer.bundle import CategoryBundler, role_of  # noqa: E402
 from bondlayer.interpreter.parser import parse as parse_utterance  # noqa: E402
@@ -50,6 +55,7 @@ from bondlayer.interpreter.resolver import UNANSWERED  # noqa: E402
 from bondlayer.records.serialise import record_from_json  # noqa: E402
 from bondlayer.records.signing import ES256Signer  # noqa: E402
 from bondlayer.types import ConstraintKind, SignedRecord  # noqa: E402
+from bondlayer.ucp.capabilities import INTENT_MATCH  # noqa: E402
 from bondlayer.ucp.server import create_app  # noqa: E402
 from bondlayer.valuation.reference_policy import REFERENCE_SHOPPER_POLICY  # noqa: E402
 
@@ -151,6 +157,34 @@ def make_fetcher(client: TestClient) -> Callable[..., dict]:
         return response.json()
 
     return fetch
+
+
+def make_proposer(client: TestClient) -> Callable[..., dict | None]:
+    """A ``bondlayer.agent.merchant_decode.Proposer`` over the in-process app.
+
+    Mirrors ``make_fetcher``: same client, same header logic, one capability
+    more. ``POST /{merchant}/ucp/intent/propose`` with the sentence verbatim;
+    406 (the merchant did not negotiate ``org.bondlayer.intent_match``) is
+    ``None``, any other failure raises. The extension-off run never gets here
+    -- the wrapper does not call ``propose`` at all -- but the header logic is
+    kept honest anyway: without the extension nothing beyond plain search is
+    declared, so the answer would be 406 and ``None``.
+    """
+    def propose(merchant: str, utterance: str, *, extension: bool) -> dict | None:
+        if not extension:
+            return None
+        header = ";".join([CATALOG_SEARCH, CATALOG_LOOKUP, BENEFIT_VALUE, INTENT_MATCH])
+        response = client.post(
+            f"/{merchant}/ucp/intent/propose",
+            json={"utterance": utterance, "limit": 5},
+            headers={"UCP-Agent": header},
+        )
+        if response.status_code == 406:
+            return None
+        response.raise_for_status()
+        return response.json()
+
+    return propose
 
 
 def make_verifier(client: TestClient, merchants: list[str]) -> Callable[[dict], bool]:
@@ -405,6 +439,81 @@ def render_bundles(run: AgentRun) -> list[str]:
     return lines
 
 
+def render_merchant_decode(run: AgentRun) -> list[str]:
+    """What each merchant understood and proposed, next to the agent's decode.
+
+    Not a second ranking. Each line is the merchant's own reading of the
+    sentence -- how many clauses it found, how many of them coincide with the
+    agent's, and the first item on its own shelf that answers them, with the
+    clauses that item leaves unanswered. The agent's ranking below decides
+    nothing from this block; it is here so a judge can see the merchant system
+    do steps 1-4 itself, and see where the two decodes would diverge.
+
+    Empty when the run carries no merchant-decode step, so a run produced by
+    plain ``run_request`` renders exactly as it did before this section existed.
+    """
+    step = merchant_decode_step(run)
+    if step is None:
+        return []
+    lines = ["merchant decode (POST /ucp/intent/propose):"]
+    if step.summary == EXTENSION_OFF_SUMMARY:
+        lines.extend(_wrap(step.summary, "  "))
+        lines.append(_BAR)
+        return lines
+    for d in step.detail.get("merchant_decodes", []):
+        name = f"  {d['merchant']:<13}"
+        if d.get("error"):
+            lines.extend(_wrap(f"{name}could not be asked -- {d['error']}", ""))
+            continue
+        if not d["negotiated"]:
+            lines.append(f"{name}did not negotiate {INTENT_MATCH} -- decoded nothing")
+            continue
+        decoded = d["decoded_intent"] or {}
+        agree = d["agreement"]
+        head = (f"{name}negotiated  {len(decoded.get('constraints', []))} constraints  "
+                f"agrees with agent {agree['agreed']}/{agree['total']}")
+        if d["proposals"]:
+            top = d["proposals"][0]
+            answered = sum(1 for r in top["resolved"] if r.get("satisfied"))
+            tail = f"{answered}/{len(top['resolved'])} clauses answered"
+            if top["unsatisfied"]:
+                tail += "; unsatisfied: " + "; ".join(u["text"] for u in top["unsatisfied"])
+            head += f"  first proposal {top['sku_id']} ({tail})"
+        else:
+            head += "  no proposal -- nothing on its shelf passes the HARD clauses"
+        lines.append(head)
+        indent = " " * 15
+        for clause in agree["clauses"]:
+            if not clause["agree"]:
+                lines.extend(_wrap(
+                    f"disagrees: agent read {clause['agent']['kind']} "
+                    f"{clause['agent']['text']!r}; merchant did not", indent))
+        for extra in agree.get("merchant_only", []):
+            lines.extend(_wrap(
+                f"merchant also read {extra['kind']} {extra['text']!r}", indent))
+        # The console's contract (tests/test_trace_run.py, "the marker is never
+        # broken across lines"): a line that says "no catalogue attribute" IS
+        # the resolver's marker, verbatim, and nothing else may say it. Two of
+        # the merchant's assumption sentences use those words to explain a
+        # record-only clause, so those clauses are rendered from the merchant's
+        # typed interpretation instead -- the benefit type it says a record must
+        # carry -- and every other assumption is printed as the merchant wrote it.
+        for a in decoded.get("assumptions", []):
+            if "no catalogue attribute" in a:
+                continue
+            lines.extend(_wrap(f"assumes: {a}", indent))
+        for c in decoded.get("constraints", []):
+            need = (c.get("interpretation") or {}).get("benefit_type")
+            if need:
+                lines.extend(_wrap(
+                    f"record-only: {c['text']!r} can only be answered by a "
+                    f"verified {need} record", indent))
+        if decoded.get("clarifying_question"):
+            lines.extend(_wrap(f"asks: {decoded['clarifying_question']}", indent))
+    lines.append(_BAR)
+    return lines
+
+
 def render(run: AgentRun, *, extension: bool) -> str:
     lines: list[str] = []
     lines.append("=" * 78)
@@ -419,6 +528,8 @@ def render(run: AgentRun, *, extension: bool) -> str:
     else:
         lines.append("  (none -- no interpreter wired)")
     lines.append(_BAR)
+
+    lines.extend(render_merchant_decode(run))
 
     lines.append("steps:")
     for step in run.steps:
@@ -482,10 +593,11 @@ def main() -> None:
     client = TestClient(create_app())
     extension = not args.control
 
-    run = run_request(
+    run = run_with_merchant_decode(
         args.utterance,
         MERCHANTS,
         make_fetcher(client),
+        propose=make_proposer(client),
         extension=extension,
         verify=make_verifier(client, MERCHANTS),
         policy=POLICY,

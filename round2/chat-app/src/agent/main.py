@@ -39,6 +39,7 @@ sys.path.insert(0, str(CHAT_APP.parent))
 load_dotenv(CHAT_APP / ".env")
 
 from bondlayer.agent import run_request
+from bondlayer.agent.merchant_decode import merchant_decode_step, run_with_merchant_decode
 from bondlayer.agent.trace import AgentRun
 from bondlayer.bundle import CategoryBundler, bundle_payload
 
@@ -160,10 +161,16 @@ def handle_query(request: ShoppingQuery) -> dict:
     fetch = _fetcher()
     verify = ucp_client.make_verifier()
 
-    run = run_request(
+    # ``run_request`` unchanged, then the shopper's sentence goes to every
+    # merchant that negotiated ``org.bondlayer.intent_match`` and each one's
+    # own decode and proposals come back as one more trace step. The merchant's
+    # reading is shown NEXT TO the agent's, never instead of it, and nothing in
+    # ``ranked`` is computed from it.
+    run = run_with_merchant_decode(
         request.query,
         ucp_client.MERCHANTS,
         fetch,
+        propose=ucp_client.make_proposer(),
         extension=request.bondlayer_enabled,
         verify=verify,
         policy=ucp_client.POLICY,
@@ -201,6 +208,17 @@ def handle_query(request: ShoppingQuery) -> dict:
     ]
     winner = ranked[0] if ranked else None
     cheapest_shelf = min(ranked, key=lambda r: float(r["shelf_price_aud"])) if ranked else None
+
+    # The merchant-decode step's detail, plus its outcome and summary so the
+    # page can render the block without hunting through ``steps`` for it.
+    decode_step = merchant_decode_step(run)
+    merchant_decodes = (
+        {**decode_step.detail, "outcome": decode_step.outcome.value,
+         "summary": decode_step.summary}
+        if decode_step is not None else
+        {"kind": "merchant_decode", "merchant_decodes": [], "outcome": "absent",
+         "summary": "No merchant-decode step on this run."}
+    )
     flipped = bool(winner and cheapest_shelf and winner["sku_id"] != cheapest_shelf["sku_id"])
 
     return {
@@ -218,6 +236,10 @@ def handle_query(request: ShoppingQuery) -> dict:
         # bundle's rationale deliberately says nothing about why any individual
         # item fits -- that is already written on the item.
         "bundles": [bundle_payload(b) for b in run.bundles],
+        # What each merchant understood and proposed when handed the sentence
+        # itself (POST /ucp/intent/propose), with a clause-by-clause agreement
+        # check against ``constraints`` above. Additive; ``ranked`` never reads it.
+        "merchant_decodes": merchant_decodes,
         "audit": _audit(run),
         "transcript": llm.transcript_payload(),
     }
