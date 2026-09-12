@@ -6,18 +6,20 @@ Semantic Matching, then Technical Architecture, then Business Value & Conversion
 market strategy and the roadmap carrying the Round 2 rubric's equal-highest criterion
 (Market strategy, 25 pts) into the same ten minutes.
 
-Numbers in this outline are placeholders until `bondlayer/docs/eval-results.md` exists;
-see the root `README.md` Evaluation section for the rule governing what may be spoken.
+Numbers in this outline are copied from `bondlayer/docs/eval-results.md` at commit `339a7ed`
+(the run itself is `90de308`, re-verified byte-identical at `339a7ed`); see the root
+`README.md` Evaluation section for the rule governing what may be spoken — a number is
+spoken on stage only if it is in that file with a commit hash.
 
 ## Timed structure
 
 | Time | Segment | Content | Speaks to |
 |---|---|---|---|
 | 0:00–0:45 | **The query** | State the demo query live: *"a laptop under $1,500 I can return easily if it turns out not to suit my work, from a brand that actually repairs things."* One hard price filter, one soft performance signal, one service constraint, one values constraint — say the taxonomy out loud before the system does anything. | Framing |
-| 0:45–2:00 | **The decode** | Show the parsed constraints: HARD / SOFT / SERVICE / VALUES, each with its own kind and why the split matters — the bottom two rows have no catalogue column and are exactly what the interpreter has to resolve against signed records instead. | Priority 1 |
-| 2:00–3:30 | **The match, with justification** | Matched SKUs with one cited `evidence_record_id` or `evidence_attribute` per constraint, and the honest `unsatisfied` list where nothing answers a clause. Not a SKU list — a reason per line. | Priority 1 |
-| 3:30–5:00 | **The wire, with and without the extension** | Same query, twice, over the actual header: `UCP-Agent: dev.ucp.shopping.catalog.search;dev.ucp.shopping.catalog.lookup;org.bondlayer.benefit_value` declared, then absent. Show the response: `extensions` present vs entirely absent — capability negotiation, not a branch in the code. | Priority 2 |
-| 5:00–6:00 | **The flip** | Effective cost recomputes the ranking: Voltway is never the cheapest shelf price, and wins on credited benefit value once the extension is on. A tamper test lands here too — inflate an unsigned claim, watch it earn nothing. | Priority 2 |
+| 0:45–2:00 | **The decode** | Show the parsed constraints: HARD / SOFT / SERVICE / VALUES, each with its own kind and why the split matters — the bottom two rows have no catalogue column and are exactly what the interpreter has to resolve against signed records instead. Decode accuracy on the frozen 30: precision 0.914, recall 0.972, 22/30 perfect decodes. Show this decode twice — once from the agent's own trace, once from `curl -X POST .../voltway/ucp/intent/propose`, where Voltway decodes the same sentence on its own wire and returns the same `decoded_intent` block. One interpreter, two seats. | Priority 1 |
+| 2:00–3:30 | **The match, with justification** | Matched SKUs with one cited `evidence_record_id` or `evidence_attribute` per constraint, and the honest `unsatisfied` list where nothing answers a clause. Not a SKU list — a reason per line. The trace's `[resolve: ok]` step reads "4 of 4 constraints answered; 2 answered only by a verified record" — the same justification the `intent/propose` response carries in `proposals[].resolved`, cited to `vw-returns-60` and `vw-repairability-parts-5y`. | Priority 1 |
+| 3:30–5:00 | **The wire, with and without the extension** | Same query, twice, over the actual header: `UCP-Agent: dev.ucp.shopping.catalog.search;dev.ucp.shopping.catalog.lookup;org.bondlayer.benefit_value` declared, then absent. Show the response: `extensions` present vs entirely absent — capability negotiation, not a branch in the code. Add the fourth capability, `org.bondlayer.intent_match`, and the same header now hits `POST /voltway/ucp/intent/propose` instead of `catalog.search` — same negotiation mechanism, same 406 when a merchant (or the control) has not declared it. | Priority 2 |
+| 5:00–6:00 | **The flip** | Effective cost recomputes the ranking: Voltway `VOL-0031` wins at **$933.01** effective against a $1,142.96 shelf price, never the cheapest shelf price anywhere in the catalogue, once the extension is on; off, CityCircuit `CIT-0032` wins at $1,066.00 shelf, no flip. A tamper test lands here too — inflate an unsigned claim, watch it earn nothing. | Priority 2 |
 | 6:00–7:00 | **The dashboard: why we lost** | Switch to the losing merchant's view: fields exposed, share of the offer legible, verified value credited, value withheld by the wire, and the one-line reason. This is the surface FPT explicitly said matters less than the logic behind it — keep it short on stage for exactly that reason. | Priority 3 |
 | 7:00–8:30 | **Market** | Segment, value model, the competitive table, distribution through FPT's own retail delivery practice. See the root README's Market strategy section for the full argument; this segment states the headline of each, not the detail. | Round 2 rubric: Market strategy (25 pts) |
 | 8:30–9:30 | **Roadmap and the ask** | Pilot with one mid-market electronics retailer in shadow mode → protocol certification → an agent-side SDK → propose the benefit extension upstream to UCP. The ask: what FPT's retail delivery practice would need to carry this into a client engagement. | Round 2 rubric: Deployability, Adaptation |
@@ -106,5 +108,14 @@ creditable, and repeat-purchase share retained against a price-only baseline, al
 per request rather than estimated. For FPT: a reusable accelerator inside its retail
 delivery practice's UCP onboarding work, with a second vertical to follow the pilot.
 
-<!-- VERIFY 13/09: every number in this file against bondlayer/docs/eval-results.md once
-     WS-A's evaluation run lands; the timing column against an actual rehearsal. -->
+**Q11 — Doesn't the merchant now see the shopper's intent?** (Thanh Nha Phan)
+Only on the route that negotiates it, and only the utterance — the merchant never receives
+the shopper's valuation policy, its benefit weights, or the cross-merchant comparison, so it
+can see what was asked but not what any of it is worth or who else is being considered. The
+merchant's `intent/propose` response is a proposal with a justification, not a decision: the
+agent still verifies every cited record and still ranks by effective cost, exactly as it does
+against `catalog.search`. What changes is where the decoding happens, not who decides.
+
+The numbers above are copied from `bondlayer/docs/eval-results.md` at commit `339a7ed`
+(run `90de308`, re-verified byte-identical at `339a7ed`); the timing column is the outline's
+own budget, not yet checked against a timed rehearsal.
