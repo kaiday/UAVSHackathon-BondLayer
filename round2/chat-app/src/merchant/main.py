@@ -32,7 +32,15 @@ from .capabilities import (
     negotiate,
     parse_agent_header,
 )
-from .seed import Merchant, Sku, load_catalog, load_merchants, load_records, signing_keys
+from .seed import (
+    Merchant,
+    Sku,
+    load_catalog,
+    load_members,
+    load_merchants,
+    load_records,
+    signing_keys,
+)
 
 app = FastAPI(
     title="BondLayer UCP merchant service",
@@ -58,12 +66,14 @@ app.add_middleware(
 _merchants: dict[str, Merchant] = {}
 _catalog: dict[str, list[Sku]] = {}
 _records: dict[str, list[dict]] = {}
+_members: dict[str, dict[str, dict]] = {}
 
 
 @app.on_event("startup")
 def seed() -> None:
     _merchants.update(load_merchants())
     _catalog.update(load_catalog())
+    _members.update(load_members())
     for mid in _merchants:
         _records[mid] = load_records(mid)
 
@@ -92,25 +102,71 @@ def _product(sku: Sku) -> dict:
     }
 
 
-def _records_for(merchant: Merchant, sku: Sku) -> list[dict]:
-    """Published records that apply to one listing.
+def _records_for(merchant: Merchant, sku: Sku, shopper_id: str | None) -> list[dict]:
+    """Published records that apply to one listing, for one shopper.
+
+    Two scope axes, both read from the record and neither branching on anything
+    else:
 
     ``product_id`` of ``"*"`` means the record applies to the whole merchant --
     a returns window is a property of the retailer, not of one charger -- so
     those attach to every listing.
+
+    ``shopper_id`` of ``"*"`` means the record is addressed to anyone, so it is
+    served whether or not a shopper is linked. A record naming a shopper is
+    served only to that shopper. **This is the whole consent mechanism.** With no
+    linked identity ``shopper_id`` is ``None``, nothing matches the named
+    records, and they are absent from the response -- not withheld by a privacy
+    check, simply not selected. It is the same argument as capability pruning,
+    one level down: there is no ``if consent:`` anywhere for a reviewer to
+    distrust.
 
     Unsigned records are served and flagged, never filtered out here. Deciding
     what an unsigned claim is worth is the agent's job, not the wire's.
     """
     out = []
     for envelope in _records.get(merchant.id, []):
-        target = envelope["record"].get("product_id")
-        if target in (None, "*", sku.sku_id):
-            out.append(envelope)
+        record = envelope["record"]
+        if record.get("product_id") not in (None, "*", sku.sku_id):
+            continue
+        if record.get("shopper_id") not in (None, "*", shopper_id):
+            continue
+        out.append(envelope)
     return out
 
 
-def _respond(merchant: Merchant, skus: list[Sku], negotiated: Negotiated) -> dict:
+def _resolve_shopper(merchant: Merchant, shopper_id: str | None) -> tuple[str | None, dict]:
+    """Who, if anyone, this merchant recognises -- and why it says so.
+
+    The agent asserts a ``shopper_id``; the merchant is the only party that can
+    say what it means. An id this merchant has never seen resolves to ``None``
+    and earns nothing beyond the universal records, so an agent cannot talk its
+    way into a loyalty tier by claiming one.
+    """
+    if not shopper_id:
+        return None, {"linked": False, "reason": "no_shopper_id_supplied"}
+    facts = _members.get(merchant.id, {}).get(shopper_id)
+    if facts is None:
+        return None, {
+            "linked": False,
+            "shopper_id": shopper_id,
+            "reason": "not_known_to_this_merchant",
+        }
+    return shopper_id, {
+        "linked": True,
+        "shopper_id": shopper_id,
+        "status": facts.get("status"),
+        "tier": facts.get("tier"),
+        "orders": facts.get("orders"),
+    }
+
+
+def _respond(
+    merchant: Merchant,
+    skus: list[Sku],
+    negotiated: Negotiated,
+    shopper_id: str | None = None,
+) -> dict:
     """The single response builder. There is no second one.
 
     Note what is *not* here: any test of the merchant's role, name or manifest.
@@ -131,12 +187,14 @@ def _respond(merchant: Merchant, skus: list[Sku], negotiated: Negotiated) -> dic
         "products": [_product(s) for s in skus],
     }
     if BENEFIT_VALUE in negotiated:
+        resolved, identity = _resolve_shopper(merchant, shopper_id)
+        body["shopper"] = identity
         body["extensions"] = {
             BENEFIT_VALUE: [
                 {
                     "sku_id": s.sku_id,
                     "issuer": merchant.domain,
-                    "records": _records_for(merchant, s),
+                    "records": _records_for(merchant, s, resolved),
                 }
                 for s in skus
             ]
@@ -195,6 +253,7 @@ def catalog_search(
     category: str | None = Query(default=None),
     max_price: float | None = Query(default=None),
     limit: int = Query(default=20, le=100),
+    shopper_id: str | None = Query(default=None),
     ucp_agent: str | None = Header(default=None, alias="UCP-Agent"),
 ) -> dict:
     merchant = _merchant(merchant_id)
@@ -217,13 +276,14 @@ def catalog_search(
             if not needles
             or any(n in f"{s.title} {s.description} {s.category}".lower() for n in needles)
         ]
-    return _respond(merchant, skus[:limit], negotiated)
+    return _respond(merchant, skus[:limit], negotiated, shopper_id)
 
 
 @app.get("/{merchant_id}/ucp/catalog/lookup")
 def catalog_lookup(
     merchant_id: str,
     sku_id: str = Query(...),
+    shopper_id: str | None = Query(default=None),
     ucp_agent: str | None = Header(default=None, alias="UCP-Agent"),
 ) -> dict:
     """The call an agent already makes while comparing merchants -- which is
@@ -236,7 +296,7 @@ def catalog_lookup(
     matches = [s for s in _catalog.get(merchant_id, []) if s.sku_id == sku_id]
     if not matches:
         raise HTTPException(404, f"unknown sku {sku_id!r}")
-    return _respond(merchant, matches, negotiated)
+    return _respond(merchant, matches, negotiated, shopper_id)
 
 
 class IdentityLink(BaseModel):
@@ -263,11 +323,13 @@ def identity_link(
         return {
             "linked": False,
             "reason": "consent_not_given",
+            "merchant": merchant.id,
             "active_capabilities": negotiated.active,
         }
+
+    _, identity = _resolve_shopper(merchant, body.shopper_id)
     return {
-        "linked": True,
-        "shopper_id": body.shopper_id,
+        **identity,
         "merchant": merchant.id,
         "active_capabilities": negotiated.active,
     }

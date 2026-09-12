@@ -17,9 +17,33 @@
           "statutory_minimum_months": 12
         }
       },
-      "signature": "MEUCIQDq9WFC-zNAlnG0a5vPuusUNCpFwUai3gtz15hr4OoWhAIgOWzNGYqB4tnqqyUvpn5sp3qbn6JbTwGAfuEGkGmIiPs",
+      "signature": "MEYCIQCvOm07CdcoU2cxkSUzwknKAcMA1Q9vcSwadJMtXUyyZwIhAPTb1uF_tLK0verZIE4vKYFKmvJCCPZjmMcwjtVBoK1Z",
       "key_id": "northgear-2026-09",
       "canonical_json": "{\"benefit_type\":\"warranty_extension\",\"created_at\":\"2026-09-12T09:00:00+00:00\",\"merchant_id\":\"northgear\",\"merchant_key_id\":\"northgear-2026-09\",\"product_id\":\"*\",\"shopper_id\":\"*\",\"source_span\":\"NorthGear products carry a 12-month warranty in line with Australian Consumer Law.\",\"terms\":{\"statutory_minimum_months\":12,\"warranty_months\":12},\"value_aud\":0,\"value_ceiling_aud\":0}",
+      "signed": true
+    },
+    {
+      "record": {
+        "merchant_id": "northgear",
+        "shopper_id": "*",
+        "product_id": "*",
+        "benefit_type": "discount",
+        "value_aud": 0.0,
+        "value_ceiling_aud": 0.0,
+        "created_at": "2026-09-12T09:00:00+00:00",
+        "source_span": "New members save 20% on their first order. Minimum spend $150. Offer expires 7 days after signup.",
+        "merchant_key_id": "northgear-2026-09",
+        "terms": {
+          "rate_pct": 20,
+          "form": "cash_discount",
+          "first_order_only": true,
+          "min_spend_aud": 150.0,
+          "expires_days": 7
+        }
+      },
+      "signature": "MEUCICdvr04u1PT8KMrlFaWY3-FqW9hpg9bVd68jz2zHH1NTAiEA5nQQKaHe6iwObn_VM9DDLhDhFQJGB9lOxXNiBUHAvhg",
+      "key_id": "northgear-2026-09",
+      "canonical_json": "{\"benefit_type\":\"discount\",\"created_at\":\"2026-09-12T09:00:00+00:00\",\"merchant_id\":\"northgear\",\"merchant_key_id\":\"northgear-2026-09\",\"product_id\":\"*\",\"shopper_id\":\"*\",\"source_span\":\"New members save 20% on their first order. Minimum spend $150. Offer expires 7 days after signup.\",\"terms\":{\"expires_days\":7,\"first_order_only\":true,\"form\":\"cash_discount\",\"min_spend_aud\":150,\"rate_pct\":20},\"value_aud\":0,\"value_ceiling_aud\":0}",
       "signed": true
     },
     {

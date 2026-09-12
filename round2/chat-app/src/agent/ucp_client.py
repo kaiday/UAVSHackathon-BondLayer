@@ -64,12 +64,23 @@ class VerifiedRecord:
     #: Only set where the benefit genuinely is money the shopper does not pay.
     #: ``None`` means "not a monetary benefit", never "worthless".
     cash_value_aud: float | None
+    #: Set where the benefit has a dollar figure that is **not** fungible cash --
+    #: store credit, spendable at one merchant and expiring. The agent is
+    #: expected to discount it and say by how much; it is never added to cash.
+    ceiling_aud: float | None
     source_span: str
     key_id: str | None
     signed: bool
     verified: bool
-    state: str  # verified_monetary | verified_fact | unverified
+    #: verified_monetary | verified_restricted | verified_fact
+    #: | ineligible | shopper_mismatch | unverified
+    state: str
     reason: str
+    #: Percentage benefits sign a rate, not an amount. Kept so the evidence log
+    #: can show that the dollar figure was derived from a signed rate and a
+    #: price on the wire, rather than asserted by anyone.
+    rate_pct: float | None = None
+    form: str | None = None
 
 
 @dataclass
@@ -100,6 +111,10 @@ class MerchantExchange:
     extension_served: bool
     product_count: int
     record_count: int
+    #: What this merchant made of the shopper id, in its own words. Each
+    #: merchant answers separately: the same shopper is a seven-order Circle
+    #: member at one and a stranger at the next.
+    shopper: dict = field(default_factory=dict)
     error: str | None = None
 
 
@@ -133,34 +148,85 @@ def _verification_keys(client: httpx.Client, merchant: str) -> dict[str, Verific
     return resolved
 
 
-def _verify(envelope: dict, keys: dict[str, VerificationKey], merchant: str) -> VerifiedRecord:
-    """Check one record's signature against the merchant's published key.
+def _threshold_unmet(terms: dict, shelf_price_aud: float) -> str | None:
+    """Whether the listing fails a condition the record itself sets out.
 
-    Three outcomes, and the log has to keep them distinct:
+    A signature proves who made an offer. It says nothing about whether the
+    offer applies, and the difference is the whole point of this function.
+    NorthGear's "New members save 20%" verifies perfectly and then asks for a
+    $150 minimum on a catalogue whose dearest item is $109.99 -- so it is worth
+    exactly nothing here, and the reason has to be legible rather than a silent
+    drop. This is how the "20% OFF" banner actually behaves; we neither hide it
+    nor credit it.
+    """
+    minimum = terms.get("min_spend_aud")
+    if minimum is not None and shelf_price_aud < float(minimum):
+        return (
+            f"min_spend_not_met: ${shelf_price_aud:.2f} is below the "
+            f"${float(minimum):.2f} minimum this offer requires"
+        )
+    free_over = terms.get("free_over_aud")
+    if free_over is not None and shelf_price_aud < float(free_over):
+        return (
+            f"threshold_not_met: ${shelf_price_aud:.2f} is below the "
+            f"${float(free_over):.2f} this fee is waived over"
+        )
+    return None
 
-    - **verified_monetary**  signature checks out, and the benefit is an amount of
-      money the shopper does not pay -> the agent can treat it as cash
-    - **verified_fact**      signature checks out, the benefit is a fact with no
+
+def _verify(
+    envelope: dict,
+    keys: dict[str, VerificationKey],
+    merchant: str,
+    shelf_price_aud: float,
+    linked_shopper_id: str | None,
+) -> VerifiedRecord:
+    """Check one record's signature against the merchant's published key, then
+    check whether it actually applies to this listing and this shopper.
+
+    Six outcomes, and the log has to keep them distinct:
+
+    - **verified_monetary**    signature checks out and the benefit is cash the
+      shopper does not pay -> the agent can treat it as money off
+    - **verified_restricted**  signature checks out and the benefit has a dollar
+      figure that is *not* fungible cash -- store credit, redeemable at one
+      merchant and expiring. It gets a ceiling, never a cash value, and the agent
+      must discount it and disclose the haircut
+    - **verified_fact**        signature checks out, the benefit is a fact with no
       honest dollar figure -> true, citable, and the agent decides what it is worth
-    - **unverified**         no signature, or one that does not check out ->
+    - **ineligible**           signature checks out and the offer's own condition
+      fails on this listing -> displayed with the arithmetic, credited nothing
+    - **shopper_mismatch**     signature checks out over a *different* shopper's
+      id -> a promotion cannot be lifted onto whoever is holding it
+    - **unverified**           no signature, or one that does not check out ->
       displayed, never cited, and it must not move the ranking
 
     Note what is deliberately *not* here: any conversion of a fact into a price.
     A 24-month warranty is not $18. Turning it into $18 and subtracting it from
     the shelf price invents a number the merchant never offered.
+
+    Percentage benefits are the one place a dollar figure is *computed*, and it
+    is worth being precise about why that is not the same sin. The merchant signs
+    a rate and a form; the price is on the wire in the same response. 5% of
+    $109.99 is arithmetic over two things the merchant published, not a valuation
+    we invented -- and ``form`` decides which column it lands in.
     """
     body = envelope.get("record", {})
     signature = envelope.get("signature")
     key_id = envelope.get("key_id")
+    terms = body.get("terms", {})
     cash = float(body.get("value_aud", 0.0)) or None
     common = {
         "merchant": merchant,
         "issuer": body.get("merchant_id", merchant),
         "benefit_type": body.get("benefit_type", "unknown"),
-        "terms": body.get("terms", {}),
+        "terms": terms,
         "cash_value_aud": cash,
+        "ceiling_aud": None,
         "source_span": body.get("source_span", ""),
         "key_id": key_id,
+        "rate_pct": terms.get("rate_pct"),
+        "form": terms.get("form"),
     }
 
     if not signature or not key_id:
@@ -203,9 +269,58 @@ def _verify(envelope: dict, keys: dict[str, VerificationKey], merchant: str) -> 
             reason="signature did not verify — displayed, never cited",
         )
 
+    # From here the signature is good. Everything below is about whether the
+    # offer applies, which a signature never establishes.
+
+    scope = body.get("shopper_id")
+    if scope not in (None, "*", linked_shopper_id):
+        return VerifiedRecord(
+            **common, signed=True, verified=True, state="shopper_mismatch",
+            reason=f"shopper_mismatch: signed for {scope!r}, linked shopper is "
+            f"{linked_shopper_id!r} — a promotion is not transferable",
+        )
+
+    unmet = _threshold_unmet(terms, shelf_price_aud)
+    if unmet:
+        return VerifiedRecord(
+            **{**common, "cash_value_aud": None}, signed=True, verified=True,
+            state="ineligible",
+            reason=f"verified, and it does not apply here — {unmet}",
+        )
+
+    rate = terms.get("rate_pct")
+    if rate is not None:
+        amount = round(float(rate) / 100.0 * shelf_price_aud, 2)
+        # Store credit is not money. It is spendable at one merchant, it expires,
+        # and it is worth nothing to a shopper who does not come back. Putting it
+        # in the cash column would overstate it by exactly the amount of that
+        # risk, so it gets a ceiling and the agent owes a disclosed haircut.
+        if terms.get("form") == "store_credit":
+            return VerifiedRecord(
+                **{**common, "cash_value_aud": None, "ceiling_aud": amount},
+                signed=True, verified=True, state="verified_restricted",
+                reason=f"verified — {rate:g}% of ${shelf_price_aud:.2f} is "
+                f"${amount:.2f}, but as "
+                f"{terms.get('redeemable_at', 'merchant-restricted')} credit"
+                + (
+                    f" expiring in {terms['expires_months']} months"
+                    if terms.get("expires_months")
+                    else ""
+                )
+                + ". A ceiling, not cash: discount it and say by how much",
+            )
+        return VerifiedRecord(
+            **{**common, "cash_value_aud": amount, "ceiling_aud": amount},
+            signed=True, verified=True, state="verified_monetary",
+            reason=f"verified — {rate:g}% of ${shelf_price_aud:.2f} is "
+            f"${amount:.2f} off the price, computed from a signed rate and the "
+            f"merchant's own listed price",
+        )
+
     if cash is not None:
         return VerifiedRecord(
-            **common, signed=True, verified=True, state="verified_monetary",
+            **{**common, "ceiling_aud": cash}, signed=True, verified=True,
+            state="verified_monetary",
             reason="verified against published JWK — a fee the shopper does not pay",
         )
 
@@ -216,12 +331,22 @@ def _verify(envelope: dict, keys: dict[str, VerificationKey], merchant: str) -> 
     )
 
 
-def fan_out(query: str, bondlayer_enabled: bool) -> tuple[list[Offer], list[MerchantExchange]]:
+def fan_out(
+    query: str,
+    bondlayer_enabled: bool,
+    shopper_id: str | None = None,
+) -> tuple[list[Offer], list[MerchantExchange]]:
     """Query every merchant, identically, over real UCP.
 
     The fan-out is the same in both switch states: same merchants, same order,
     same query. Only the declared header differs. That is what kills the
     objection that the baseline lost because the agent called fewer merchants.
+
+    ``shopper_id`` is ``None`` when the shopper withheld consent, and then it is
+    simply never put on the wire. Nothing downstream needs a privacy branch: the
+    merchant has no id to resolve, only ``shopper_id: "*"`` records match, and
+    the shopper-specific promotions are absent from the response rather than
+    filtered out of the display.
     """
     header = agent_header(bondlayer_enabled)
     offers: list[Offer] = []
@@ -231,8 +356,11 @@ def fan_out(query: str, bondlayer_enabled: bool) -> tuple[list[Offer], list[Merc
         for merchant in MERCHANTS:
             url = f"{MERCHANT_BASE_URL}/{merchant}/ucp/catalog/search"
             try:
+                params = {"q": query}
+                if shopper_id:
+                    params["shopper_id"] = shopper_id
                 response = client.get(
-                    url, params={"q": query}, headers={"UCP-Agent": header}, timeout=10
+                    url, params=params, headers={"UCP-Agent": header}, timeout=10
                 )
             except httpx.HTTPError as exc:
                 exchanges.append(
@@ -260,11 +388,19 @@ def fan_out(query: str, bondlayer_enabled: bool) -> tuple[list[Offer], list[Merc
             extension = body.get("extensions", {}).get(BENEFIT_VALUE, [])
             by_sku = {block["sku_id"]: block for block in extension}
             keys = _verification_keys(client, merchant) if extension else {}
+            # Whether *this* merchant recognised the id. An agent-side claim of
+            # membership is worth nothing; only the merchant can say.
+            identity = body.get("shopper", {})
+            linked = identity.get("shopper_id") if identity.get("linked") else None
 
             record_total = 0
             for product in body.get("products", []):
                 block = by_sku.get(product["id"], {})
-                verified = [_verify(e, keys, merchant) for e in block.get("records", [])]
+                price = float(product["price"]["amount"])
+                verified = [
+                    _verify(e, keys, merchant, price, linked)
+                    for e in block.get("records", [])
+                ]
                 record_total += len(verified)
                 offers.append(
                     Offer(
@@ -273,7 +409,7 @@ def fan_out(query: str, bondlayer_enabled: bool) -> tuple[list[Offer], list[Merc
                         title=product["title"],
                         category=product["category"],
                         model_key=product.get("model_key", ""),
-                        shelf_price_aud=float(product["price"]["amount"]),
+                        shelf_price_aud=price,
                         availability=product.get("availability", "unknown"),
                         description=product.get("description", ""),
                         records=verified,
@@ -289,6 +425,7 @@ def fan_out(query: str, bondlayer_enabled: bool) -> tuple[list[Offer], list[Merc
                     extension_served=bool(extension),
                     product_count=len(body.get("products", [])),
                     record_count=record_total,
+                    shopper=identity,
                 )
             )
 

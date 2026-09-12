@@ -38,10 +38,12 @@ RECORDS = DATA / "records"
 
 ISSUED_AT = datetime(2026, 9, 12, 9, 0, tzinfo=timezone.utc).isoformat()
 
-#: ``product_id`` of ``"*"`` means the record applies to every listing the
-#: merchant serves -- a returns window is a property of the retailer, not of one
-#: charger. ``shopper_id`` is ``"*"`` because a published record is an offer to
-#: anyone; what a *particular* shopper values it at is the loyalty layer's job.
+#: ``"*"`` in either scope field means "applies to everything in that axis".
+#: ``product_id: "*"`` -- the record covers every listing the merchant serves; a
+#: returns window is a property of the retailer, not of one charger.
+#: ``shopper_id: "*"`` -- the record is an offer addressed to anyone, and needs no
+#: linked identity to be served. Naming a shopper instead narrows it to that
+#: shopper, and the merchant's signature is what makes the narrowing binding.
 ANY = "*"
 
 
@@ -53,17 +55,30 @@ def _record(
     *,
     cash_value_aud: float = 0.0,
     product_id: str = ANY,
+    shopper_id: str = ANY,
 ) -> BenefitRecord:
     """One published record.
 
     ``terms`` is the benefit as a fact. ``cash_value_aud`` is filled in **only**
-    when the benefit genuinely is an amount of money the shopper does not pay --
-    a waived delivery fee. A 24-month warranty has no honest dollar figure, so it
-    gets none, and the agent decides what it is worth.
+    when the benefit genuinely is a *fixed* amount of money the shopper does not
+    pay -- a waived delivery fee. A 24-month warranty has no honest dollar
+    figure, so it gets none, and the agent decides what it is worth.
+
+    **Percentage benefits carry no dollar figure at all.** A 5%-back record signs
+    ``rate_pct`` and ``form``; the agent multiplies that rate by the price it can
+    already see. Signing a dollar amount here would mean guessing which listing
+    the shopper is looking at, and a record that applies to every listing cannot
+    honestly name one number. What the signature covers is the rate and the form,
+    which is exactly what the merchant is actually promising.
+
+    ``shopper_id`` of ``"*"`` is an offer addressed to anyone. Naming a shopper
+    makes the record an attestation about *that* shopper -- and because
+    ``shopper_id`` is inside the signed canonical JSON, the attestation cannot be
+    lifted onto somebody else.
     """
     return BenefitRecord(
         merchant_id=merchant,
-        shopper_id=ANY,
+        shopper_id=shopper_id,
         product_id=product_id,
         benefit_type=benefit_type,
         value_aud=cash_value_aud,
@@ -115,6 +130,49 @@ PLAN: dict[str, list[tuple[BenefitRecord, bool]]] = {
             ),
             True,
         ),
+        # Loyalty, and deliberately *not* cash. 5% back is real and signed, but
+        # it is store credit: spendable at Voltway only, expiring in 12 months,
+        # and worth nothing to a shopper who does not come back. It signs the
+        # rate and the form and leaves the haircut to the agent, which is the
+        # honest shape for a benefit that is not fungible.
+        (
+            _record(
+                "voltway",
+                BenefitType.LOYALTY_CREDIT,
+                "Voltway Circle members earn 5% back as store credit on every order. "
+                "Store credit is redeemable at Voltway only and expires 12 months "
+                "after it is issued.",
+                {
+                    "rate_pct": 5,
+                    "form": "store_credit",
+                    "redeemable_at": "voltway only",
+                    "expires_months": 12,
+                    "min_spend_aud": 0,
+                },
+                shopper_id="shopper-001",
+            ),
+            True,
+        ),
+        # Acquisition, and this one *is* cash: 10% off the price, no minimum, no
+        # expiry clause to fall foul of. It is the record that shows a
+        # shopper-specific promotion can be worth real money -- so the demo is
+        # not "every promotion is a trick", it is "the terms decide".
+        (
+            _record(
+                "voltway",
+                BenefitType.DISCOUNT,
+                "New Circle members receive 10% off their first order, with no "
+                "minimum spend.",
+                {
+                    "rate_pct": 10,
+                    "form": "cash_discount",
+                    "first_order_only": True,
+                    "min_spend_aud": 0,
+                },
+                shopper_id="shopper-002",
+            ),
+            True,
+        ),
         (
             _record(
                 "voltway",
@@ -139,6 +197,29 @@ PLAN: dict[str, list[tuple[BenefitRecord, bool]]] = {
                 "NorthGear products carry a 12-month warranty in line with "
                 "Australian Consumer Law.",
                 {"warranty_months": 12, "statutory_minimum_months": 12},
+            ),
+            True,
+        ),
+        # The headline banner, and the sharpest record in the set because it is
+        # **signed and it verifies**. It fails on its own terms instead: the
+        # minimum spend is $150 and the most expensive listing in this catalogue
+        # is $109.99, so the condition cannot be met on any product either
+        # merchant sells. A signature proves who said it, never that it is worth
+        # anything -- and note this record names no shopper, so it is also the
+        # one offer here that asks for none of the shopper's data.
+        (
+            _record(
+                "northgear",
+                BenefitType.DISCOUNT,
+                "New members save 20% on their first order. Minimum spend $150. "
+                "Offer expires 7 days after signup.",
+                {
+                    "rate_pct": 20,
+                    "form": "cash_discount",
+                    "first_order_only": True,
+                    "min_spend_aud": 150.00,
+                    "expires_days": 7,
+                },
             ),
             True,
         ),

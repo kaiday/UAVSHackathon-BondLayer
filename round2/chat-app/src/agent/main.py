@@ -77,7 +77,17 @@ delivery fee matters at this price. A term that is merely the legal minimum is n
 advantage.
 
 A claim that did not verify is not evidence. It must not move your ranking, however \
-large the number attached to it.
+large the number attached to it. The same is true of a claim marked \
+`applies_to_this_listing: false` -- it may be perfectly genuine and still not apply \
+at this price, and a discount the customer cannot actually obtain is worth zero. Say \
+so plainly when a headline offer fails its own conditions; it is useful information \
+about the merchant.
+
+Some benefits carry `restricted_value_ceiling_aud` instead of `cash_value_aud`. That \
+is money the customer can only spend back at the same merchant, and it usually \
+expires. Treat it as worth materially less than the same figure in cash, never as \
+equal to it, and tell the customer what you discounted it to and why. Do not add it \
+to a price comparison as though it were a discount.
 
 Be neutral and concrete. Never invent a benefit that is not in the data you were \
 given, and be willing to prefer the cheaper offer when the extra terms do not earn \
@@ -87,7 +97,11 @@ their premium."""
 class ShoppingQuery(BaseModel):
     query: str
     bondlayer_enabled: bool = True
-    shopper_id: str = "demo_shopper"
+    #: Seeded in data/members.json. shopper-001 is an existing Voltway Circle
+    #: member; shopper-002 is a prospect there. Any other id is a stranger to
+    #: every merchant and sees only the universal records, which is also the
+    #: correct behaviour rather than a gap.
+    shopper_id: str = "shopper-001"
     consent: bool = True
 
 
@@ -107,7 +121,17 @@ def _offer_payload(offer: Offer) -> dict:
                 # Present only where the benefit really is money the shopper does
                 # not pay. Absent means "not a monetary benefit", not "worthless".
                 **({"cash_value_aud": r.cash_value_aud} if r.cash_value_aud else {}),
+                # Present instead where the benefit has a dollar figure that is
+                # not fungible cash. Named to make it hard to add to the price.
+                **(
+                    {"restricted_value_ceiling_aud": r.ceiling_aud}
+                    if r.state == "verified_restricted"
+                    else {}
+                ),
                 "signature_verified": r.verified,
+                "applies_to_this_listing": r.state
+                not in ("ineligible", "shopper_mismatch"),
+                "assessment": r.reason,
                 "quoted_from_merchant_policy": r.source_span,
             }
             for r in offer.records
@@ -126,9 +150,23 @@ def _audit(offer: Offer) -> dict:
 
     The one place money still appears is a fee the shopper genuinely does not pay.
     """
-    verified_facts = [r for r in offer.records if r.verified and r.cash_value_aud is None]
-    verified_cash = [r for r in offer.records if r.verified and r.cash_value_aud is not None]
-    ignored = [r for r in offer.records if not r.verified]
+    by_state: dict[str, list] = {}
+    for r in offer.records:
+        by_state.setdefault(r.state, []).append(r)
+
+    verified_cash = by_state.get("verified_monetary", [])
+    restricted = by_state.get("verified_restricted", [])
+    verified_facts = by_state.get("verified_fact", [])
+    # Three different ways to be worth nothing, and collapsing them would lose
+    # the argument. An unsigned claim was never evidence; an ineligible one is
+    # true and simply does not apply here; a mismatched one was signed about
+    # somebody else. Each earns zero for a different reason and the reason is
+    # the interesting part.
+    earns_nothing = (
+        by_state.get("unverified", [])
+        + by_state.get("ineligible", [])
+        + by_state.get("shopper_mismatch", [])
+    )
 
     return {
         "sku_id": offer.sku_id,
@@ -139,16 +177,29 @@ def _audit(offer: Offer) -> dict:
         "verified_facts": [
             {"benefit_type": r.benefit_type, "terms": r.terms} for r in verified_facts
         ],
-        # Fees waived are real money and we do add those up. Nothing else is.
+        # Cash the shopper does not pay: waived fees and signed rate discounts.
+        # This is the only figure we subtract from a price, and every term in it
+        # traces to a signature over an amount or a rate.
+        "verified_cash_aud": round(sum(r.cash_value_aud or 0 for r in verified_cash), 2),
+        # Kept under its old name so nothing downstream breaks on the rename.
         "verified_fees_waived_aud": round(sum(r.cash_value_aud or 0 for r in verified_cash), 2),
-        "ignored_count": len(ignored),
+        # Deliberately a separate line item. Store credit belongs nowhere near
+        # the cash total, and an audit that summed the two would be lying by
+        # layout even if every individual number were correct.
+        "restricted_value_ceiling_aud": round(sum(r.ceiling_aud or 0 for r in restricted), 2),
+        "restricted_value_notes": [
+            {"benefit_type": r.benefit_type, "terms": r.terms, "why": r.reason}
+            for r in restricted
+        ],
+        "ignored_count": len(earns_nothing),
         "ignored": [
             {
                 "benefit_type": r.benefit_type,
-                "claimed_aud": r.cash_value_aud,
+                "state": r.state,
+                "claimed_aud": r.cash_value_aud or r.ceiling_aud,
                 "reason": r.reason,
             }
-            for r in ignored
+            for r in earns_nothing
         ],
     }
 
@@ -229,7 +280,15 @@ def handle_query(request: ShoppingQuery) -> dict:
     )
 
     # (3) fan-out -- identical in both switch states
-    offers, exchanges = ucp_client.fan_out(request.query, request.bondlayer_enabled)
+    #
+    # Consent decides whether the id goes on the wire at all. Withheld, we send
+    # nothing, the merchant has nothing to resolve, and the shopper-specific
+    # records are absent from the response instead of being received and hidden.
+    offers, exchanges = ucp_client.fan_out(
+        request.query,
+        request.bondlayer_enabled,
+        request.shopper_id if request.consent else None,
+    )
     steps.append(
         {
             "step": "fan_out",

@@ -39,6 +39,11 @@
      handled by the input AND forwarded by the label, toggling twice. */
   .tg input{width:16px;height:16px;accent-color:var(--brand);margin:0;pointer-events:none}
   .tg .on{color:var(--ok)} .tg .off{color:var(--bad)}
+  .tg.sel{cursor:default;color:var(--muted);font-weight:600}
+  .tg.sel select{
+    font:inherit;font-weight:600;color:var(--ink);border:0;background:transparent;
+    cursor:pointer;outline:none;max-width:190px;
+  }
   .health{display:flex;gap:12px;font-size:12px;color:var(--muted);align-items:center}
   .dot{width:8px;height:8px;border-radius:50%;background:#cbd5e1;display:inline-block;margin-right:5px}
   .dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)}
@@ -94,6 +99,13 @@
   .s-signed_unpriced .tick{color:var(--accent)}
   .s-unsigned{color:var(--muted)}
   .s-unsigned .tick{color:#9ca3af}
+  /* Restricted value gets its own colour so it is never mistaken for the green
+     cash line. Amber reads as "real, but not what it looks like". */
+  .s-restricted .tick{color:#b45309}
+  .s-restricted b{color:#b45309}
+  .s-ineligible{color:var(--muted)}
+  .s-ineligible .tick{color:var(--bad)}
+  .s-ineligible em{font-style:normal;font-size:12px;color:var(--bad)}
 
   details{margin-top:11px;border-top:1px solid var(--line);padding-top:9px}
   summary{cursor:pointer;font-size:12px;color:var(--accent);font-weight:600;list-style:none}
@@ -164,6 +176,13 @@
   <div class="toggles">
     <label class="tg"><input type="checkbox" id="bl" checked><span id="bl-l" class="on">BondLayer on</span></label>
     <label class="tg"><input type="checkbox" id="cs" checked><span id="cs-l" class="on">Consent</span></label>
+    <label class="tg sel">Shopper
+      <select id="sh">
+        <option value="shopper-001" selected>Mei &mdash; Voltway member</option>
+        <option value="shopper-002">Dan &mdash; new to Voltway</option>
+        <option value="stranger-999">Stranger &mdash; unknown</option>
+      </select>
+    </label>
   </div>
   <div class="health">
     <span><i class="dot" id="d-m"></i><span id="t-m">merchant...</span></span>
@@ -260,9 +279,26 @@ function claimLi(r) {
       '<span>' + label + ' &mdash; <b>' + money(r.cash_value_aud) + '</b> you do not pay' +
       (detail ? ' (' + detail + ')' : '') + '</span></li>';
   }
+  if (r.state === 'verified_restricted') {
+    // Store credit, and the markup has to keep it away from the cash figure.
+    // A tick and a dollar amount side by side would read as money off, which
+    // is exactly the overstatement the record is shaped to prevent.
+    return '<li class="s-restricted" title="' + tip + '"><span class="tick">&#9651;</span>' +
+      '<span>' + label + ' &mdash; up to <b>' + money(r.ceiling_aud) +
+      '</b> in store credit, not cash' + (detail ? ' (' + detail + ')' : '') +
+      '</span></li>';
+  }
   if (r.state === 'verified_fact') {
     return '<li class="s-signed_unpriced" title="' + tip + '"><span class="tick">&#10003;</span>' +
       '<span>' + label + ' &mdash; ' + (detail || 'verified') + '</span></li>';
+  }
+  if (r.state === 'ineligible' || r.state === 'shopper_mismatch') {
+    // Signed, genuine, and worth nothing here. Struck through rather than
+    // hidden: a headline offer that fails its own conditions is the single
+    // most useful thing on the screen.
+    return '<li class="s-ineligible" title="' + tip + '"><span class="tick">&#10007;</span>' +
+      '<span><s>' + label + (detail ? ' &mdash; ' + detail : '') + '</s><br>' +
+      '<em>' + esc(r.reason || 'does not apply') + '</em></span></li>';
   }
   return '<li class="s-unsigned" title="' + tip + '"><span class="tick">&#9675;</span>' +
     '<span>' + label + ' &mdash; ' + esc(r.reason || 'not verified, not counted') + '</span></li>';
@@ -412,7 +448,7 @@ async function ask(text) {
         query: text,
         bondlayer_enabled: $('bl').checked,
         consent: $('cs').checked,
-        shopper_id: 'demo_shopper'
+        shopper_id: $('sh').value
       })
     });
     if (!r.ok) {

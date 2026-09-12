@@ -19,6 +19,7 @@ from .capabilities import Capability, merchant_capabilities
 
 DATA = Path(__file__).resolve().parents[2] / "data"
 MANIFESTS = DATA / "manifests.json"
+MEMBERS = DATA / "members.json"
 CATALOG = DATA / "electronics.csv"
 RECORDS = DATA / "records"
 KEYS = DATA / "keys"
@@ -84,6 +85,28 @@ def load_catalog(path: Path = CATALOG) -> dict[str, list[Sku]]:
             )
             by_merchant.setdefault(sku.merchant, []).append(sku)
     return by_merchant
+
+
+def load_members(path: Path = MEMBERS) -> dict[str, dict[str, dict]]:
+    """Each merchant's own view of the shoppers it knows, keyed by merchant.
+
+    There is no shared identity provider here and there is not meant to be. The
+    same shopper is a seven-order Circle member at Voltway and a stranger at
+    NorthGear, and that asymmetry is the whole reason a loyalty record has to
+    come from the merchant rather than from the agent: only the merchant can
+    attest to a relationship only it has.
+
+    Keys beginning with ``_`` are commentary in the JSON and are dropped here.
+    """
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return {
+        merchant: {
+            shopper: facts
+            for shopper, facts in roster.items()
+            if not shopper.startswith("_")
+        }
+        for merchant, roster in payload.get("members", {}).items()
+    }
 
 
 def load_records(merchant_id: str, records_dir: Path = RECORDS) -> list[dict]:
