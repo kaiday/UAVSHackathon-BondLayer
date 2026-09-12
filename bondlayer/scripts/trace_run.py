@@ -39,6 +39,7 @@ sys.path.insert(0, str(SRC))
 from fastapi.testclient import TestClient  # noqa: E402
 
 from bondlayer.agent import Outcome, Phase, run_request  # noqa: E402
+from bondlayer.agent.close_loop import close_loop, close_loop_step  # noqa: E402
 from bondlayer.agent.merchant_decode import (  # noqa: E402
     EXTENSION_OFF_SUMMARY,
     merchant_decode_step,
@@ -55,7 +56,7 @@ from bondlayer.interpreter.resolver import UNANSWERED  # noqa: E402
 from bondlayer.records.serialise import record_from_json  # noqa: E402
 from bondlayer.records.signing import ES256Signer  # noqa: E402
 from bondlayer.types import ConstraintKind, SignedRecord  # noqa: E402
-from bondlayer.ucp.capabilities import INTENT_MATCH  # noqa: E402
+from bondlayer.ucp.capabilities import CHECKOUT, INTENT_MATCH  # noqa: E402
 from bondlayer.ucp.server import create_app  # noqa: E402
 from bondlayer.valuation.reference_policy import REFERENCE_SHOPPER_POLICY  # noqa: E402
 
@@ -185,6 +186,33 @@ def make_proposer(client: TestClient) -> Callable[..., dict | None]:
         return response.json()
 
     return propose
+
+
+def make_checkout(client: TestClient) -> Callable[..., dict | None]:
+    """A ``bondlayer.agent.close_loop.Checkout`` over the in-process app.
+
+    Mirrors ``make_proposer``: same client, same header logic. ``checkout`` is
+    base UCP, so it is declared in **both** states -- the control run places a
+    plain order on the same route; only whether the confirmation can carry
+    honoured benefit records depends on the extension. 406 (the merchant did
+    not negotiate ``dev.ucp.shopping.checkout``) is ``None``; any other
+    failure raises.
+    """
+    def checkout(merchant: str, body: dict, *, extension: bool) -> dict | None:
+        declared = [CATALOG_SEARCH, CATALOG_LOOKUP, CHECKOUT]
+        if extension:
+            declared.append(BENEFIT_VALUE)
+        response = client.post(
+            f"/{merchant}/ucp/checkout",
+            json=body,
+            headers={"UCP-Agent": ";".join(declared)},
+        )
+        if response.status_code == 406:
+            return None
+        response.raise_for_status()
+        return response.json()
+
+    return checkout
 
 
 def make_verifier(client: TestClient, merchants: list[str]) -> Callable[[dict], bool]:
@@ -514,6 +542,55 @@ def render_merchant_decode(run: AgentRun) -> list[str]:
     return lines
 
 
+def render_close_loop(run: AgentRun) -> list[str]:
+    """The order the winning offer became, rendered as a receipt.
+
+    Not another ranking: one line naming the merchant, the SKU, the order id,
+    its status and the subtotal; one line saying payment is out of scope; then
+    the merchant's verdict on every record the agent cited -- a tick or a cross,
+    the id, the benefit type read off the returned envelope when there is one,
+    and the merchant's own reason. The control run's order is a plain UCP order
+    and says so in one line. Empty when the run carries no close-loop step, so
+    a run produced without it renders exactly as before this section existed.
+    """
+    step = close_loop_step(run)
+    if step is None:
+        return []
+    lines = [_BAR, "close the loop (POST /ucp/checkout):"]
+    order = step.detail.get("order")
+    if not order:
+        lines.extend(_wrap(step.summary, "  "))
+        return lines
+    top = run.winner
+    subtotal = (order.get("subtotal") or {}).get("amount", "0")
+    lines.append(
+        f"  {top.merchant:<13}{top.sku_id:<10}order {order.get('order_id', '?')}  "
+        f"{order.get('status', '?')}  subtotal ${float(subtotal):,.2f}"
+    )
+    payment = order.get("payment") or {}
+    if payment.get("status") == "out_of_scope":
+        lines.append("  payment: out of scope for this prototype; no funds move")
+    verdicts = step.detail.get("honoured_benefits")
+    cited = step.detail.get("summary_counts", {}).get("cited", 0)
+    if verdicts is None:
+        if cited:
+            lines.extend(_wrap(
+                f"{cited} cited record{'s' if cited != 1 else ''} sent; the merchant "
+                "returned no verdicts without the benefit extension.", "  "))
+        else:
+            lines.append("  plain UCP order: no benefit records were cited, so the order binds none.")
+        return lines
+    by_type = {c["record_id"]: c.get("benefit_type") for c in top.citations if c.get("record_id")}
+    honoured = sum(1 for v in verdicts if v.get("honoured"))
+    lines.append(f"  honoured benefits bound into the order ({honoured}/{cited} cited):")
+    for v in verdicts:
+        mark = "✓" if v.get("honoured") else "✗"
+        btype = by_type.get(v.get("record_id"))
+        label = f"{v.get('record_id')}" + (f" ({btype})" if btype else "")
+        lines.extend(_wrap(f"{mark} {label:<28} {v.get('reason', '')}", "    "))
+    return lines
+
+
 def render(run: AgentRun, *, extension: bool) -> str:
     lines: list[str] = []
     lines.append("=" * 78)
@@ -577,6 +654,8 @@ def render(run: AgentRun, *, extension: bool) -> str:
             f"NO FLIP: {top.merchant} ({top.sku_id}) wins on both shelf price and effective cost."
         )
     lines.extend(render_bundles(run))
+    # The last thing the trace shows: the winning offer became an order.
+    lines.extend(render_close_loop(run))
     lines.append("=" * 78)
     return "\n".join(lines)
 
@@ -604,6 +683,9 @@ def main() -> None:
         bundler=CategoryBundler(),
         **_interpret_kwargs(parse_utterance),
     )
+    # Step 5: the winning offer becomes an order, citing exactly the records the
+    # agent relied on. Appends one step; the ranking above is already decided.
+    close_loop(run, checkout=make_checkout(client), agent_ref="trace_run")
     print(render(run, extension=extension))
 
 
