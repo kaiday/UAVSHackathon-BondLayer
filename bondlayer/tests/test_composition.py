@@ -5,9 +5,12 @@ honestly. They keep the demo truthful while components are missing, which is
 the state we are actually in today.
 """
 
+import json
 from decimal import Decimal
 
-from bondlayer.agent import Outcome, Phase, run_request
+from bondlayer.agent import DEFAULT_POLICY, Outcome, Phase, policy_from, run_request
+from bondlayer.interpreter.parser import parse
+from bondlayer.types import BenefitType, ShopperPolicy
 
 
 def _body(merchant, sku, price, records=None, extension=True):
@@ -128,3 +131,111 @@ def test_the_flip_is_detected_and_named():
     assert run.winner.effective_cost == Decimal("996.46")
     rank = [s for s in run.steps if s.phase is Phase.RANKING][0]
     assert rank.detail["flipped"] is True
+
+
+# --- the interpreter, wired (WS-A) ------------------------------------------
+
+R01 = ("A laptop under $1,500 I can return easily if it turns out not to suit "
+       "my work, from a brand that actually repairs things")
+
+
+def test_no_interpreter_is_absent_and_the_utterance_goes_through_unchanged():
+    """The ABSENT path still has to work; that is the whole degrade-honestly rule."""
+    seen = []
+
+    def fetch(m, q, *, extension):
+        seen.append(q)
+        return _body(m, "V-1", "1000.00")
+
+    run = run_request(R01, ["voltway"], fetch)
+    assert seen == [R01]
+    step, = [s for s in run.steps if s.phase is Phase.INTENT]
+    assert step.outcome is Outcome.ABSENT
+    assert run.constraints == []
+
+
+def test_the_wired_interpreter_reports_intent_ok_with_the_decoded_clauses():
+    def fetch(m, q, *, extension):
+        return _body(m, "V-1", "1000.00")
+
+    run = run_request(R01, ["voltway"], fetch, interpret=parse)
+    step, = [s for s in run.steps if s.phase is Phase.INTENT]
+    assert step.outcome is Outcome.OK
+    assert len(run.constraints) == 4
+    assert {c["kind"] for c in run.constraints} == {"hard", "soft", "service", "values"}
+    # The count of clauses no catalogue attribute can answer, said out loud.
+    assert step.detail["by_kind"]["service"] == 1
+    assert step.detail["by_kind"]["values"] == 1
+    assert "2 of them cannot be answered" in step.summary
+
+
+def test_the_older_parse_keyword_still_means_the_same_thing():
+    """Five branches import this seam; renaming it silently would break them."""
+    def fetch(m, q, *, extension):
+        return _body(m, "V-1", "1000.00")
+
+    old = run_request(R01, ["voltway"], fetch, parse=parse)
+    new = run_request(R01, ["voltway"], fetch, interpret=parse)
+    assert old.constraints == new.constraints
+    assert [s.outcome for s in old.steps] == [s.outcome for s in new.steps]
+
+
+def test_the_query_on_the_wire_is_the_decode_not_the_utterance():
+    """Sending the raw sentence asks a merchant to keyword-match on "repairs"."""
+    seen = []
+
+    def fetch(m, q, *, extension, plan=None):
+        seen.append((q, plan))
+        return _body(m, "V-1", "1000.00")
+
+    run_request(R01, ["voltway"], fetch, interpret=parse)
+    query, plan = seen[0]
+    assert R01 not in query
+    # The category and the ceiling travel as typed parameters, not as words:
+    # catalog.search matches `q` against the title, and no laptop's title
+    # contains the word "laptop".
+    assert plan == {"category": "laptop", "max_price": "1500"}
+    assert query == ""
+
+
+def test_a_fetcher_that_does_not_want_the_plan_is_never_handed_one():
+    """Every existing three-argument fetcher keeps working unchanged."""
+    def fetch(m, q, *, extension):
+        return _body(m, "V-1", "1000.00")
+
+    run = run_request(R01, ["voltway"], fetch, interpret=parse)
+    assert run.winner is not None
+
+
+def test_service_and_values_clauses_are_never_sent_to_a_merchant():
+    """They are the shopper's. A merchant that never sees them cannot price
+    against them -- the same reason the shopper policy stays agent-side."""
+    seen = []
+
+    def fetch(m, q, *, extension, plan=None):
+        seen.append((q, plan))
+        return _body(m, "V-1", "1000.00")
+
+    run_request(R01, ["voltway"], fetch, interpret=parse)
+    wire = json.dumps(seen[0])
+    for phrase in ("return", "repair", "brand"):
+        assert phrase not in wire.lower()
+
+
+def test_policy_from_converts_a_shopper_policy_into_the_dict_the_root_takes():
+    """One shopper, defined once, so the demo number is the evaluation number."""
+    shopper = ShopperPolicy(
+        values_aud={BenefitType.FREE_RETURNS: Decimal("40.00"),
+                    BenefitType.TRADE_IN_CREDIT: Decimal("0.00")},
+        max_premium_over_cheapest_aud=Decimal("150.00"),
+    )
+    assert policy_from(shopper) == {"free_returns": Decimal("40.00"),
+                                    "trade_in_credit": Decimal("0.00")}
+
+
+def test_the_default_policy_sentinels_are_uncapped_not_valued():
+    """A guard on the comment: 9999 means "accept face value", and against the
+    real published ceilings it will over-credit. Callers running on the shipped
+    records pass the reference shopper instead."""
+    assert DEFAULT_POLICY["trade_in_credit"] == Decimal("9999")
+    assert DEFAULT_POLICY["free_returns"] < Decimal("9999")
