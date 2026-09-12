@@ -51,7 +51,7 @@ URL, as prose.**
 
 **And loyalty arrives too late.** `dev.uip.shopping.loyalty` extends
 `dev.ucp.shopping.checkout`, not catalog — so UCP surfaces loyalty only after the
-merchant has already been chosen (`bach-demo/docs/ucp-findings.md`, Finding 3).
+merchant has already been chosen (`archive/pre-hackathon-spikes/bach-demo/docs/ucp-findings.md`, Finding 3).
 
 Together: at the moment the agent decides, the protocol hands it a price, a
 barcode and some links. That is the gap Stage 1 closes.
@@ -708,7 +708,7 @@ Plus six new types and one enum member:
 - ES256 mandatory, RFC 9421, `signing_keys[]` —
   <https://ucp.dev/2026-04-08/specification/signatures/>
 - Loyalty extends checkout, `dev.uip.shopping.loyalty` —
-  `bach-demo/docs/ucp-findings.md` (our own, verified 30/08)
+  `archive/pre-hackathon-spikes/bach-demo/docs/ucp-findings.md` (our own, verified 30/08)
 - `MerchantReturnPolicy` — <https://schema.org/MerchantReturnPolicy> and
   <https://developers.google.com/search/docs/appearance/structured-data/return-policy>
 
