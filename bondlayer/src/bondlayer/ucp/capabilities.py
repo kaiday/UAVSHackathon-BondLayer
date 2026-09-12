@@ -29,10 +29,15 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 
-#: Base capabilities we implement. Cart, checkout, order and payments are
-#: deliberately absent -- BondLayer never touches them (§"not attempted").
+#: Base capabilities we implement. ``checkout`` is declared and implemented
+#: as *order confirmation* (``ucp/checkout.py``): the agent's chosen offer
+#: becomes an order that binds the merchant's signed benefit records, and the
+#: response says plainly that payment is out of scope and no funds move.
+#: Cart, order management and payments are absent -- BondLayer never touches
+#: them (§"not attempted").
 CATALOG_SEARCH = "dev.ucp.shopping.catalog.search"
 CATALOG_LOOKUP = "dev.ucp.shopping.catalog.lookup"
+CHECKOUT = "dev.ucp.shopping.checkout"
 IDENTITY_LINKING = "dev.ucp.common.identity_linking"
 
 #: Ours. Reverse-domain named under org.bondlayer because dev.ucp.* is
@@ -92,6 +97,10 @@ def merchant_capabilities(publishes_benefit_extension: bool) -> list[Capability]
         Capability(CATALOG_SEARCH, ("2026-04-08",)),
         Capability(CATALOG_LOOKUP, ("2026-04-08",)),
         Capability(IDENTITY_LINKING, ("2026-04-08",)),
+        # Base UCP, not our extension: every merchant, the control included,
+        # confirms orders. What differs is only whether the confirmation can
+        # carry honoured benefit records -- and that is gated by the extension.
+        Capability(CHECKOUT, ("2026-04-08",)),
     ]
     if publishes_benefit_extension:
         caps.append(
