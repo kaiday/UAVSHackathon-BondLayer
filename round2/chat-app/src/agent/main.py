@@ -1,552 +1,348 @@
-import os
+"""The mock shopping agent.
+
+A fixed pipeline with the model at two bounded points -- intent parse and
+ranking. The orchestration is ours, so the fan-out is identical in both switch
+states and the only thing that varies is what came back on the wire.
+
+The model reasons over the **verified terms** and decides for itself what they
+are worth. We do not compute an "effective cost" for it, and we do not compute
+one at all: assigning a warranty a dollar figure and subtracting it from the
+shelf price invents a number the merchant never offered, and the comparison it
+produces is ambiguous rather than persuasive.
+
+What runs alongside is an *audit*, not a valuation: which records verified,
+which were ignored, and why. That is the fact the protocol establishes. What
+those facts are worth is the agent's judgement, and the demo's claim is that
+the agent can now make it on evidence rather than on price alone.
+
+Run it::
+
+    python -m uvicorn src.agent.main:app --host 127.0.0.1 --port 8001 --reload
+"""
+
+from __future__ import annotations
+
 import json
-from typing import Optional
-from datetime import datetime
-from fastapi import FastAPI, Query
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import httpx
-from openai import OpenAI
+import sys
+from dataclasses import asdict
+from pathlib import Path
+
 from dotenv import load_dotenv
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
-# Load environment variables from .env file
-load_dotenv()
+CHAT_APP = Path(__file__).resolve().parents[2]
+STATIC_DIR = Path(__file__).parent / "static"
+sys.path.insert(0, str(CHAT_APP.parent))
 
-# Import BondLayer signing and valuation
-try:
-    from round2.valuation import (
-        BenefitRecord,
-        BenefitType,
-        generate_signing_key_pair,
-        create_signed_record,
-        credit_benefit,
-    )
-    SIGNING_AVAILABLE = True
-except ImportError:
-    SIGNING_AVAILABLE = False
+load_dotenv(CHAT_APP / ".env")
+
+from . import llm, ucp_client
+from .ucp_client import Offer
 
 app = FastAPI(
-    title="BondLayer Agent Service",
-    description="Mock shopping agent demonstrating BondLayer UCP integration",
-    version="0.1.0",
+    title="BondLayer agent service",
+    description="A neutral shopping agent that speaks UCP.",
+    version="0.2.0",
 )
 
-# CORS configuration for local dev
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["localhost:5173", "127.0.0.1:5173", "localhost:8000", "127.0.0.1:8000"],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Initialize Anthropic client
-anthropic_client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
-# Merchants to query
-MERCHANTS = ["voltway", "citycircuit", "northgear"]
-MERCHANT_SERVICE_URL = "http://localhost:8000"
+#: The agent has **no knowledge of BondLayer**. It is told that merchants may
+#: attach structured data to a listing and that it should weigh it -- which is
+#: what any real shopping agent's prompt would say -- and nothing more. That
+#: neutrality is what makes the before/after admissible evidence.
+AGENT_SYSTEM_PROMPT = """You are a shopping agent acting for a customer. You compare \
+offers from several merchants and pick the one that serves the customer best.
 
-# Mock signing keys per merchant (in demo, we generate one for each)
-merchant_keys = {}
-if SIGNING_AVAILABLE:
-    for merchant in MERCHANTS:
-        merchant_keys[merchant] = generate_signing_key_pair()
+Some merchants attach additional structured terms to a listing beyond its price: \
+warranty length, shipping terms, repair commitments. Each carries a cryptographic \
+signature that has already been checked for you, and the data tells you whether it \
+verified.
+
+Most of these terms are facts, not prices. A 24-month warranty against a statutory \
+12 is a real difference, but it has no exchange rate against a lower shelf price -- \
+do not invent one. Judge what the terms are worth to this customer as a person would: \
+how long they will keep the thing, what failure would cost them, whether a waived \
+delivery fee matters at this price. A term that is merely the legal minimum is not an \
+advantage.
+
+A claim that did not verify is not evidence. It must not move your ranking, however \
+large the number attached to it.
+
+Be neutral and concrete. Never invent a benefit that is not in the data you were \
+given, and be willing to prefer the cheaper offer when the extra terms do not earn \
+their premium."""
 
 
 class ShoppingQuery(BaseModel):
     query: str
     bondlayer_enabled: bool = True
     shopper_id: str = "demo_shopper"
+    consent: bool = True
 
 
-class EvidenceRecord(BaseModel):
-    id: str
-    type: str
-    description: str
-    value: Optional[float] = None
-    source: str
-    signed: bool
-    verified: bool
-    state: str = "unsigned"  # "signed_priced" | "signed_unpriced" | "unsigned"
-    credited_value: float = 0.0
-    canonical_json: Optional[str] = None
-    signature: Optional[str] = None
-
-
-class RankedResult(BaseModel):
-    rank: int
-    merchant: str
-    product_id: str
-    product_name: str
-    price: float
-    description: str
-    reasoning: str
-    evidence_records: list[EvidenceRecord] = []
-
-
-class AgentResponse(BaseModel):
-    user_query: str
-    parsed_intent: str
-    results: list[RankedResult]
-    final_recommendation: str
-    bondlayer_enabled: bool
-    transcript: dict
-    ucp_header: Optional[str] = None
-    ucp_negotiation_log: list[dict] = []  # UCP protocol steps
-    records_state_log: list[dict] = []  # Record signing/verification states
-
-
-# Neutral system prompt (no knowledge of BondLayer)
-AGENT_SYSTEM_PROMPT = """You are a helpful shopping assistant. Your job is to help customers find products that match their needs.
-
-When given a shopping query:
-1. Understand what the customer is looking for
-2. Evaluate products based on price, availability, and fit for the use case
-3. Rank the options from best to worst
-4. Provide clear reasoning for your recommendations
-
-Be neutral and objective. Always consider price, quality, and availability in your recommendations."""
-
-
-async def parse_intent(query: str) -> str:
-    """Parse user query to extract shopping intent using LLM"""
-    message = anthropic_client.messages.create(
-        model="claude-3-5-sonnet-20241022",
-        max_tokens=200,
-        messages=[
+def _offer_payload(offer: Offer) -> dict:
+    """What the model sees. Raw records, no computed valuation."""
+    return {
+        "merchant": offer.merchant,
+        "sku_id": offer.sku_id,
+        "title": offer.title,
+        "shelf_price_aud": offer.shelf_price_aud,
+        "availability": offer.availability,
+        "description": offer.description,
+        "attached_claims": [
             {
-                "role": "user",
-                "content": f"Extract the shopping intent from this query in one sentence: '{query}'"
+                "type": r.benefit_type,
+                "terms": r.terms,
+                # Present only where the benefit really is money the shopper does
+                # not pay. Absent means "not a monetary benefit", not "worthless".
+                **({"cash_value_aud": r.cash_value_aud} if r.cash_value_aud else {}),
+                "signature_verified": r.verified,
+                "quoted_from_merchant_policy": r.source_span,
             }
-        ]
-    )
-    return message.content[0].text
+            for r in offer.records
+        ],
+    }
 
 
-async def fetch_products_from_merchant(merchant: str, query: str) -> list:
-    """Fetch products from a specific merchant"""
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(
-                f"{MERCHANT_SERVICE_URL}/merchants/{merchant}/products",
-                params={"query": query},
-                timeout=5
-            )
-            return response.json() if response.status_code == 200 else []
-        except Exception as e:
-            print(f"Error fetching from {merchant}: {e}")
-            return []
+def _audit(offer: Offer) -> dict:
+    """What the protocol established, independently of what the model concluded.
 
+    This is deliberately **not** a valuation. We used to compute an "effective
+    cost" by assigning each benefit a dollar figure and subtracting it from the
+    shelf price; that number was fiction. A 24-month warranty is not $18 off. The
+    audit's job is to state what verified and what did not -- the facts the agent
+    was entitled to rely on -- and leave the worth of those facts to the agent.
 
-async def fan_out_to_merchants(query: str) -> dict:
-    """Query all merchants in parallel"""
-    results = {}
-    for merchant in MERCHANTS:
-        products = await fetch_products_from_merchant(merchant, query)
-        results[merchant] = products
-    return results
-
-
-async def rank_products_with_llm(query: str, products_by_merchant: dict) -> list[RankedResult]:
-    """Use LLM to rank products across all merchants"""
-    # Format products for the LLM
-    product_list = []
-    for merchant, products in products_by_merchant.items():
-        for product in products:
-            product_list.append({
-                "merchant": merchant,
-                "product_id": product.get("id"),
-                "name": product.get("name"),
-                "price": product.get("price"),
-                "description": product.get("description"),
-                "in_stock": product.get("in_stock"),
-            })
-
-    # Ask LLM to rank products
-    ranking_prompt = f"""Given the user query: "{query}"
-
-Here are available products from different merchants:
-{json.dumps(product_list, indent=2)}
-
-Rank these products from best to worst for this query. Consider price, availability, and fit.
-For each product, provide:
-1. Rank (1 = best)
-2. Product ID
-3. Merchant
-4. Brief reasoning (1-2 sentences)
-
-Format as JSON array with fields: [rank, product_id, merchant, reasoning]"""
-
-    message = anthropic_client.messages.create(
-        model="claude-3-5-sonnet-20241022",
-        max_tokens=1000,
-        messages=[
-            {
-                "role": "user",
-                "content": ranking_prompt
-            }
-        ]
-    )
-
-    # Parse LLM response
-    response_text = message.content[0].text
-
-    # Extract JSON from response
-    try:
-        # Try to find JSON in the response
-        if "[" in response_text and "]" in response_text:
-            json_start = response_text.find("[")
-            json_end = response_text.rfind("]") + 1
-            json_str = response_text[json_start:json_end]
-            rankings = json.loads(json_str)
-        else:
-            rankings = []
-    except:
-        rankings = []
-
-    # Convert rankings to RankedResult objects
-    results = []
-    for ranking in rankings:
-        if isinstance(ranking, list) and len(ranking) >= 4:
-            # Find product details
-            product_id = ranking[1]
-            merchant = ranking[2]
-            reasoning = ranking[3]
-
-            # Find product info
-            for p in product_list:
-                if p["product_id"] == product_id and p["merchant"] == merchant:
-                    results.append(RankedResult(
-                        rank=ranking[0],
-                        merchant=merchant,
-                        product_id=product_id,
-                        product_name=p["name"],
-                        price=p["price"],
-                        description=p["description"],
-                        reasoning=reasoning
-                    ))
-                    break
-
-    return sorted(results, key=lambda x: x.rank)
-
-
-def add_evidence_records(result: RankedResult, bondlayer_enabled: bool, shopper_id: str) -> list[dict]:
-    """Add evidence records based on bondlayer status and merchant.
-
-    Returns:
-        List of record state logs for the response
+    The one place money still appears is a fee the shopper genuinely does not pay.
     """
-    records = []
-    state_logs = []
+    verified_facts = [r for r in offer.records if r.verified and r.cash_value_aud is None]
+    verified_cash = [r for r in offer.records if r.verified and r.cash_value_aud is not None]
+    ignored = [r for r in offer.records if not r.verified]
 
-    if bondlayer_enabled:
-        if result.merchant == "voltway":
-            value = round(result.price * 0.1, 2)
-            if SIGNING_AVAILABLE and result.merchant in merchant_keys:
-                # Create and sign a real benefit record
-                private_key, jwk_public = merchant_keys[result.merchant]
-                unsigned_record = BenefitRecord(
-                    merchant_id=result.merchant,
-                    shopper_id=shopper_id,
-                    product_id=result.product_id,
-                    benefit_type=BenefitType.LOYALTY_CREDIT,
-                    value_aud=value,
-                    value_ceiling_aud=value * 1.5,
-                    created_at=datetime.now().isoformat(),
-                    source_span="Voltway: 10% loyalty discount for repeat customers",
-                    merchant_key_id=f"{result.merchant}_key",
-                )
-                signed_record = create_signed_record(unsigned_record, private_key)
-                credited = credit_benefit(signed_record)
-
-                record = EvidenceRecord(
-                    id="benefit_voltway_loyalty",
-                    type="loyalty_benefit",
-                    description="10% loyalty discount for repeat customers",
-                    value=value,
-                    source="Voltway membership program",
-                    signed=True,
-                    verified=credited.is_verified,
-                    state="signed_priced",
-                    credited_value=credited.credited_value,
-                    signature=signed_record.signature[:20] + "..." if signed_record.signature else None,
-                    canonical_json=signed_record.canonical_json[:50] + "..." if signed_record.canonical_json else None,
-                )
-                records.append(record)
-                state_logs.append({
-                    "record_id": record.id,
-                    "status": "signed_priced",
-                    "value": value,
-                    "credited": credited.credited_value,
-                    "verified": credited.is_verified,
-                    "reason": credited.reason,
-                })
-            else:
-                # Fallback without signing
-                records.append(EvidenceRecord(
-                    id="benefit_voltway_loyalty",
-                    type="loyalty_benefit",
-                    description="10% loyalty discount for repeat customers",
-                    value=value,
-                    source="Voltway membership program",
-                    signed=True,
-                    verified=True
-                ))
-                state_logs.append({
-                    "record_id": "benefit_voltway_loyalty",
-                    "status": "signed_priced",
-                    "value": value,
-                    "credited": value,
-                })
-
-        elif result.merchant == "citycircuit":
-            # Zero-value benefit (signed but unpriced)
-            if SIGNING_AVAILABLE and result.merchant in merchant_keys:
-                private_key, _ = merchant_keys[result.merchant]
-                unsigned_record = BenefitRecord(
-                    merchant_id=result.merchant,
-                    shopper_id=shopper_id,
-                    product_id=result.product_id,
-                    benefit_type=BenefitType.FREE_SHIPPING,
-                    value_aud=0.0,
-                    value_ceiling_aud=0.0,
-                    created_at=datetime.now().isoformat(),
-                    source_span="CityCircuit: 30-day money-back guarantee",
-                    merchant_key_id=f"{result.merchant}_key",
-                )
-                signed_record = create_signed_record(unsigned_record, private_key)
-
-                records.append(EvidenceRecord(
-                    id="policy_citycircuit_returns",
-                    type="return_policy",
-                    description="30-day money-back guarantee",
-                    value=0.0,
-                    source="CityCircuit return policy",
-                    signed=True,
-                    verified=True,
-                    state="signed_unpriced",
-                    credited_value=0.0,
-                    signature=signed_record.signature[:20] + "..." if signed_record.signature else None,
-                ))
-                state_logs.append({
-                    "record_id": "policy_citycircuit_returns",
-                    "status": "signed_unpriced",
-                    "value": 0.0,
-                    "credited": 0.0,
-                    "verified": True,
-                })
-            else:
-                records.append(EvidenceRecord(
-                    id="policy_citycircuit_returns",
-                    type="return_policy",
-                    description="30-day money-back guarantee",
-                    value=0.0,
-                    source="CityCircuit return policy",
-                    signed=True,
-                    verified=True
-                ))
-                state_logs.append({
-                    "record_id": "policy_citycircuit_returns",
-                    "status": "signed_unpriced",
-                    "value": 0.0,
-                    "credited": 0.0,
-                })
-
-        elif result.merchant == "northgear":
-            if SIGNING_AVAILABLE and result.merchant in merchant_keys:
-                # Regular signed benefit
-                private_key, _ = merchant_keys[result.merchant]
-                unsigned_record = BenefitRecord(
-                    merchant_id=result.merchant,
-                    shopper_id=shopper_id,
-                    product_id=result.product_id,
-                    benefit_type=BenefitType.WARRANTY_EXTENSION,
-                    value_aud=50.0,
-                    value_ceiling_aud=50.0,
-                    created_at=datetime.now().isoformat(),
-                    source_span="NorthGear: 2-year extended warranty included",
-                    merchant_key_id=f"{result.merchant}_key",
-                )
-                signed_record = create_signed_record(unsigned_record, private_key)
-                credited = credit_benefit(signed_record)
-
-                records.append(EvidenceRecord(
-                    id="warranty_northgear_extended",
-                    type="warranty",
-                    description="2-year extended warranty included",
-                    value=50.0,
-                    source="NorthGear warranty program",
-                    signed=True,
-                    verified=credited.is_verified,
-                    state="signed_priced",
-                    credited_value=credited.credited_value,
-                    signature=signed_record.signature[:20] + "..." if signed_record.signature else None,
-                ))
-                state_logs.append({
-                    "record_id": "warranty_northgear_extended",
-                    "status": "signed_priced",
-                    "value": 50.0,
-                    "credited": credited.credited_value,
-                    "verified": credited.is_verified,
-                })
-            else:
-                records.append(EvidenceRecord(
-                    id="warranty_northgear_extended",
-                    type="warranty",
-                    description="2-year extended warranty included",
-                    value=50.0,
-                    source="NorthGear warranty program",
-                    signed=True,
-                    verified=True
-                ))
-                state_logs.append({
-                    "record_id": "warranty_northgear_extended",
-                    "status": "signed_priced",
-                    "value": 50.0,
-                    "credited": 50.0,
-                })
-    else:
-        # Add unsigned/unverified evidence when BondLayer is off (for demo contrast)
-        # This demonstrates the planted unsigned record (gap 5 in the spec)
-        if result.merchant == "northgear":
-            records.append(EvidenceRecord(
-                id="unsigned_bonus_northgear",
-                type="benefit",
-                description="$50 agent bonus (unverified claim)",
-                value=50.0,
-                source="Internal claim - unverified",
-                signed=False,
-                verified=False,
-                state="unsigned",
-                credited_value=0.0,
-            ))
-            state_logs.append({
-                "record_id": "unsigned_bonus_northgear",
-                "status": "unsigned",
-                "value": 50.0,
-                "credited": 0.0,
-                "verified": False,
-                "reason": "unsigned_no_credit",
-            })
-
-    result.evidence_records = records
-    return state_logs
+    return {
+        "sku_id": offer.sku_id,
+        "merchant": offer.merchant,
+        "title": offer.title,
+        "shelf_price_aud": offer.shelf_price_aud,
+        "verified_fact_count": len(verified_facts),
+        "verified_facts": [
+            {"benefit_type": r.benefit_type, "terms": r.terms} for r in verified_facts
+        ],
+        # Fees waived are real money and we do add those up. Nothing else is.
+        "verified_fees_waived_aud": round(sum(r.cash_value_aud or 0 for r in verified_cash), 2),
+        "ignored_count": len(ignored),
+        "ignored": [
+            {
+                "benefit_type": r.benefit_type,
+                "claimed_aud": r.cash_value_aud,
+                "reason": r.reason,
+            }
+            for r in ignored
+        ],
+    }
 
 
 @app.get("/health")
-async def health_check():
-    return {"status": "ok", "service": "agent"}
+def health() -> dict:
+    return {"status": "ok", "service": "agent", "model": llm.DEFAULT_MODEL}
 
 
-@app.post("/query", response_model=AgentResponse)
-async def handle_shopping_query(request: ShoppingQuery):
-    """Handle a shopping query with full agent pipeline"""
-    # Build UCP negotiation log
-    ucp_log = []
+@app.get("/merchant-health")
+def merchant_health() -> dict:
+    """Whether the merchant service is reachable.
 
-    # 1. Parse intent
-    ucp_log.append({
-        "step": "parse_intent",
-        "detail": "Extracting shopping intent from user query",
-    })
-    parsed_intent = await parse_intent(request.query)
+    The UI shows this, because "the agent returned nothing" and "the merchant is
+    down" look identical otherwise.
+    """
+    import httpx
 
-    # 2. Fan out to all merchants
-    ucp_log.append({
-        "step": "fan_out",
-        "detail": f"Querying {len(MERCHANTS)} merchants for products",
-        "merchants": MERCHANTS,
-    })
-    products_by_merchant = await fan_out_to_merchants(request.query)
+    try:
+        response = httpx.get(f"{ucp_client.MERCHANT_BASE_URL}/health", timeout=3)
+        return {"reachable": response.status_code == 200, **response.json()}
+    except Exception as exc:  # noqa: BLE001 - any failure means "not reachable"
+        return {"reachable": False, "error": str(exc)}
 
-    # 3. Rank products
-    ucp_log.append({
-        "step": "rank_products",
-        "detail": "Using LLM to rank products across merchants",
-    })
-    ranked_results = await rank_products_with_llm(request.query, products_by_merchant)
 
-    # 4. Add evidence records based on BondLayer status
-    all_state_logs = []
-    if request.bondlayer_enabled:
-        ucp_log.append({
-            "step": "ucp_negotiation",
-            "detail": "BondLayer enabled - negotiating capabilities with merchants",
-            "capability": "org.bondlayer.benefit_value",
-        })
+@app.get("/", include_in_schema=False)
+def index():
+    """A no-build fallback UI, so the demo runs on a machine without Node."""
+    return FileResponse(STATIC_DIR / "index.html")
 
-    for result in ranked_results:
-        state_logs = add_evidence_records(result, request.bondlayer_enabled, request.shopper_id)
-        all_state_logs.extend(state_logs)
 
-    if request.bondlayer_enabled:
-        ucp_log.append({
-            "step": "record_signing",
-            "detail": f"Signing {len([e for r in ranked_results for e in r.evidence_records if e.signed])} benefit records with ES256",
-            "algorithm": "ES256 (P-256/SHA-256)",
-        })
-        ucp_log.append({
-            "step": "record_verification",
-            "detail": f"Verifying signatures and calculating credited values",
-            "records_verified": len([e for r in ranked_results for e in r.evidence_records if e.verified]),
-        })
-    else:
-        ucp_log.append({
-            "step": "bondlayer_disabled",
-            "detail": "BondLayer disabled - showing baseline ranking without benefits",
-        })
+@app.post("/query")
+def handle_query(request: ShoppingQuery) -> dict:
+    steps: list[dict] = []
+    header = ucp_client.agent_header(request.bondlayer_enabled)
 
-    # 5. Get final recommendation from LLM
-    top_results = ranked_results[:3] if ranked_results else []
-    recommendation_text = ""
-    if top_results:
-        best = top_results[0]
-        benefit_note = ""
-        if best.evidence_records:
-            benefit_count = len([e for e in best.evidence_records if e.verified])
-            if benefit_count > 0:
-                benefit_note = f" This product also includes {benefit_count} verified benefits."
-        recommendation_text = f"I recommend the {best.product_name} from {best.merchant} (${best.price}). {best.reasoning}{benefit_note}"
-    else:
-        recommendation_text = "I couldn't find suitable products matching your query. Please try a different search."
-
-    # 6. Build transcript (for the model transcript panel)
-    transcript = {
-        "system_prompt": AGENT_SYSTEM_PROMPT,
-        "user_query": request.query,
-        "parsed_intent": parsed_intent,
-        "completion": recommendation_text,
-        "model": "claude-3-5-sonnet-20241022",
-        "intent_parse": "Extracted user intent",
-        "fan_out": f"Queried {len(products_by_merchant)} merchants",
-        "ranking": f"Ranked {len(ranked_results)} products",
-    }
-
-    # 7. Build UCP header based on BondLayer switch
-    ucp_header = None
-    if request.bondlayer_enabled:
-        # When enabled, include the BondLayer capability in the header
-        ucp_header = "UCP-Agent: org.bondlayer.benefit_value"
-        ucp_log.append({
-            "step": "ucp_complete",
-            "detail": "BondLayer negotiation complete",
-            "header_sent": ucp_header,
-        })
-
-    return AgentResponse(
-        user_query=request.query,
-        parsed_intent=parsed_intent,
-        results=ranked_results,
-        final_recommendation=recommendation_text,
-        bondlayer_enabled=request.bondlayer_enabled,
-        transcript=transcript,
-        ucp_header=ucp_header,
-        ucp_negotiation_log=ucp_log,
-        records_state_log=all_state_logs,
+    steps.append(
+        {
+            "step": "declare",
+            "detail": "Agent declares the capabilities it understands. This is the switch: "
+            "with BondLayer off, one capability is simply not declared.",
+            "ucp_agent_header": header,
+            "bondlayer_declared": request.bondlayer_enabled,
+        }
     )
+
+    # (1) intent parse -- live model call
+    intent = llm.complete_json(
+        "intent_parse",
+        "You extract shopping constraints. Reply with JSON only.",
+        f'Extract the shopping constraints from this request: "{request.query}"\n\n'
+        'Reply as JSON: {"summary": "...", "category": "...", '
+        '"max_price_aud": number or null, "must_have": ["..."]}',
+    )
+    if intent is None:
+        intent = {
+            "summary": request.query,
+            "category": None,
+            "max_price_aud": None,
+            "must_have": [],
+        }
+    steps.append(
+        {"step": "intent_parse", "detail": "Model decoded the request.", "intent": intent}
+    )
+
+    # (2) identity over UCP, consent-gated
+    identity = ucp_client.link_identity(
+        request.shopper_id, request.consent, request.bondlayer_enabled
+    )
+    steps.append(
+        {
+            "step": "identity",
+            "detail": "Shopper identity fetched over UCP identity_linking. "
+            "Without consent the merchant returns nothing about the shopper.",
+            "consent_given": request.consent,
+            "responses": identity,
+        }
+    )
+
+    # (3) fan-out -- identical in both switch states
+    offers, exchanges = ucp_client.fan_out(request.query, request.bondlayer_enabled)
+    steps.append(
+        {
+            "step": "fan_out",
+            "detail": f"Queried {len(ucp_client.MERCHANTS)} merchants over UCP. "
+            "Same merchants, same query, both switch states.",
+            "exchanges": [asdict(e) for e in exchanges],
+        }
+    )
+
+    if not offers:
+        return {
+            "user_query": request.query,
+            "bondlayer_enabled": request.bondlayer_enabled,
+            "ucp_agent_header": header,
+            "intent": intent,
+            "results": [],
+            "final_recommendation": "No merchant returned a matching listing.",
+            "evidence_log": steps,
+            "audit": [],
+            "transcript": llm.transcript_payload(),
+        }
+
+    # (4) ranking -- live model call over raw records
+    payload = [_offer_payload(o) for o in offers]
+    ranking = llm.complete_json(
+        "rank",
+        AGENT_SYSTEM_PROMPT,
+        f'The customer asked: "{request.query}"\n\n'
+        f"Offers:\n{json.dumps(payload, indent=2)}\n\n"
+        "Rank every offer from best to worst for this customer. Decide for yourself "
+        "what the attached terms are worth to them -- most are facts, not prices, and "
+        "there is no exchange rate between a longer warranty and a lower price. Say "
+        "which terms moved your decision and which you discounted.\n\n"
+        "Reply as JSON:\n"
+        '{"ranking": [{"rank": 1, "sku_id": "...", "merchant": "...", '
+        '"decisive_terms": ["the verified terms that actually moved this offer up or '
+        'down, or [] if price alone decided it"], '
+        '"reasoning": "one or two sentences"}], '
+        '"recommendation": "one short paragraph to the customer"}',
+    )
+    if ranking is None:
+        ranking = {
+            "ranking": [],
+            "recommendation": "The model did not return a usable ranking.",
+        }
+    steps.append(
+        {
+            "step": "rank",
+            "detail": "Model ranked the offers from the verified terms and decided "
+            "for itself what they are worth. No effective cost was computed for it.",
+            "model": llm.DEFAULT_MODEL,
+        }
+    )
+
+    by_sku = {o.sku_id: o for o in offers}
+    results = []
+    for row in ranking.get("ranking", []):
+        offer = by_sku.get(row.get("sku_id"))
+        if offer is None:
+            continue
+        results.append(
+            {
+                "rank": row.get("rank"),
+                "merchant": offer.merchant,
+                "sku_id": offer.sku_id,
+                "title": offer.title,
+                "shelf_price_aud": offer.shelf_price_aud,
+                "agent_decisive_terms": row.get("decisive_terms", []),
+                "reasoning": row.get("reasoning", ""),
+                "records": [asdict(r) for r in offer.records],
+            }
+        )
+    results.sort(key=lambda r: r["rank"] if isinstance(r["rank"], int) else 999)
+
+    # (5) independent audit -- deterministic, never shown to the model
+    audit = [_audit(by_sku[r["sku_id"]]) for r in results]
+    steps.append(
+        {
+            "step": "audit",
+            "detail": "What the protocol established, independently of the model: "
+            "which records verified and which were ignored. Not a valuation -- we do "
+            "not convert a warranty into a discount.",
+            "audit": audit,
+        }
+    )
+
+    record_states = [
+        {"sku_id": offer.sku_id, **asdict(r)} for offer in offers for r in offer.records
+    ]
+    steps.append(
+        {
+            "step": "record_states",
+            "detail": "Every record served, in one of three states: verified and "
+            "monetary (a fee not paid), verified fact (true, worth whatever the agent "
+            "judges), unverified (displayed, never cited).",
+            "records": record_states,
+        }
+    )
+
+    return {
+        "user_query": request.query,
+        "bondlayer_enabled": request.bondlayer_enabled,
+        "ucp_agent_header": header,
+        "intent": intent,
+        "results": results,
+        "final_recommendation": ranking.get("recommendation", ""),
+        "evidence_log": steps,
+        "audit": audit,
+        "transcript": llm.transcript_payload(),
+    }
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("agent.main:app", host="0.0.0.0", port=8001, reload=True)
+
+    uvicorn.run("src.agent.main:app", host="127.0.0.1", port=8001, reload=True)

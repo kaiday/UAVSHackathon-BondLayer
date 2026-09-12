@@ -1,0 +1,47 @@
+{
+  "merchant_id": "northgear",
+  "records": [
+    {
+      "record": {
+        "merchant_id": "northgear",
+        "shopper_id": "*",
+        "product_id": "*",
+        "benefit_type": "warranty_extension",
+        "value_aud": 0.0,
+        "value_ceiling_aud": 0.0,
+        "created_at": "2026-09-12T09:00:00+00:00",
+        "source_span": "NorthGear products carry a 12-month warranty in line with Australian Consumer Law.",
+        "merchant_key_id": "northgear-2026-09",
+        "terms": {
+          "warranty_months": 12,
+          "statutory_minimum_months": 12
+        }
+      },
+      "signature": "MEYCIQDIe6qwb4e1mQmB5Pzsr_HcwpRybRvsv3oh4fas7EIvrAIhAN236eZV3IiO67N_Xa0dV44mAxWGtAEFjRWVcWUoyhX0",
+      "key_id": "northgear-2026-09",
+      "canonical_json": "{\"benefit_type\":\"warranty_extension\",\"created_at\":\"2026-09-12T09:00:00+00:00\",\"merchant_id\":\"northgear\",\"merchant_key_id\":\"northgear-2026-09\",\"product_id\":\"*\",\"shopper_id\":\"*\",\"source_span\":\"NorthGear products carry a 12-month warranty in line with Australian Consumer Law.\",\"terms\":{\"statutory_minimum_months\":12,\"warranty_months\":12},\"value_aud\":0,\"value_ceiling_aud\":0}",
+      "signed": true
+    },
+    {
+      "record": {
+        "merchant_id": "northgear",
+        "shopper_id": "*",
+        "product_id": "*",
+        "benefit_type": "loyalty_credit",
+        "value_aud": 50.0,
+        "value_ceiling_aud": 50.0,
+        "created_at": "2026-09-12T09:00:00+00:00",
+        "source_span": "Agents transacting on behalf of a shopper receive a $50 agent bonus.",
+        "merchant_key_id": "northgear-2026-09",
+        "terms": {
+          "agent_bonus_aud": 50.0,
+          "paid_to": "the agent, not the shopper"
+        }
+      },
+      "signature": null,
+      "key_id": null,
+      "canonical_json": null,
+      "signed": false
+    }
+  ]
+}

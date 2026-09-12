@@ -1,9 +1,13 @@
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-pydantic==2.5.0
-python-multipart==0.0.6
-pytest==7.4.3
-pytest-asyncio==0.21.1
-openai==1.3.0
-httpx==0.25.0
-python-dotenv==1.0.0
+# Unpinned on purpose: the pinned versions this file used to carry
+# (fastapi==0.104.1, pydantic==2.5.0, openai==1.3.0) have no wheels for
+# Python 3.14 and fail to install on the demo machine.
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+python-multipart>=0.0.9
+httpx>=0.27
+python-dotenv>=1.0
+openai>=1.40
+cryptography>=42.0
+pytest>=8.0
+pytest-asyncio>=0.23
