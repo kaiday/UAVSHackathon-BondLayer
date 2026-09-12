@@ -84,3 +84,42 @@ is a planned branch of the plan, not a failure on the day.
 The demo query goes in and comes back with matched SKUs, one cited justification
 per constraint, an honest `unsatisfied` list, and the whole chain of thought
 visible in Minh's console log.
+
+---
+
+## Added from the Round 2 alignment analysis
+
+### Semantic matching means embeddings, not substring (gap 2 — critical)
+
+The analysis found the earlier spike matching like this:
+
+```python
+terms = [t for t in q.lower().split() if len(t) > 2]
+matches = [o for o in self.offers if any(t in (o.title + " " + o.brand).lower() ...)]
+```
+
+Substring match on title and brand — *"precisely the thing criterion 1 says to
+go beyond."* My original wording here ("resolve against catalogue attributes")
+was not explicit enough to stop that being rebuilt.
+
+**Embeddings plus attribute filters.** Exact model / GTIN matching is the MVP
+fallback (handover §8), not the approach. Nha's catalogue carries deliberate
+near-duplicates and attribute noise so that substring matching visibly fails on
+it — if your matcher does well there, that is the evidence for priority 1.
+
+### Values constraints resolve against signed claims (gap 5)
+
+`BenefitType` now carries `sustainability`, `ethical_sourcing`, `durability`,
+`repairability`. These are `BenefitRecord`s with `value_ceiling_aud = None`:
+validated, cited, never priced.
+
+So *"from a brand that actually repairs things"* resolves to a signed
+`repairability` record — a real citation, contributing zero dollars to effective
+cost. That is illustrative direction 2 answered with machinery that already
+exists. Treat a values record exactly like any other when citing it; only the
+valuation step cares about the difference.
+
+### Not yours
+
+Dynamic bundling (gap 4) went to Nguyen. He composes bundles from the
+`Proposal`s you return — you do not need to bundle, only to match well.
