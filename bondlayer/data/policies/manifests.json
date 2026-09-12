@@ -1,0 +1,62 @@
+{
+  "_note": "Which merchant publishes what. Authored 12/09/2026 with the policy prose, before any record is signed. Nguyen serves these; Hieu's converter extracts records FROM the prose and they are checked against expect_records here.",
+  "merchants": {
+    "voltway": {
+      "display_name": "Voltway",
+      "domain": "voltway.example",
+      "role": "bondlayer",
+      "publishes_benefit_extension": true,
+      "signs_records": true,
+      "policy_doc": "data/policies/voltway.md",
+      "expect_records": [
+        {"benefit_type": "free_returns", "fact": {"days": 60}, "priced": true},
+        {"benefit_type": "free_returns", "fact": {"days": 14, "scope": "opened audio"}, "priced": true},
+        {"benefit_type": "warranty", "fact": {"extra_months": 12, "scope": "laptop,phone"}, "priced": true},
+        {"benefit_type": "warranty", "fact": {"extra_months": 24, "scope": "appliance"}, "priced": true},
+        {"benefit_type": "points_earn", "fact": {"points_per_dollar": 4, "cents_per_point": 1}, "priced": true},
+        {"benefit_type": "member_price", "fact": {"discount_pct": 5}, "priced": true},
+        {"benefit_type": "trade_in_credit", "fact": {"cap_aud": 700, "scope": "laptop"}, "priced": true},
+        {"benefit_type": "trade_in_credit", "fact": {"cap_aud": 450, "scope": "phone"}, "priced": true},
+        {"benefit_type": "delivery", "fact": {"free_over_aud": 99}, "priced": true},
+        {"benefit_type": "repairability", "fact": {"parts_years_after_eol": 5, "publishes_repair_pricing": true}, "priced": false},
+        {"benefit_type": "sustainability", "fact": {"assured_emissions_statement": true, "ewaste_tonnes_fy2026": 412}, "priced": false},
+        {"benefit_type": "durability", "fact": {"out_of_warranty_repair_quoted": true}, "priced": false}
+      ]
+    },
+    "citycircuit": {
+      "display_name": "CityCircuit",
+      "domain": "citycircuit.example",
+      "role": "control",
+      "publishes_benefit_extension": false,
+      "signs_records": false,
+      "policy_doc": "data/policies/citycircuit.md",
+      "expect_records": [],
+      "_why_empty": "The control publishes a plain feed. It genuinely has a 30-day returns policy and a points programme -- they are simply not legible to an agent. That is the status quo, not a strawman."
+    },
+    "northgear": {
+      "display_name": "NorthGear",
+      "domain": "northgear.example",
+      "role": "competitor",
+      "publishes_benefit_extension": true,
+      "signs_records": true,
+      "policy_doc": "data/policies/northgear.md",
+      "expect_records": [
+        {"benefit_type": "free_returns", "fact": {"days": 45}, "priced": true},
+        {"benefit_type": "warranty", "fact": {"extra_months": 6, "scope": "laptop,appliance"}, "priced": true},
+        {"benefit_type": "points_earn", "fact": {"points_per_dollar": 2, "cents_per_point": 1}, "priced": true},
+        {"benefit_type": "trade_in_credit", "fact": {"cap_aud": 300, "scope": "phone"}, "priced": true},
+        {"benefit_type": "delivery", "fact": {"free_over_aud": 75}, "priced": true}
+      ],
+      "planted_unsigned": [
+        {
+          "benefit_type": "sustainability",
+          "fact": {"claim": "Australia's most sustainable electronics retailer, 100% carbon neutral, ethically sourced"},
+          "priced": false,
+          "signed": false,
+          "why": "Adjectives with no source span, no number, no assurance. Nothing a converter could quote and a human could approve. Displayed, never cited, valued at zero. R12 must not be won by this."
+        }
+      ],
+      "_membership_note": "Plus costs $49/year. Effective cost must net that off before crediting its benefits, or NorthGear looks better than it is. Voltway's programme is free to join."
+    }
+  }
+}
