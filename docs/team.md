@@ -62,6 +62,10 @@ correction), are in [`round2/PITCH-OUTLINE.md`](../round2/PITCH-OUTLINE.md).
 | Q8 | What can you build in 16 hours? | Hoang Manh Nguyen |
 | Q9 | What proprietary advantage develops over time? | Thanh Bach Ly |
 | Q10 | What measurable value for FPT and its clients? | Ha Anh Minh Truong |
+| Q11 | Doesn't the merchant now see the shopper's intent? (added 13/09 for the intent route) | Thanh Nha Phan |
 
 <!-- VERIFY 13/09: confirm each owner still holds their card at rehearsal; DAY2-PLAN.md's
-     Day 2 schedule does not name a fixed Q&A-rehearsal slot the way the Day 1 plan did. -->
+     Day 2 schedule does not name a fixed Q&A-rehearsal slot the way the Day 1 plan did.
+     Left unresolved by the WS-D2 truth pass (13/09): whether each owner still holds their
+     card is a fact about a rehearsal that has not happened yet, not something this pass can
+     verify from the repository. -->
