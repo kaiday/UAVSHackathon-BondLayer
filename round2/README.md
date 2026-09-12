@@ -1,121 +1,79 @@
-# Round 2: BondLayer Demo Applications
+# Round 2 — working folder
 
-## Architecture
+*Rewritten 12/09 evening against `round2/dev` to describe what exists, not what was planned.
+Verified with `ls` and by running the code. The plan of record is [`DAY2-PLAN.md`](DAY2-PLAN.md).*
 
-Two applications over three data models (`Catalogs`, `Policy`, `Promotions`):
+## Where the product actually lives
 
-### 1. Dashboard — Merchant App
-- **Owner:** Manh (`feat/nguyen-ucp-head`)
-- **Scope:** Merchant UI for managing catalog, policy, and promotions
-- **Key Features:**
-  - Onboarding via CSV/txt upload
-  - Intelligent suggestions on catalog and policy
-  - Remediation logs
-  - Readiness scoring (5 dimensions)
-  - Analytics page (demo-only, labeled as such)
+The Round 2 product is **`bondlayer/` at the repository root**, not in this folder. It is one
+Python package (`pip install -e bondlayer[dev]`) holding the merchant-side UCP server, the catalogue
+adapter, signed benefit records, valuation, the intent interpreter, the agent composition root and
+the merchant dashboard. Its suite is 95 tests, all offline.
 
-### 2. Demo Chat App — Integration Proof
-- **Owner:** Bach (`feat/bach-records-signing`)
-- **Scope:** Mock shopping agent demonstrating BondLayer effect
-- **Key Features:**
-  - Mock agent with neutral system prompt
-  - BondLayer on/off switch
-  - Detail logs: UCP negotiation, loyalty layer, policies applied
-  - Record signing and verification
-  - Loyalty layer with identity and consent
+This folder holds the **buyer-agent stand-in** used in the demo (`chat-app/`), the Day 1 valuation
+prototype that was later absorbed into `bondlayer/`, and the team's working notes.
 
-### 3. Dashboard Intelligence — RAG & DAO
-- **Owner:** Hieu (`feat/hieu-interpreter`)
-- **Scope:** Intent parsing, RAG over catalog/policy, data persistence
-- **Key Features:**
-  - Intent parser (R01, all 30 eval requests)
-  - RAG-based improvement suggestions with source quotes
-  - DAO layer for catalogs, policy, promotions
-  - Policy → BenefitRecord draft generation with approval gate
+Run everything from the repository root:
 
-## Folder Structure
+```bash
+./run.sh            # venv, install, merchant server :8000, agent :8001 (+ Vite UI :5173 if npm)
+./run.sh --check    # venv, install, pytest -- what scripts/clean_clone_check.sh runs in a fresh clone
+```
+
+## What is in `round2/` (real tree)
 
 ```
 round2/
-├── README.md                          # This file
-├── overview-progress.md               # Day 1 status (Revised 12/09 13:05 AEST)
-├── system-architecture.md             # Architecture decisions (to be created)
-├── types.py                           # Shared data models (from dev branch)
-├── electronics.csv                    # 148 SKUs, 62 model keys
-├── manifests.json                     # Merchant configs (voltway, citycircuit, northgear)
-│
-├── dashboard/                         # Manh's app
-│   ├── __init__.py
-│   ├── app.py                         # Main Flask/Django app
-│   └── README.md
-│
-├── demo-chat-app/                     # Bach's app
-│   ├── __init__.py
-│   ├── app.py                         # Chat interface
-│   ├── agent.py                       # Mock shopping agent
-│   └── README.md
-│
-├── intelligence/                      # Hieu's RAG & DAO
-│   ├── __init__.py
-│   ├── interpreter.py                 # Intent parsing
-│   ├── rag.py                         # RAG engine
-│   ├── dao.py                         # Data access layer
-│   └── README.md
-│
-├── adapters/                          # Shared adapters
-│   ├── __init__.py
-│   └── catalog.py                     # CSV → Sku normalization (landed 12:52)
-│
-├── ucp/                               # UCP Integration (Nguyen's head)
-│   ├── __init__.py
-│   ├── profile.py                     # UCP profile
-│   ├── capabilities.py                # Capabilities negotiation
-│   ├── server.py                      # UCP server endpoint
-│   ├── onboard.py                     # Onboarding endpoints (landed 12:53)
-│   └── README.md
-│
-├── interpreter/                       # Intent parsing (Hieu)
-│   ├── __init__.py
-│   ├── parser.py                      # Intent parse (landed 12:59)
-│   └── resolver.py                    # Constraint resolver (stub)
-│
-├── valuation/                         # Cost calculation & verification
-│   ├── __init__.py
-│   ├── effective_cost.py              # Canonical cost calculation
-│   ├── signing.py                     # ES256 signatures
-│   └── invariants.py                  # Trust invariants
-│
-├── tests/                             # Test suite
-│   ├── test_invariants.py             # Signing & valuation tests
-│   ├── test_catalog.py                # Adapter tests (landed 12:52)
-│   ├── test_ucp.py                    # UCP protocol tests (landed 12:52)
-│   ├── test_interpreter.py            # Parser tests (landed 12:59)
-│   └── test_rag.py                    # RAG engine tests
-│
-├── docs/                              # Documentation
-│   ├── stage1-agent-ready-catalog.md  # Spec for signatures, keys (landed 12:32)
-│   ├── GAPS.md                        # Known gaps
-│   └── WORKPLAN.md                    # Team assignments
-│
-└── pyproject.toml                     # Python project config (landed 12:47)
+├── README.md                    this file
+├── DAY2-PLAN.md                 Day 2 plan: verified state, Ford's rulings D1–D6, workstream briefs
+├── chat-app/                    buyer-agent stand-in (WS-B is repointing it at bondlayer/'s server)
+│   ├── src/agent/               FastAPI agent on :8001 (main.py, llm.py, ucp_client.py, static/)
+│   ├── src/merchant/            Day 1 copy of the merchant -- being DELETED (D1); never start it
+│   ├── src/ui/                  React + Vite chat UI (:5173)
+│   ├── data/                    Day 1 copies of catalogue/records/keys -- being deleted (D1)
+│   ├── tests/
+│   ├── requirements.txt         being rewritten to depend on bondlayer
+│   ├── launch.sh, launch.ps1, run-windows.*   Day 1 launchers; superseded by the root run.sh / run.ps1
+│   └── README.md, WINDOWS_SETUP.md
+├── valuation/                   Day 1 signing + effective-cost prototype (feat/bach-records-signing)
+├── tests/test_invariants.py     9 tests over round2/valuation (pytest tests, from this folder)
+├── pyproject.toml               Day 1 packaging for round2/valuation (also named "bondlayer"; see note)
+├── demo_issue_13.py             Day 1 CLI walk-through of the signing invariants
+├── system-architecture.md       Day 1 architecture sketch (WS-D is rewriting it)
+├── overview-progress.md         Day 1 status as of 13:05; historical
+└── Day 1 working notes (kept for the trail, some superseded -- see the note at the top of each):
+    IMPLEMENTATION_SUMMARY.md, IMPLEMENTATION-SUMMARY.md, ISSUE-18-SUMMARY.md,
+    ISSUE_15_QUICKSTART.md, ISSUE_15_STATUS.md, P5-IMPLEMENTATION.md, P6-TRUST-AND-LOYALTY.md
 ```
 
-## Status (as of 2026-09-12 13:05 AEST)
+`IMPLEMENTATION-SUMMARY.md` and `ISSUE-18-SUMMARY.md` were moved here from the repository root so
+the root holds only the README, LICENSE, `CLAUDE.md`/`AGENTS.md`, the run scripts and directories.
 
-| Branch | Lines | Status | Owner |
-|---|---|---|---|
-| `feat/nguyen-ucp-head` | 1,443 | Dashboard core shipped | Nguyen |
-| `feat/hieu-interpreter` | 346 | Intent parser shipped, needs merge | Hieu |
-| `feat/bach-records-signing` | 0 | **Critical: No code yet** | Bach |
-| `round2/dev` | — | **Integration head** | Team |
+**Note on `round2/pyproject.toml`.** It is also named `bondlayer` and lists packages
+(`interpreter`, `ucp`, `adapters`) that do not exist under `round2/`. Do not `pip install` it; it is
+only there so `pytest tests` works from this folder. The one real package is `bondlayer/pyproject.toml`.
 
-### Critical Next Steps
-1. **H0:** Hieu merges `round2/dev` (missing `pyproject.toml`)
-2. **B1:** Bach starts with `tests/test_invariants.py` (red → green)
-3. **14:30:** Three architectural decisions due
+## Day 1 branches → what they became
 
-## Key References
-- Problem Statement: `@round1/fpt.md`
-- Hackathon Rules: `Hackathon Rulebook 2026 Final (EN).md`
-- Issue #11: Demo Chat App (this round)
-- Issue #9: Overall architecture and decisions (parent)
+| Branch | Became |
+|---|---|
+| `feat/nguyen-ucp-head` | `bondlayer/src/bondlayer/ucp/` (profile, capabilities, server, onboard, policy_onboard), `bondlayer/src/bondlayer/adapters/catalog.py`, `bondlayer/app/dashboard/` |
+| `feat/hieu-interpreter` | `bondlayer/src/bondlayer/interpreter/` (parser; resolver being built by WS-A) |
+| `feat/bach-records-signing`, `feat/bach` | `round2/chat-app/` (agent + UI), `round2/valuation/` (absorbed into `bondlayer/src/bondlayer/records/` and `valuation/`) |
+| `feat/minh-console` | `bondlayer/src/bondlayer/agent/` (composition root + trace), `bondlayer/app/dashboard/` |
+| `feat/nha-eval-data` | `bondlayer/data/` (catalogue, records, policies, `eval/requests.json`) and `bondlayer/docs/` |
+
+All five were merged into `round2/dev` on 12/09; each is 0 commits ahead of it (DAY2-PLAN §1).
+
+## Status
+
+Do not read status from this file. `DAY2-PLAN.md` §1 is the verified state at 16:20 on 12/09, and
+§5 is the clock. The numbers policy (§6) applies: a figure appears in a pitch document only if it is
+in `bondlayer/docs/eval-results.md` with a commit hash.
+
+## Key references
+
+- Problem statement: [`../docs/FPT-Problem-Statement-Final.pdf`](../docs/FPT-Problem-Statement-Final.pdf)
+- Rulebook: [`../docs/Hackathon-Rulebook-2026-Final-Updated-1.pdf`](../docs/Hackathon-Rulebook-2026-Final-Updated-1.pdf)
+- Merchant service and wire contract: [`../bondlayer/README.md`](../bondlayer/README.md)
+- Pre-hackathon spikes (reference only, not submission code): [`../archive/README.md`](../archive/README.md)

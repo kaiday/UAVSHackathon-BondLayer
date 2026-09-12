@@ -70,6 +70,8 @@ decision, and returns the same published facts to every caller.
 per-comparison latency budget, no real-time dependency at the moment of
 decision, and no privacy story to defend — because the merchant never learns it
 was compared. The agentic version is designed and deliberately deferred; see
-`demo/docs/deferred-retention-engine.md` for what it would cost.
+`archive/pre-hackathon-spikes/bach-demo/docs/deferred-retention-engine.md` for
+what it would cost (a Round 1 spike document, kept for reference; see
+`archive/README.md`).
 
 > In a room full of agents, we are building the thing agents read.
