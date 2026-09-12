@@ -70,3 +70,33 @@ shows up.
   records end to end
 - It runs from seeded state with no network call — venue wifi is shared by
   twenty teams
+
+---
+
+## Added from the Round 2 alignment analysis
+
+### Dynamic bundling (gap 4) — newly yours
+
+Named twice in the problem statement: in the in-scope list, and inside
+evaluation criterion 2 (*"effective use of APIs, **dynamic bundling**, and
+LLM-to-LLM communication"*). Illustrative direction 1 ends on it — an agent asks
+for "beginner-friendly podcasting gear" and the merchant *"pitches the ideal
+bundle based on that intent."* It had no owner until now.
+
+`Bundle` is in `types.py`. It takes Hieu's matched `Proposal`s and composes
+them — **it does not re-do the matching.** That seam matters: his branch is
+already the heaviest, and bundling belongs where the response is shaped.
+
+`rationale` says why these items belong *together*. Why each one matched is
+already in its `ResolvedConstraint` notes; don't restate it.
+
+**Phase 1 stretch, not Phase 1 core.** Land the UCP head, the profile and the
+adapter first. A bundle of one is a valid degenerate case, so this can ship
+partially and still count.
+
+### Merchant manifests
+
+Handover §8 assumes **three** merchant profiles served from JSON manifests; the
+current plan has two (control + BondLayer). Three makes ranking a ranking rather
+than a coin flip. Nha authors the data — agree the count with her before you
+wire the server, so you build the right number of profiles once.
