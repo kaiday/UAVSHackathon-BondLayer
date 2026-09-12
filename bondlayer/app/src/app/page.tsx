@@ -20,20 +20,38 @@ export default function Home() {
       </section>
 
       <section className="dashboard-grid">
-        <article className="panel catalogue-panel">
-          <div className="panel-heading"><div><h2>Product catalogue</h2><p>Agent-facing fields and recommended fixes</p></div><span className="pill success">Live</span></div>
-          <div className="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Requests</th><th>Data quality</th><th>Next fix</th><th>Status</th></tr></thead><tbody>
-            {products.map((product) => (
-              <tr key={product.sku}>
-                <td><strong>{product.name}</strong><small>{product.sku}</small></td>
-                <td>{product.category}</td><td>{product.requests}</td>
-                <td><div className="quality"><span><i style={{ width: `${product.quality}%` }} /></span><strong>{product.quality}%</strong></div></td>
-                <td><code>{product.fix}</code></td>
-                <td><span className={`pill ${product.tone}`}>{product.status}</span></td>
-              </tr>
-            ))}
-          </tbody></table></div>
-        </article>
+        <div className="dashboard-primary">
+          <article className="panel catalogue-panel">
+            <div className="panel-heading"><div><h2>Product catalogue</h2><p>Agent-facing fields and recommended fixes</p></div><span className="pill success">Live</span></div>
+            <div className="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Requests</th><th>Data quality</th><th>Next fix</th><th>Status</th></tr></thead><tbody>
+              {products.map((product) => (
+                <tr key={product.sku}>
+                  <td><strong>{product.name}</strong><small>{product.sku}</small></td>
+                  <td>{product.category}</td><td>{product.requests}</td>
+                  <td><div className="quality"><span><i style={{ width: `${product.quality}%` }} /></span><strong>{product.quality}%</strong></div></td>
+                  <td><code>{product.fix}</code></td>
+                  <td><span className={`pill ${product.tone}`}>{product.status}</span></td>
+                </tr>
+              ))}
+            </tbody></table></div>
+          </article>
+
+          <section className="panel activity">
+            <div className="panel-heading"><div><h2>Agent traffic</h2><p>HTTP events · last hour</p></div><span className="pill">42 events</span></div>
+            <div className="bars" aria-label="Agent request activity">
+              {activity.map((height, index) => {
+                const timestamp = `08:${String(index + 8).padStart(2, "0")}`;
+                const requests = Math.max(1, Math.round(height / 14));
+                return (
+                  <span className="bar-point" key={timestamp} tabIndex={0} aria-label={`${timestamp}, ${requests} requests`}>
+                    <i style={{ height: `${height}%` }} />
+                    <span className="bar-tooltip"><strong>{timestamp}</strong><small>{requests} {requests === 1 ? "request" : "requests"}</small></span>
+                  </span>
+                );
+              })}
+            </div>
+          </section>
+        </div>
 
         <article className="panel reasons">
           <div className="panel-heading"><div><h2>Improve discovery</h2><p>Highest-impact actions</p></div><span className="pill warning">3 fixes</span></div>
@@ -44,11 +62,6 @@ export default function Home() {
             <aside><strong>Best next fix</strong><p>Add <code>battery_energy_wh</code> so agents can verify flight eligibility.</p></aside>
           </div>
         </article>
-      </section>
-
-      <section className="panel activity">
-        <div className="panel-heading"><div><h2>Agent traffic</h2><p>HTTP events · last hour</p></div><span className="pill">42 events</span></div>
-        <div className="bars" aria-label="Agent request activity">{activity.map((height, index) => <span key={index} style={{ height: `${height}%` }} />)}</div>
       </section>
     </div>
   );
