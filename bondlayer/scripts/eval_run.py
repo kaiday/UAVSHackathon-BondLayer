@@ -149,8 +149,10 @@ def commit_hash() -> str:
             ["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"],
             capture_output=True, text=True, check=True, timeout=10,
         )
+        # Tracked changes only: this run is about to write its own outputs, and
+        # calling the tree dirty because of them would be noise on every run.
         dirty = subprocess.run(
-            ["git", "-C", str(ROOT), "status", "--porcelain"],
+            ["git", "-C", str(ROOT), "status", "--porcelain", "--untracked-files=no"],
             capture_output=True, text=True, check=True, timeout=10,
         )
         return out.stdout.strip() + (" (dirty)" if dirty.stdout.strip() else "")
@@ -464,6 +466,55 @@ def render(rows: list[tuple[dict, Outcome, Outcome]], dropped: list[str]) -> str
     return "\n".join(lines)
 
 
+#: Why each request that does not reach precision 1.00 does not, written once
+#: rather than guessed from a flag. Every one of them still has recall 1.00
+#: except R24: nothing the shopper asked for was excluded.
+MISS_REASONS: dict[str, str] = {
+    "R04": (
+        "the shopper names no product category at all (\"something light I can carry "
+        "every day, under 1.3kg\") and the gold set assumes laptops. The weight bound is "
+        "the only HARD clause, so every accessory under 1.3kg is eligible; a SOFT clause "
+        "ranks and never filters, and inventing a category the shopper did not say is "
+        "the guess this project argues against. It is also the one request whose "
+        "ordering does not recover: \"light\" sorts a USB hub above a laptop, and the "
+        "\"around $2,000\" signal is averaged with it rather than trusted over it."
+    ),
+    "R15": (
+        "the same shape as R04 — \"something to record interviews on the go\" names no "
+        "category, and the gold set assumes audio. The SOFT signal does recover the "
+        "ordering here: precision@|gold| is 1.00."
+    ),
+    "R18": (
+        "the near-duplicate trap, answered and then over-answered. All three spellings "
+        "of the i5 listing are recovered (recall 1.00, which substring matching does not "
+        "manage), but \"ThinkBook 14 G3 with 16 gigs\" also describes the i7 listings, "
+        "which carry 16GB too, and the gold set names only the i5. Nothing in the "
+        "utterance separates them, so the resolver returns both and the ordering puts "
+        "the gold first."
+    ),
+    "R24": (
+        "a bundle request across two categories (\"a work laptop and a dock, under "
+        "$2,200 together\"), and the only one where recall is also short: the combined-"
+        "price constraint applies to the set, not to each item. WS-G composes these."
+    ),
+}
+
+
+def _generic_miss(bundle: bool) -> str:
+    if bundle:
+        return (
+            "a bundle request: the gold answer is a *set* across categories, and a "
+            "resolver that does not compose bundles returns every eligible item in "
+            "each. WS-G composes these."
+        )
+    return (
+        "the shopper names no product category, and the gold set assumes the one the "
+        "use-case implies. A SOFT clause ranks and never filters, so the resolver "
+        "returns every eligible listing rather than inventing a category the shopper "
+        "did not say."
+    )
+
+
 def document(rows: list[tuple[dict, Outcome, Outcome]], dropped: list[str]) -> str:
     t = totals(rows)
     answered_share = t["answerable"][0] / t["answerable"][1] if t["answerable"][1] else 0.0
@@ -473,14 +524,7 @@ def document(rows: list[tuple[dict, Outcome, Outcome]], dropped: list[str]) -> s
         key=lambda item: item[1],
     )
     miss_lines = "\n".join(
-        f"- **{rid}** — hard precision {p:.2f}"
-        + (" — a bundle request: the gold answer is a *set* across categories, and a "
-           "resolver that does not compose bundles returns every eligible item in each. "
-           "WS-G composes these." if bundle else
-           " — the shopper names no product category, and the gold set assumes the one the "
-           "use-case implies. A SOFT clause ranks and never filters, so the resolver "
-           "returns every eligible listing rather than inventing a category the shopper "
-           "did not say.")
+        f"- **{rid}** — hard precision {p:.2f} — {MISS_REASONS.get(rid, _generic_miss(bundle))}"
         for rid, p, bundle in misses
     )
     return f"""# Evaluation results
