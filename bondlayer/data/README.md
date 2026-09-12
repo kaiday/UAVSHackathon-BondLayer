@@ -24,13 +24,12 @@ rule definitions. Independent counts genuinely disagree: "price format" alone
 lands between 56 and 98 depending on whether a bare integer is a defect. Quote
 the adapter's report, or quote nothing.
 
-### Verified figures, and the run that produced them
+### Verified figures
 
-Measured against `CsvCatalogAdapter` at `cf6134a`. **Counts depend on how
-`analyse()` is called**, so any figure in the deck must say which run it came
-from.
+Measured against `CsvCatalogAdapter` at `3a05d6e`, run independently rather than
+taken on report.
 
-Whole file, no merchant filter — 148 listings, **299 diagnostics**, readiness 81.7:
+Whole file — 148 listings, **299 diagnostics**, readiness 81.7:
 
 | Severity | Count | | Rule | Count |
 |---|---|---|---|---|
@@ -41,10 +40,19 @@ Whole file, no merchant filter — 148 listings, **299 diagnostics**, readiness 
 | | | | near_dup_title | 5 |
 | | | | brand_casing / screen_format / missing_weight | 5 / 3 / 3 |
 
-Per merchant: voltway 56 SKUs, 67 diagnostics, readiness 79.1 · citycircuit 49,
-55, 82.6 · northgear 43, 47, 84.1. Summed that is 169, not 299, and
-`gtin_shared` vanishes entirely — it is a cross-merchant signal that only exists
-on the unfiltered run.
+Per merchant: voltway 56 SKUs, 110 diagnostics, readiness **79.0** ·
+citycircuit 49, 104, **82.6** · northgear 43, 85, **84.1**.
+
+Per-merchant runs sum exactly to the whole-file run — 110 + 104 + 85 = 299,
+with every rule matching and `gtin_shared` splitting 42 + 49 + 38 = 129. A
+figure means the same thing whichever run produced it.
+
+That was not always true. Until `3a05d6e`, `analyse()` filtered rows to the
+merchant *before* building its indexes, so a shared GTIN was invisible from
+inside one merchant's slice and the canonical title was decided by whichever
+rows survived the filter. Since the onboarding console runs per merchant, its
+"also listed by voltway" line could never have rendered. Two regression tests
+now hold the invariant. Recorded because it is the kind of bug that comes back.
 
 **The sentence for the pitch:**
 
@@ -58,10 +66,11 @@ unreadable listings downstream. That is the adoption story in one number.
 Do **not** write "214 diagnostics, of which 56 are blockers" — 214 is the info
 count, and the blockers are a separate severity, not a subset of it.
 
-And say the quiet part out loud: 214 of the 299 are INFO, mostly
-`legitimately_empty` and `gtin_shared`. The adapter spends most of its output
-confirming things are *correct*. A tool that flags everything gets ignored, and
-that answers a sceptical judge better than a large defect number would.
+And say the quiet part out loud: 214 of the 299 are INFO. Two rules can only
+ever emit INFO — `legitimately_empty` and `gtin_shared` — so a merchant can tell
+"you didn't fill this in" apart from "this is empty because it should be". A
+retailer flagged for a rice cooker having no battery capacity stops reading the
+report. Worth saying to a sceptical judge before they ask.
 
 ## Rules
 
