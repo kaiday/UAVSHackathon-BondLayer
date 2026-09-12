@@ -93,6 +93,32 @@ def _audit(run: AgentRun) -> list[dict]:
     return out
 
 
+def _resolved_payload(offer) -> list[dict]:
+    """Why this offer matches, one entry per clause the shopper said.
+
+    The shape matches ``bundle_payload``'s ``notes``/``resolved``, with the
+    catalogue attribute added, so the UI has one renderer for both.
+
+    This is what the UI used to guess at. It carried a keyword table that
+    mapped "return" to ``free_returns`` and then looked for a citation of that
+    type -- a rendering layer inventing the binding between a clause and the
+    record answering it, which is exactly the "logic implied, not logic
+    visible" failure the trace module warns about. The binding is the
+    resolver's, and ``note`` is the resolver's sentence, not a restatement.
+    """
+    return [
+        {
+            "text": r.constraint.text,
+            "kind": r.constraint.kind.value,
+            "satisfied": r.satisfied,
+            "evidence_record_id": r.evidence_record_id,
+            "evidence_attribute": r.evidence_attribute,
+            "note": r.note,
+        }
+        for r in offer.resolved
+    ]
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok", "service": "agent"}
@@ -164,6 +190,12 @@ def handle_query(request: ShoppingQuery) -> dict:
             "records_seen": r.records_seen, "records_verified": r.records_verified,
             "records_credited": r.records_credited,
             "citations": r.citations, "withheld_note": r.withheld_note,
+            # The justification, per offer: which clause each record or
+            # catalogue column answered, and the resolver's sentence saying
+            # why. The UI renders this; it never derives it.
+            "resolved": _resolved_payload(r),
+            "unsatisfied": [{"text": c.text, "kind": c.kind.value}
+                            for c in r.unsatisfied],
         }
         for r in run.ranked
     ]

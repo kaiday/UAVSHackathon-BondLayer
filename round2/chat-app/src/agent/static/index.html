@@ -105,13 +105,36 @@
   .rec-unsigned .tick{color:#9aa1ac}
   .tick{flex:none;font-weight:700}
 
-  .constraints{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
-  .constraints li{font-size:11.5px;padding:4px 6px;border-radius:6px;background:#f6f8fb}
+  /* Why this offer matches, clause by clause -- the resolver's own answer,
+     rendered and never derived here. Each row is the clause the shopper said,
+     then the evidence that answered it (a record id, or a catalogue column),
+     then the resolver's one sentence. An unanswered SERVICE/VALUES clause
+     carries the marker instead, and is styled as the absence it is. */
+  .constraints{margin:10px 0 0;padding:9px 0 0;list-style:none;border-top:1px solid var(--line)}
+  .constraints .chd{
+    font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--muted);padding:0 0 6px;background:none;
+  }
+  .constraints li{font-size:11.5px;padding:5px 7px;border-radius:6px;background:#f6f8fb;margin-bottom:4px}
+  .constraints li.miss{background:#fff6f6}
   .constraints .kind{
     display:inline-block;font-size:9.5px;font-weight:700;text-transform:uppercase;color:#fff;
-    background:var(--accent);border-radius:999px;padding:1px 7px;margin-right:6px;
+    background:var(--accent);border-radius:999px;padding:1px 7px;margin-right:6px;vertical-align:1px;
   }
-  .unanswered{color:var(--bad);font-style:italic}
+  .constraints li.miss .kind{background:var(--bad)}
+  .constraints .clause{font-weight:600;color:#1f2937}
+  .constraints .ev-row{display:block;margin-top:3px;padding-left:2px}
+  .constraints .ev{
+    display:inline-block;font-size:10px;font-weight:700;border-radius:4px;
+    padding:1px 6px;margin-right:6px;white-space:nowrap;
+  }
+  /* A cited record and a catalogue column are different kinds of evidence and
+     must not look alike: one is a signed claim by a named issuer, the other is
+     a column in the merchant's own export. */
+  .ev-rec{background:#e9f9ee;color:#166534;border:1px solid #bbf7d0}
+  .ev-attr{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe}
+  .constraints .why{color:#4b5563}
+  .unanswered{color:var(--bad);font-style:italic;font-weight:600}
 
   .flip{
     margin-top:6px;padding:9px 11px;border-radius:9px;font-size:12px;font-weight:600;
@@ -227,28 +250,16 @@ let busy = false;
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const money = n => '$' + Number(n || 0).toFixed(2);
 
-/* Keyword heuristic for the SERVICE/VALUES marker. This is presentation
-   only -- it never influences ranking or crediting, which come entirely
-   from run_request's citations. It exists because the resolver that will
-   properly bind a constraint to the record answering it (WS-A) is not
-   wired into composition.run_request yet; until it is, this is the best a
-   rendering layer can honestly show from the citations a run already has. */
-const BENEFIT_HINTS = [
-  [/return/i, 'free_returns'],
-  [/warrant|cover/i, 'warranty'],
-  [/repair/i, 'repairability'],
-  [/sustainab|carbon|ethical/i, 'sustainability'],
-  [/durab|\blast\b/i, 'durability'],
-  [/trade[- ]?in/i, 'trade_in_credit'],
-  [/deliver/i, 'delivery'],
-  [/member|discount/i, 'member_price'],
-  [/points?/i, 'points_earn'],
-];
-
-function guessBenefitType(text) {
-  const hit = BENEFIT_HINTS.find(([re]) => re.test(text));
-  return hit ? hit[1] : null;
-}
+/* The SERVICE/VALUES marker, exactly as the resolver writes it. This page
+   renders it and never decides it: `resolved[]` on each ranked offer comes
+   from composition.run_request, which hands the interpreter's resolver only
+   the records that VERIFIED. There used to be a keyword table here that
+   mapped "return" to free_returns and then hunted for a matching citation --
+   a rendering layer inventing the binding between a clause and the record
+   answering it. That is "logic implied, not logic visible", the exact failure
+   the trace module warns about, so it is gone. If this marker is on screen, a
+   ResolvedConstraint said so. */
+const UNANSWERED = '← no catalogue attribute answers this';
 
 function recordState(c) {
   if (!c.cited) return 'rec-unsigned';
@@ -266,25 +277,40 @@ function recordLi(c) {
   return '<li class="' + cls + '"><span class="tick">' + tick + '</span><span>' + text + '</span></li>';
 }
 
-function constraintsHtml(constraints, offerCitations) {
-  if (!constraints || !constraints.length) return '';
-  // composition.py's AgentRun.constraints carries kind as the ConstraintKind
-  // enum VALUE ("service", "values" -- lowercase), not the member name.
-  const rows = constraints.filter(c => {
-    const kind = String(c.kind || '').toLowerCase();
-    return kind === 'service' || kind === 'values';
-  }).map(c => {
-    const benefit = guessBenefitType(c.text);
-    const answered = benefit && (offerCitations || []).some(x => x.benefit_type === benefit && x.cited);
-    const marker = answered
-      ? '<b>' + esc(benefit.replace(/_/g, ' ')) + '</b> cited above'
-      : '<span class="unanswered">← no catalogue attribute answers this</span>';
-    return '<li><span class="kind">' + esc(c.kind) + '</span>' + esc(c.text) + ' &mdash; ' + marker + '</li>';
-  }).join('');
-  return rows ? '<ul class="constraints">' + rows + '</ul>' : '';
+/* The evidence behind one clause: the record that answered it, or the
+   catalogue column that did. Straight off the ResolvedConstraint. */
+function evidenceHtml(rc) {
+  if (rc.evidence_record_id) {
+    return '<span class="ev ev-rec">cites ' + esc(rc.evidence_record_id) + '</span>';
+  }
+  if (rc.evidence_attribute) {
+    return '<span class="ev ev-attr">' + esc(rc.evidence_attribute) + '</span>';
+  }
+  return '';
 }
 
-function offerHtml(r, i, win, constraints) {
+/* One row per clause the shopper said, in the order they said it -- HARD and
+   SOFT included, not just the two kinds a record can answer. That order is the
+   argument: a price ceiling answered by a column, then a preference that ranks
+   and never filters, then the two clauses no catalogue column can answer at
+   all, each either citing a verified record by id or carrying the marker. */
+function constraintsHtml(resolved) {
+  if (!resolved || !resolved.length) return '';
+  const rows = resolved.map(rc => {
+    const unanswered = rc.note === UNANSWERED;
+    const body = unanswered
+      ? '<span class="unanswered">' + esc(UNANSWERED) + '</span>'
+      : evidenceHtml(rc) + '<span class="why">' + esc(rc.note) + '</span>';
+    return '<li' + (unanswered ? ' class="miss"' : '') + '>' +
+      '<span class="kind">' + esc(rc.kind) + '</span>' +
+      '<span class="clause">' + esc(rc.text) + '</span>' +
+      '<span class="ev-row">' + body + '</span>' +
+    '</li>';
+  }).join('');
+  return '<ul class="constraints"><li class="chd">why this matches, clause by clause</li>' + rows + '</ul>';
+}
+
+function offerHtml(r, i, win) {
   const shelf = Number(r.shelf_price_aud || 0);
   const credited = Number(r.credited_aud || 0);
   const records = (r.citations || []).map(recordLi).join('');
@@ -298,7 +324,7 @@ function offerHtml(r, i, win, constraints) {
         : '<span class="shelf">shelf ' + money(shelf) + '</span>') +
     '</div>' +
     (records ? '<ul class="records">' + records + '</ul>' : '<p class="mt">' + esc(r.withheld_note || 'no records published') + '</p>') +
-    constraintsHtml(constraints, r.citations) +
+    constraintsHtml(r.resolved) +
   '</div>';
 }
 
@@ -385,7 +411,10 @@ function paneHtml(d, header) {
     return html;
   }
   html += bundleHtml(d.bundles, d.ranked);
-  html += d.ranked.map((r, i) => offerHtml(r, i, i === 0, d.constraints)).join('');
+  // The justification rides on each offer now (r.resolved), not on the
+  // request-level constraint list: the same clause gets a different answer on
+  // a different shelf, and that difference is the demo.
+  html += d.ranked.map((r, i) => offerHtml(r, i, i === 0)).join('');
   html += d.flipped
     ? '<div class="flip">FLIP: ' + esc(d.winner.merchant) + ' wins on effective cost despite ' +
       esc(d.cheapest_shelf.merchant) + ' having the cheaper shelf price.</div>'

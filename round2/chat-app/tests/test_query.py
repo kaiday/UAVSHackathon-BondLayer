@@ -75,3 +75,68 @@ def test_query_with_mocked_fetcher_and_no_key_returns_ranking_trace_and_prose(mo
     # brings it below the cheaper, record-less competitors.
     assert body["winner"]["merchant"] == "voltway"
     assert float(body["winner"]["credited_aud"]) > 0
+
+
+def test_query_returns_the_resolver_justification_for_every_offer(monkeypatch):
+    """``/query`` carries WHY, not just what and how much.
+
+    The UI used to guess the clause-to-record binding from a keyword table,
+    because ``run_request`` did not call the resolver. It does now, so the
+    response carries the resolver's own ``resolved[]`` per offer and the page
+    renders it instead of deriving it. A marker on screen means a
+    ``ResolvedConstraint`` said so.
+    """
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setattr(ucp_client, "make_fetcher", lambda *a, **k: _mock_fetch)
+    monkeypatch.setattr(ucp_client, "make_verifier", lambda *a, **k: (lambda entry: True))
+
+    client = TestClient(main.app)
+    body = client.post("/query", json={
+        "query": "a laptop I can return easily", "bondlayer_enabled": True,
+    }).json()
+
+    winner = body["winner"]
+    assert winner["merchant"] == "voltway"
+    assert winner["resolved"], "the winner carries no justification"
+    assert all(r["note"].strip() for r in winner["resolved"])
+    assert {"text", "kind", "satisfied", "evidence_record_id",
+            "evidence_attribute", "note"} <= set(winner["resolved"][0])
+
+    # The SERVICE clause is answered by the record that verified, by id.
+    service = [r for r in winner["resolved"] if r["kind"] == "service"]
+    assert service and service[0]["satisfied"]
+    assert service[0]["evidence_record_id"] == "r1"
+
+    # Every offer carries one, so the panes can be compared clause by clause.
+    assert all("resolved" in offer and "unsatisfied" in offer
+               for offer in body["ranked"])
+
+    # The merchants with no record answer the same clause with the marker --
+    # the resolver's exact string, which the page renders verbatim.
+    for offer in body["ranked"]:
+        if offer["merchant"] == "voltway":
+            continue
+        missed = [r for r in offer["resolved"] if r["kind"] == "service"]
+        assert missed and not missed[0]["satisfied"]
+        assert missed[0]["note"] == "← no catalogue attribute answers this"
+        assert missed[0]["evidence_record_id"] is None
+
+
+def test_the_page_renders_the_marker_and_never_guesses_it():
+    """The keyword heuristic is gone, and must not come back.
+
+    ``guessBenefitType`` mapped clause text to a benefit type in JavaScript and
+    then hunted for a matching citation -- a rendering layer inventing the
+    binding the resolver is responsible for.
+    """
+    page = (CHAT_APP / "src" / "agent" / "static" / "index.html").read_text(encoding="utf-8")
+
+    assert "guessBenefitType" not in page
+    assert "BENEFIT_HINTS" not in page
+    # The marker is declared once, as a constant compared against the
+    # resolver's note -- never assembled from the clause text.
+    assert "no catalogue attribute answers this" in page
+    assert "rc.note === UNANSWERED" in page
+    # The three record states stay visually distinct.
+    for state in ("rec-priced", "rec-unpriced", "rec-unsigned"):
+        assert state in page
