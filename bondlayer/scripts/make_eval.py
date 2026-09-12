@@ -4,6 +4,16 @@
 data/eval/taxonomy.md. Gold SKU sets are resolved from the catalogue at build
 time so they cannot drift out of sync with it.
 
+CORRECTION, 12/09 afternoon: the original by() applied only category and
+max_price, so any HARD constraint expressed as RAM, storage, screen size,
+weight or GPU was silently dropped when gold was resolved. Seven requests --
+R03 R04 R10 R13 R23 R25 R29 -- carried gold that contradicted their own stated
+constraints. On R25 a correct resolver scored 3/39 and one that dropped two
+HARD constraints scored 39/39, so the metric rewarded the wrong behaviour on
+the request labelled the filter-correctness baseline. Constraint text and kind
+labels are UNCHANGED; only the resolution of gold_skus was corrected to apply
+the constraints already written. See the commit for the full disclosure.
+
 FREEZE RULE: this runs once, its output is committed, and neither is touched
 again. Assumption A2 claims the evaluation set was frozen before the enriched
 feed existed; the commit timestamp is the only proof of that, and re-running
@@ -17,6 +27,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from decimal import Decimal
 from pathlib import Path
 
@@ -35,15 +46,62 @@ def load() -> list[dict]:
     return rows
 
 
+def _ram_gb(r):
+    m = re.search(r"(\d+)\s*(GB|MB)", r.get("ram") or "", re.I)
+    if not m:
+        return None
+    v = int(m.group(1))
+    return v // 1024 if m.group(2).upper() == "MB" else v
+
+
+def _storage_gb(r):
+    m = re.search(r"(\d+)\s*(TB|GB)", r.get("storage") or "", re.I)
+    if not m:
+        return None
+    v = int(m.group(1))
+    return v * 1024 if m.group(2).upper() == "TB" else v
+
+
+def _screen_in(r):
+    m = re.search(r"([\d.]+)", r.get("screen_in") or "")
+    return float(m.group(1)) if m else None
+
+
 def by(rows, **kw) -> list[str]:
-    """SKUs matching every given field, plus optional max_price/min_ram."""
+    """SKUs satisfying EVERY stated predicate.
+
+    Every HARD constraint in a request must have a predicate here. If a
+    constraint is stated in the request and not applied here, the gold set
+    contradicts its own labels and the metric rewards a resolver that drops
+    constraints -- see the header note on the 15:0x correction.
+    """
     maxp = kw.pop("max_price", None)
     keys = kw.pop("model_keys", None)
+    ram_gb = kw.pop("ram_gb", None)
+    storage_gb = kw.pop("storage_gb", None)
+    screen_in = kw.pop("screen_in", None)
+    max_weight = kw.pop("max_weight_kg", None)
+    title_has = kw.pop("title_contains", None)
+    cpu_has = kw.pop("cpu_contains", None)
     out = []
     for r in rows:
         if keys is not None and r["model_key"] not in keys:
             continue
         if maxp is not None and r["_price"] > Decimal(str(maxp)):
+            continue
+        if ram_gb is not None and _ram_gb(r) != ram_gb:
+            continue
+        if storage_gb is not None and _storage_gb(r) != storage_gb:
+            continue
+        if screen_in is not None and _screen_in(r) != screen_in:
+            continue
+        if max_weight is not None:
+            w = r.get("weight_kg")
+            if not w or float(w) > max_weight:
+                continue
+        if title_has is not None and title_has.lower() not in r["title"].lower():
+            continue
+        if cpu_has is not None and cpu_has.lower() not in (r.get("cpu") or "").lower():
             continue
         if all(r.get(k) == v for k, v in kw.items()):
             out.append(r["sku"])
@@ -65,12 +123,12 @@ SPEC = [
 
     ("R03", "Cheapest 16GB laptop you have",
      [("16GB", H), ("cheapest", S)],
-     dict(category="laptop"),
+     dict(category="laptop", ram_gb=16),
      "Control case: fully answerable from the catalogue. A plain feed should do fine here, and that is the point."),
 
     ("R04", "Something light I can carry every day, under 1.3kg, budget around $2,000",
      [("under 1.3kg", H), ("around $2,000", S), ("carry every day", S)],
-     dict(category="laptop"),
+     dict(category="laptop", max_weight_kg=1.3),
      "'around' makes budget SOFT; 'under 1.3kg' stays HARD. Taxonomy rule 3."),
 
     ("R05", "A phone under $1,000 from a company that lets you fix it yourself",
@@ -100,7 +158,7 @@ SPEC = [
 
     ("R10", "A 32GB laptop for video editing, money is not really the issue",
      [("32GB", H), ("for video editing", S)],
-     dict(category="laptop"),
+     dict(category="laptop", ram_gb=32),
      "No budget clause at all. Interpreter must not invent one."),
 
     ("R11", "Monitor for a home office, around $800, delivered free if possible",
@@ -115,7 +173,7 @@ SPEC = [
 
     ("R13", "Laptop under $1,200, 16GB, and I want to be able to trade in my old one",
      [("under $1,200", H), ("16GB", H), ("trade in my old one", SV)],
-     dict(category="laptop", max_price=1200),
+     dict(category="laptop", max_price=1200, ram_gb=16),
      "Trade-in credit is a priced benefit record."),
 
     ("R14", "A headset for calls under $300",
@@ -165,7 +223,7 @@ SPEC = [
 
     ("R23", "Portable SSD, 2TB, delivered this week",
      [("2TB", H), ("portable SSD", H), ("delivered this week", SV)],
-     dict(category="accessory"),
+     dict(category="accessory", storage_gb=2048),
      "Delivery speed is a service clause with no catalogue column."),
 
     ("R24", "A work laptop and a dock, under $2,200 together",
@@ -175,7 +233,7 @@ SPEC = [
 
     ("R25", "Gaming laptop, 32GB, RTX, under $3,000",
      [("32GB", H), ("RTX", H), ("under $3,000", H), ("gaming", S)],
-     dict(category="laptop", max_price=3000),
+     dict(category="laptop", max_price=3000, ram_gb=32, title_contains="RTX"),
      "All-HARD request. Baseline for filter correctness."),
 
     ("R26", "I'm on a tight budget but I hate throwing things away — phone, under $700",
@@ -195,7 +253,7 @@ SPEC = [
 
     ("R29", "Best value 14 inch laptop with 16GB, and I do care where it's made",
      [("14 inch", H), ("16GB", H), ("best value", S), ("I care where it's made", V)],
-     dict(category="laptop"),
+     dict(category="laptop", ram_gb=16, screen_in=14.0),
      "Four clauses, all four kinds represented across the set. Screen size is formatted three different ways in the catalogue."),
 
     ("R30", "Anything under $100 that would make a good gift",
