@@ -25,4 +25,7 @@
 .header .brand{font-family:var(--font-display),sans-serif}
 .header h1,.stage h2,.complete h1{font-weight:600}
 .header .brand span{width:43px;height:43px;border-radius:0;font-size:0;background:url('/bondlayer-logo.svg') center / contain no-repeat;filter:drop-shadow(0 5px 8px rgba(255,122,0,.2))}
+.card{animation:onboarding-fade-up .3s ease-out both}@keyframes onboarding-fade-up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@media (prefers-reduced-motion:reduce){.card{animation:none}}
+.callout button,.quiet{padding:8px 11px!important;font-size:11px!important;font-weight:700}
 .offerField{display:grid;gap:7px;margin-top:24px;color:#526179;font-size:11px;font-weight:700}.offerField textarea{width:100%;resize:vertical;min-height:100px;padding:11px 12px;border:1px solid #e3e8ef;border-radius:8px;outline:0;background:#f8fafc;font:inherit;font-weight:400;line-height:1.5}.offerField textarea:focus{border-color:var(--accent-light);box-shadow:0 0 0 3px var(--accent-soft)}

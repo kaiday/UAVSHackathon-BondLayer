@@ -73,7 +73,7 @@ h1, h2, h3, .brand, .metric strong { font-family: var(--font-display), sans-seri
 .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
 .metric { padding: 19px 18px; border: 1px solid var(--border); border-radius: 13px; background: var(--paper); }
 .metrics .metric:nth-child(2) { position: relative; overflow: hidden; border-color: #cbe7e2; box-shadow: 0 8px 22px rgba(15,118,110,.06); }
-.metrics .metric:nth-child(2)::before { content: ""; position: absolute; top: 0; right: 18px; left: 18px; height: 3px; border-radius: 0 0 999px 999px; background: var(--accent-gradient); }
+.metrics .metric:nth-child(2)::before { content: ""; position: absolute; top: 0; right: 0; left: 0; height: 3px; border-radius: 13px 13px 0 0; background: var(--accent-gradient); }
 .metric p { margin: 0; color: var(--muted); font-size: 12px; }
 .metric strong { display: block; margin: 5px 0 2px; font-size: 25px; letter-spacing: -.03em; }
 .fraction-value { display: flex !important; align-items: baseline; gap: 5px; }
