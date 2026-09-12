@@ -6,7 +6,7 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import httpx
-from openai import OpenAI
+import anthropic
 
 # Import BondLayer signing and valuation
 try:
@@ -107,10 +107,9 @@ Be neutral and objective. Always consider price, quality, and availability in yo
 
 async def parse_intent(query: str) -> str:
     """Parse user query to extract shopping intent using LLM"""
-    response = openai_client.chat.completions.create(
-        model="gpt-4o-mini",
+    message = anthropic_client.messages.create(
+        model="claude-3-5-sonnet-20241022",
         max_tokens=200,
-        temperature=0,
         messages=[
             {
                 "role": "user",
@@ -118,7 +117,7 @@ async def parse_intent(query: str) -> str:
             }
         ]
     )
-    return response.choices[0].message.content
+    return message.content[0].text
 
 
 async def fetch_products_from_merchant(merchant: str, query: str) -> list:
@@ -175,10 +174,9 @@ For each product, provide:
 
 Format as JSON array with fields: [rank, product_id, merchant, reasoning]"""
 
-    response = openai_client.chat.completions.create(
-        model="gpt-4o-mini",
+    message = anthropic_client.messages.create(
+        model="claude-3-5-sonnet-20241022",
         max_tokens=1000,
-        temperature=0,
         messages=[
             {
                 "role": "user",
@@ -188,7 +186,7 @@ Format as JSON array with fields: [rank, product_id, merchant, reasoning]"""
     )
 
     # Parse LLM response
-    response_text = response.choices[0].message.content
+    response_text = message.content[0].text
 
     # Extract JSON from response
     try:
