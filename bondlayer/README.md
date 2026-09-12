@@ -153,6 +153,18 @@ sentence.
 |---|---|
 | `POST /{merchant}/ucp/intent/propose` | body `{"utterance": "…", "limit": 20}`; header `UCP-Agent` must negotiate `org.bondlayer.intent_match` (extends `catalog.search`; declared by voltway and northgear, not by the control) or the call is **406**. Returns `decoded_intent` (one entry per clause with its kind and the merchant's reading, the count of clauses no catalogue column can answer, plain-sentence assumptions, and one clarifying question when nothing names a product) and `proposals` (`product` exactly as `catalog.search` serves it, `resolved` per clause with `evidence_record_id`/`evidence_attribute`/`note`, `unsatisfied`). Only records that verify against the merchant's own key in `keys/` reach the resolver. `extensions` carries the same benefit blocks as search iff `org.bondlayer.benefit_value` also negotiated; absent otherwise. **The merchant receives the shopper's utterance verbatim; it never receives the shopper's valuation policy, benefit weights, or the cross-merchant comparison. Ranking against the shopper's policy stays agent-side.** |
 
+## Checkout route
+
+FPT's step 5, "closing the loop through a seamless, API-driven transaction".
+The agent's chosen offer becomes an order confirmation that binds the signed
+records the agent relied on. The server holds public keys only, so it cannot
+sign a new order object: proof rides the merchant's already-signed envelopes,
+and the order id is a content hash any party can recompute.
+
+| Route | Returns |
+|---|---|
+| `POST /{merchant}/ucp/checkout` | body `{"items": [{"sku_id", "quantity"}], "cited_record_ids": […], "agent_ref": null}`; header `UCP-Agent` must negotiate `dev.ucp.shopping.checkout` (base UCP — declared by all three merchants, the control included) or the call is **406**; unknown sku **404**; quantity over a listing's published `stock` **409**. Returns `order` with `order_id` (SHA-256 over `{merchant_id, items, honoured record ids}` — deterministic, stateless, no clock), `status: confirmed_awaiting_payment`, `line_items`, `subtotal`, and `payment: {status: out_of_scope}` — **payment is out of scope and the response declares it; no funds move.** Iff `org.bondlayer.benefit_value` also negotiated: `honoured_benefits` (one verdict per cited record id — honoured only if published by this merchant, signed, unexpired, verifying against the merchant's own key in `keys/`, and applying to a line item by `sku_id` and `fact.scope`; otherwise the failing test in plain words) and `extensions` carrying the full signed envelope of every honoured record, re-verifiable against `signing_keys[]`. Absent otherwise — the control's checkout is a plain UCP order. Nothing the agent did not cite is added. **The merchant receives sku ids, quantities and cited record ids; it still never receives the shopper's valuation policy, benefit weights, or the cross-merchant comparison — an extra body field such as `shopper_policy` is a 422.** |
+
 ## Records
 
 `data/records/{merchant}.signed.json`, served in the benefit block on the
