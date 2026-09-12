@@ -77,7 +77,7 @@ figures become real here.
 | **Minh Hieu Tran** | ML | `feat/hieu-interpreter` | Constraint interpreter, then policy converter | 1, then 2 |
 | **Hoang Manh Nguyen** | SE | `feat/nguyen-ucp-head` | Catalogue adapter, UCP profile, capability negotiation, extension | 1 |
 | **Thanh Bach Ly** | SE | `feat/bach-records-signing` | Record schema, ES256 object signing, valuation library, loyalty | 2, then 3 |
-| **Ha Anh Minh Truong** | UX | `feat/minh-surfaces` | Chat UI + console log (Phase 1), dashboard (Phase 2–3) | 1, then 2–3 |
+| **Ha Anh Minh Truong** | UX | `feat/minh-console` | Chat UI + console log (Phase 1), dashboard (Phase 2–3) | 1, then 2–3 |
 
 ## Critical path
 
