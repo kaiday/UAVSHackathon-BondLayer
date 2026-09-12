@@ -42,6 +42,11 @@ from bondlayer.agent import Outcome, Phase, run_request  # noqa: E402
 from bondlayer.agent.trace import AgentRun, Ranked, Step  # noqa: E402
 from bondlayer.bundle import CategoryBundler, role_of  # noqa: E402
 from bondlayer.interpreter.parser import parse as parse_utterance  # noqa: E402
+#: Rendered verbatim for an unanswered SERVICE/VALUES clause. Imported from the
+#: resolver rather than spelled again here: the marker is the resolver's own
+#: finding, and a console able to produce it independently could produce it when
+#: the resolver did not. If this line is on screen, a ResolvedConstraint said so.
+from bondlayer.interpreter.resolver import UNANSWERED  # noqa: E402
 from bondlayer.records.serialise import record_from_json  # noqa: E402
 from bondlayer.records.signing import ES256Signer  # noqa: E402
 from bondlayer.types import ConstraintKind, SignedRecord  # noqa: E402
@@ -218,6 +223,69 @@ def _wrap(text: str, indent: str = "  ", width: int = 78) -> list[str]:
                          subsequent_indent=indent) or [indent.rstrip()]
 
 
+def _evidence(rc) -> str:
+    """Where this clause's answer came from: a record, or a catalogue column."""
+    if rc.evidence_record_id:
+        return f"cites record {rc.evidence_record_id}"
+    if rc.evidence_attribute:
+        return f"on attribute {rc.evidence_attribute}"
+    return "no evidence"
+
+
+def render_justification(offer: Ranked, *, indent: str = "    ") -> list[str]:
+    """Why this offer matches, one line per clause the shopper said.
+
+    This is the answer to the thing the problem statement weighs highest: not
+    "here are some SKUs" but "this clause, answered by this record or this
+    column, for this reason". An unanswered SERVICE or VALUES clause keeps the
+    resolver's own marker, so the trace says what the shelf could *not* do just
+    as plainly as what it could.
+    """
+    if not offer.resolved:
+        return [indent + "(no interpreter wired -- nothing to justify)"]
+    lines: list[str] = []
+    for rc in offer.resolved:
+        kind = rc.constraint.kind.value
+        lines.extend(_wrap(f"{kind:<8} {rc.constraint.text!r}", indent))
+        if rc.note == UNANSWERED:
+            # Never wrapped. This marker is a fixed string the console renders
+            # verbatim, and a line break through the middle of it would make it
+            # ungreppable and unquotable.
+            lines.append(indent + "    " + UNANSWERED)
+            continue
+        lines.extend(_wrap(f"-> {_evidence(rc)} - {rc.note}", indent + "    "))
+    return lines
+
+
+def render_why(run: AgentRun) -> list[str]:
+    """The per-constraint justification for the winner and for each rival.
+
+    The winner alone would not make the point. The argument the demo has to
+    land is comparative -- Voltway can answer "I can return it easily" and
+    "a brand that actually repairs things" with two signed records, and
+    CityCircuit answers neither -- so the best offer from every merchant gets
+    its own block, and the ones that answer nothing say so.
+    """
+    if not run.ranked:
+        return []
+    lines = ["why these match (one line per clause the shopper said):"]
+    seen: set[str] = set()
+    for i, offer in enumerate(run.ranked):
+        if offer.merchant in seen:
+            continue
+        seen.add(offer.merchant)
+        tag = " <- WINNER" if i == 0 else ""
+        lines.append("")
+        lines.append(f"  {offer.merchant} {offer.sku_id} "
+                     f"({_money(offer.effective_cost)} effective){tag}")
+        lines.extend(render_justification(offer))
+        if offer.unsatisfied:
+            lines.extend(_wrap(
+                "unsatisfied: " + "; ".join(c.text for c in offer.unsatisfied),
+                "    "))
+    return lines
+
+
 def render_bundles(run: AgentRun) -> list[str]:
     """The composed set, rendered as a set.
 
@@ -286,6 +354,11 @@ def render_bundles(run: AgentRun) -> list[str]:
             f"   [{role}]"
         )
         for note in item.resolved:
+            if note.note == UNANSWERED:
+                # Verbatim and unwrapped here too, so the marker reads the same
+                # inside a set as it does under a single offer.
+                lines.append("        " + UNANSWERED)
+                continue
             mark = "cites" if note.evidence_record_id else "note "
             lines.extend(_wrap(f"{mark} {note.note}", "        "))
         if item.resolved:
@@ -366,6 +439,9 @@ def render(run: AgentRun, *, extension: bool) -> str:
             f"{r.records_seen}/{r.records_verified}/{r.records_credited}"
             + (f"   ({r.withheld_note})" if r.withheld_note else "")
         )
+    lines.append(_BAR)
+
+    lines.extend(render_why(run))
     lines.append(_BAR)
 
     top = run.winner

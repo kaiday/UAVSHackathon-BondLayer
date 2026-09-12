@@ -23,6 +23,7 @@ of a complete one.
 from __future__ import annotations
 
 import inspect
+from dataclasses import replace
 from decimal import Decimal
 from typing import Any, Callable, Protocol
 
@@ -30,8 +31,8 @@ from bondlayer.agent.trace import AgentRun, Outcome, Phase, Ranked, Step
 from bondlayer.interpreter.resolver import (
     _plan_categories,
     interpret_hard,
-    interpret_record_need,
 )
+from bondlayer.interpreter.resolver import resolve as default_resolve
 from bondlayer.records.serialise import signed_from_json
 from bondlayer.types import (
     BenefitType,
@@ -39,7 +40,6 @@ from bondlayer.types import (
     Constraint,
     ConstraintKind,
     Proposal,
-    ResolvedConstraint,
     ShopperPolicy,
     SignedRecord,
     Sku,
@@ -289,6 +289,19 @@ class Bundler(Protocol):
     ) -> list[Bundle]: ...
 
 
+class Resolve(Protocol):
+    """``ConstraintInterpreter.resolve``'s signature, as a callable.
+
+    The default is the real resolver. A caller passes its own only to test the
+    seam; nothing in the product does.
+    """
+
+    def __call__(
+        self, constraints: list[Constraint], skus: list[Sku],
+        records: list[SignedRecord],
+    ) -> list[Proposal]: ...
+
+
 def _typed_constraints(constraints: list[dict]) -> list[Constraint]:
     """The decoded clauses as ``Constraint``s, whatever parser produced them.
 
@@ -307,47 +320,38 @@ def _typed_constraints(constraints: list[dict]) -> list[Constraint]:
     return out
 
 
-def _item_resolved(constraints: list[Constraint], offer: Ranked) -> list[ResolvedConstraint]:
-    """Which of the shopper's clauses this ranked offer answers, and on what.
-
-    Built from the citations ``run_request`` already produced -- a clause is
-    answered when a record of the type it asks for was cited *and verified* on
-    this listing. Nothing is re-decided here: an unverified record is not a
-    citation, so it cannot answer anything, which is the same fail-closed rule
-    the valuation applies.
-    """
-    resolved: list[ResolvedConstraint] = []
-    for constraint in constraints:
-        if constraint.kind not in (ConstraintKind.SERVICE, ConstraintKind.VALUES):
-            continue
-        need = interpret_record_need(constraint.text)
-        if need is None:
-            continue
-        hit = next(
-            (c for c in offer.citations
-             if c.get("cited") and c.get("benefit_type") == need.benefit_type.value),
-            None,
-        )
-        if hit is None:
-            continue
-        resolved.append(ResolvedConstraint(
-            constraint, True, hit.get("record_id"), None, str(hit.get("why", "")),
-        ))
-    return resolved
+# --- the resolution seam ----------------------------------------------------
+#
+# The interpreter's `resolve()` is what turns a ranking into a justification:
+# one `ResolvedConstraint` per clause the shopper said, carrying the catalogue
+# attribute or the verified record that answers it and a sentence saying why.
+# It used to run only inside `scripts/eval_run.py`, so the number on stage was
+# provable and the *reason* for it was not. It runs here now, on the same path
+# the demo and the chat app use.
+#
+# This replaces an earlier `_item_resolved` helper, which rebuilt a partial
+# version of the same thing out of the valuation's citations and could only
+# ever answer SERVICE and VALUES clauses. One resolver, one answer.
 
 
 def _proposals_from(ranked: list[Ranked], skus: dict[str, Sku],
-                    constraints: list[Constraint]) -> list[Proposal]:
-    """The ranked wire listings as ``Proposal``s, best effective cost first."""
-    return [
-        Proposal(
-            sku=skus[r.sku_id],
-            resolved=_item_resolved(constraints, r),
-            unsatisfied=[],
-            records=[],
-        )
-        for r in ranked if r.sku_id in skus
-    ]
+                    resolved: dict[str, Proposal]) -> list[Proposal]:
+    """The ranked wire listings as ``Proposal``s, best effective cost first.
+
+    A listing the resolver returned keeps the resolver's own ``Proposal`` --
+    its notes, its citations and its unsatisfied clauses -- so the bundler and
+    the ranking read the same justification. A listing the resolver excluded on
+    a HARD clause, or that came back with no interpreter wired at all, still
+    appears, with an empty justification rather than an invented one.
+    """
+    out: list[Proposal] = []
+    for r in ranked:
+        if r.sku_id in resolved:
+            out.append(resolved[r.sku_id])
+        elif r.sku_id in skus:
+            out.append(Proposal(sku=skus[r.sku_id], resolved=[],
+                                unsatisfied=[], records=[]))
+    return out
 
 
 def run_request(
@@ -362,6 +366,7 @@ def run_request(
     value_of: Callable[[dict], Decimal] | None = None,
     policy: dict[str, Decimal] | None = None,
     bundler: Bundler | None = None,
+    resolve: Resolve | None = None,
 ) -> AgentRun:
     """One shopper request across every merchant, with the reasoning recorded.
 
@@ -377,6 +382,13 @@ def run_request(
     the HARD clauses instead of the raw utterance. When neither is passed the
     ABSENT path still runs and the utterance goes through as a keyword query --
     degrade honestly, and say so in the trace.
+
+    ``resolve`` is the interpreter's other seam, and it defaults to the real
+    resolver, so a decoded request is justified clause by clause without the
+    caller asking for it. Each ``Ranked`` offer then carries ``resolved`` and
+    ``unsatisfied``, and a ``Phase.RESOLVE`` step summarises how much of the
+    request the shelf could answer. Resolution never filters and never
+    reorders -- the ranking is the same arithmetic it always was.
     """
     policy = policy or DEFAULT_POLICY
     shopper = _shopper(policy)
@@ -415,6 +427,12 @@ def run_request(
     #: Every listing that came back, kept as a Sku so the bundler can compose
     #: sets from the same objects the valuation priced.
     wire_skus: dict[str, Sku] = {}
+    #: Every record that **verified**, by record_id, and nothing else. This is
+    #: the only collection the resolver is handed, which is what makes "an
+    #: unsigned record is never cited" a property of the wiring rather than a
+    #: rule the resolver has to remember. A merchant-wide record rides on every
+    #: product block, so the id keys deduplicate it.
+    verified_signed: dict[str, SignedRecord] = {}
     verifier_missing = verify is None
     any_records = False
     with_plan = bool(plan) and _accepts_plan(fetch)
@@ -482,6 +500,9 @@ def run_request(
 
             verified = [e for r, e in ((r, entries[id(r)]) for r in signed_records)
                         if not verifier_missing and verify(e)]
+            for rebuilt in signed_records:
+                if not verifier_missing and verify(entries[id(rebuilt)]):
+                    verified_signed.setdefault(rebuilt.record.record_id, rebuilt)
 
             citations = []
             for line, rebuilt in zip(cost.credited, signed_records):
@@ -541,6 +562,68 @@ def run_request(
             "No benefit records were published by any merchant, so effective cost equals shelf price.",
             {"rule": "nothing credited without a record"}))
 
+    # --- resolution -------------------------------------------------------
+    #
+    # Why each offer matches, clause by clause. This never filters and never
+    # reorders: the ranking below is computed from effective cost exactly as it
+    # was before this block existed. It only attaches, to each offer the wire
+    # returned, the justification the interpreter can give for it.
+    #
+    # The resolver is handed `verified_signed` and nothing else. A record that
+    # did not verify is still *seen* -- it appears in `citations` with
+    # `cited: False` and earns nothing -- but it never reaches the resolver, so
+    # no unsigned claim can become evidence for anything.
+    typed = _typed_constraints(constraints)
+    resolved_by_sku: dict[str, Proposal] = {}
+    if typed and ranked:
+        resolver = resolve or default_resolve
+        try:
+            proposals = resolver(typed, list(wire_skus.values()),
+                                 list(verified_signed.values()))
+        except Exception as exc:  # degrade honestly: a ranking without a reason
+            steps.append(Step(
+                Phase.RESOLVE, Outcome.DEGRADED,
+                "The interpreter could not resolve these clauses against the "
+                "shelf, so the ranking is shown without its per-clause "
+                "justification.",
+                {"error": f"{type(exc).__name__}: {exc}"}))
+        else:
+            resolved_by_sku = {p.sku.sku_id: p for p in proposals}
+            ranked = [
+                replace(r,
+                        resolved=list(resolved_by_sku[r.sku_id].resolved),
+                        unsatisfied=list(resolved_by_sku[r.sku_id].unsatisfied))
+                if r.sku_id in resolved_by_sku else r
+                for r in ranked
+            ]
+
+            # Answered *per request*, not per listing: the shopper's question is
+            # whether this shelf can answer the clause at all, which is the same
+            # reading `scripts/eval_run.py` scores against.
+            answered = {
+                rc.constraint.text
+                for r in ranked for rc in r.resolved if rc.satisfied
+            }
+            by_record = {
+                rc.constraint.text
+                for r in ranked for rc in r.resolved
+                if rc.satisfied and rc.evidence_record_id is not None
+            }
+            unanswered = [c for c in typed if c.text not in answered]
+            steps.append(Step(
+                Phase.RESOLVE, Outcome.OK if not unanswered else Outcome.DEGRADED,
+                f"{len(answered)} of {len(typed)} constraints answered; "
+                f"{len(by_record)} answered only by a verified record.",
+                {"answered": len(answered), "total": len(typed),
+                 "by_record": sorted(by_record),
+                 "unanswered": [{"text": c.text, "kind": c.kind.value}
+                                for c in unanswered],
+                 "records_cited": sorted({
+                     rc.evidence_record_id
+                     for r in ranked for rc in r.resolved
+                     if rc.evidence_record_id is not None
+                 })}))
+
     # --- ranking ----------------------------------------------------------
     ranked.sort(key=lambda r: (r.effective_cost, r.shelf_price))
     if ranked:
@@ -563,8 +646,8 @@ def run_request(
     # cross a merchant boundary, so nothing above this line can change here.
     bundles: list[Bundle] = []
     if bundler is not None:
-        typed = _typed_constraints(constraints)
-        bundles = list(bundler.compose(typed, _proposals_from(ranked, wire_skus, typed)))
+        bundles = list(bundler.compose(
+            typed, _proposals_from(ranked, wire_skus, resolved_by_sku)))
         if bundles:
             best = bundles[0]
             steps.append(Step(
@@ -587,6 +670,14 @@ def run_request(
                 "no product family this bundler has a recipe for.",
                 {"bundles": 0}))
 
+    # What no offer on any shelf could answer. The winner's own unsatisfied
+    # list is the honest per-offer answer; this is the request-level one, and
+    # it is empty when some offer answered every clause.
+    answered_anywhere = {rc.constraint.text
+                         for r in ranked for rc in r.resolved if rc.satisfied}
+    unsatisfied = [{"text": c.text, "kind": c.kind.value}
+                   for c in typed if c.text not in answered_anywhere]
+
     return AgentRun(utterance=utterance, extension_enabled=extension,
                     steps=steps, ranked=ranked, constraints=constraints,
-                    bundles=bundles)
+                    unsatisfied=unsatisfied, bundles=bundles)

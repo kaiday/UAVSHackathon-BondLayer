@@ -15,11 +15,17 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import Enum
 
-from bondlayer.types import Bundle
+from bondlayer.types import Bundle, Constraint, ResolvedConstraint
 
 
 class Phase(str, Enum):
     INTENT = "intent"
+    # Which clause each offer answers, and on what: a catalogue attribute or a
+    # verified record, cited by id. INTENT decodes what the shopper said;
+    # RESOLVE says what the shelf can answer, one clause at a time. This is the
+    # justification the problem statement asks for -- "a logical justification
+    # of WHY these products match, not a SKU list".
+    RESOLVE = "resolve"
     DISCOVERY = "discovery"
     NEGOTIATION = "negotiation"
     VERIFICATION = "verification"
@@ -63,6 +69,18 @@ class Ranked:
     records_credited: int
     citations: list[dict] = field(default_factory=list)
     withheld_note: str | None = None
+    #: One entry per clause the shopper said, as the interpreter's resolver
+    #: answered it *for this listing*: the catalogue attribute or the verified
+    #: record that answers it, and a one-sentence note saying why. Empty when no
+    #: interpreter was wired -- additive, so every existing caller is unchanged.
+    #:
+    #: A record id appears here only if the caller's own verifier passed it, so
+    #: an unsigned record can be seen on the wire and can never be cited.
+    resolved: list[ResolvedConstraint] = field(default_factory=list)
+    #: The clauses this listing answers with nothing at all. Kept honestly
+    #: rather than dropped: it is the half of the justification that says what
+    #: the shelf could not do.
+    unsatisfied: list[Constraint] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

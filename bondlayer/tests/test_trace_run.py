@@ -116,3 +116,82 @@ def test_cli_end_to_end_R01_flips_with_the_extension_only():
     assert off.returncode == 0, off.stderr
     assert "citations for the winner (voltway" not in off.stdout
     assert "NO FLIP:" in off.stdout
+
+
+# --- the justification on screen (WS-A2) ------------------------------------
+#
+# The CLI is the Path-B demo, so what a judge reads for criterion 1 is this
+# stdout. These assert the two halves of the argument: with the extension the
+# trace names the records that answer the shopper's clauses, and without it the
+# same clauses carry the marker and nothing is cited.
+
+
+def _cli(*args):
+    out = subprocess.run(
+        [sys.executable, str(SCRIPTS / "trace_run.py"), *args],
+        capture_output=True, text=True, timeout=60,
+    )
+    assert out.returncode == 0, out.stderr
+    return out.stdout
+
+
+def test_cli_names_the_records_that_answer_the_service_and_values_clauses():
+    """The line the whole criterion turns on, on stage, in the extension run."""
+    from bondlayer.interpreter.resolver import UNANSWERED
+
+    out = _cli(R01)
+
+    assert "why these match" in out
+    # "I can return it easily" and "a brand that actually repairs things",
+    # answered by name -- not implied by a cheaper number.
+    assert "vw-returns-60" in out
+    assert "vw-repairability-parts-5y" in out
+    assert "cites record vw-returns-60" in out
+    assert "cites record vw-repairability-parts-5y" in out
+    # HARD is answered by a catalogue column, and the trace says which.
+    assert "on attribute shelf_price" in out
+    # CityCircuit publishes neither record, and the trace says so twice rather
+    # than quietly leaving the clauses out.
+    citycircuit = _why_section(out).split("citycircuit CIT-0032")[1]
+    assert citycircuit.count(UNANSWERED) == 2
+
+
+def _why_section(out: str) -> str:
+    """Just the per-constraint justification block, without the bundle below."""
+    return out.split("why these match")[1].split("citations for the winner")[0]
+
+
+def test_cli_control_marks_every_unanswerable_clause_and_cites_nothing():
+    from bondlayer.interpreter.resolver import UNANSWERED
+
+    out = _cli(R01, "--control")
+
+    assert UNANSWERED in out
+    # Three merchants, two unanswerable clauses each, and no record anywhere.
+    assert _why_section(out).count(UNANSWERED) == 6
+    assert "cites record" not in out
+    assert "vw-returns-60" not in out
+    assert "vw-repairability-parts-5y" not in out
+
+
+def test_the_marker_is_never_broken_across_lines():
+    """It is a fixed string the console renders verbatim (WS-A brief).
+
+    Wrapping it mid-phrase would make it ungreppable, unquotable in the deck,
+    and different from what Minh's dashboard renders.
+    """
+    from bondlayer.interpreter.resolver import UNANSWERED
+
+    for out in (_cli(R01), _cli(R01, "--control")):
+        marker_lines = [ln for ln in out.splitlines() if "no catalogue attribute" in ln]
+        assert marker_lines
+        assert all(ln.strip() == UNANSWERED for ln in marker_lines)
+
+
+def test_run_request_attaches_the_resolution_to_every_ranked_offer():
+    """Not just the winner: the comparison is the argument."""
+    run = _run(extension=True)
+    assert all(offer.resolved for offer in run.ranked)
+    winner_records = {r.evidence_record_id for r in run.winner.resolved
+                      if r.evidence_record_id}
+    assert {"vw-returns-60", "vw-repairability-parts-5y"} <= winner_records
