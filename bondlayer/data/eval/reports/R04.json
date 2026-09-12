@@ -39,6 +39,26 @@
     ]
   },
   "unsatisfied": [],
+  "bundle_composed": {
+    "bundle_id": "bnd-voltway-phone-a06371b4",
+    "merchant": "voltway",
+    "items": [
+      "VOL-0048",
+      "VOL-0100"
+    ],
+    "roles": [
+      "phone",
+      "charger"
+    ],
+    "combined_shelf_price": "2046.76",
+    "in_gold": 0,
+    "outside_gold": [
+      "VOL-0048",
+      "VOL-0100"
+    ],
+    "gold_precision": 0.0,
+    "combined_ceiling_met": null
+  },
   "merchants": [
     {
       "request_id": "R04",

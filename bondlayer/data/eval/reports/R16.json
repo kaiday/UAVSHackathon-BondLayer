@@ -33,6 +33,21 @@
   "unsatisfied": [
     "supported in five years"
   ],
+  "bundle_composed": {
+    "bundle_id": "bnd-citycircuit-laptop-4b13f8b5",
+    "merchant": "citycircuit",
+    "items": [
+      "CIT-0032"
+    ],
+    "roles": [
+      "laptop"
+    ],
+    "combined_shelf_price": "1066.00",
+    "in_gold": 1,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": null
+  },
   "merchants": [
     {
       "request_id": "R16",

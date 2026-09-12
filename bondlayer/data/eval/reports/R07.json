@@ -31,6 +31,29 @@
     ]
   },
   "unsatisfied": [],
+  "bundle_composed": {
+    "bundle_id": "bnd-voltway-podcasting-47ec1713",
+    "merchant": "voltway",
+    "items": [
+      "VOL-0060",
+      "VOL-0074",
+      "VOL-0065",
+      "VOL-0080",
+      "VOL-0071"
+    ],
+    "roles": [
+      "microphone",
+      "headphones",
+      "interface",
+      "cable",
+      "stand"
+    ],
+    "combined_shelf_price": "723.08",
+    "in_gold": 5,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": null
+  },
   "merchants": [
     {
       "request_id": "R07",

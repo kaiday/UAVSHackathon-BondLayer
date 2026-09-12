@@ -37,6 +37,7 @@
   "unsatisfied": [
     "delivered free if possible"
   ],
+  "bundle_composed": null,
   "merchants": [
     {
       "request_id": "R11",

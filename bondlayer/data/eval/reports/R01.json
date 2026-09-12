@@ -42,6 +42,21 @@
     "I can return easily",
     "from a brand that actually repairs things"
   ],
+  "bundle_composed": {
+    "bundle_id": "bnd-voltway-laptop-c7d312ac",
+    "merchant": "voltway",
+    "items": [
+      "VOL-0001"
+    ],
+    "roles": [
+      "laptop"
+    ],
+    "combined_shelf_price": "1455.00",
+    "in_gold": 1,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": true
+  },
   "merchants": [
     {
       "request_id": "R01",

@@ -37,6 +37,21 @@
   "unsatisfied": [
     "carbon neutral"
   ],
+  "bundle_composed": {
+    "bundle_id": "bnd-citycircuit-phone-93b3a50b",
+    "merchant": "citycircuit",
+    "items": [
+      "CIT-0050"
+    ],
+    "roles": [
+      "phone"
+    ],
+    "combined_shelf_price": "532.50",
+    "in_gold": 1,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": true
+  },
   "merchants": [
     {
       "request_id": "R17",

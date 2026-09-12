@@ -43,6 +43,21 @@
     ]
   },
   "unsatisfied": [],
+  "bundle_composed": {
+    "bundle_id": "bnd-citycircuit-laptop-d655e32c",
+    "merchant": "citycircuit",
+    "items": [
+      "CIT-0035"
+    ],
+    "roles": [
+      "laptop"
+    ],
+    "combined_shelf_price": "2618.00",
+    "in_gold": 1,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": true
+  },
   "merchants": [
     {
       "request_id": "R25",

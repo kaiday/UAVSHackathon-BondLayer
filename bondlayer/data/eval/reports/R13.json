@@ -37,6 +37,21 @@
   "unsatisfied": [
     "trade in my old one"
   ],
+  "bundle_composed": {
+    "bundle_id": "bnd-voltway-laptop-f6940c1a",
+    "merchant": "voltway",
+    "items": [
+      "VOL-0021"
+    ],
+    "roles": [
+      "laptop"
+    ],
+    "combined_shelf_price": "1194.96",
+    "in_gold": 1,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": true
+  },
   "merchants": [
     {
       "request_id": "R13",

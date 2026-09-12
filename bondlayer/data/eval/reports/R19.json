@@ -35,6 +35,21 @@
     ]
   },
   "unsatisfied": [],
+  "bundle_composed": {
+    "bundle_id": "bnd-citycircuit-laptop-8f1a070d",
+    "merchant": "citycircuit",
+    "items": [
+      "CIT-0005"
+    ],
+    "roles": [
+      "laptop"
+    ],
+    "combined_shelf_price": "1793.50",
+    "in_gold": 1,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": null
+  },
   "merchants": [
     {
       "request_id": "R19",
