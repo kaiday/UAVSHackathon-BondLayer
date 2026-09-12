@@ -66,7 +66,9 @@ ways:
 - **Hieu** — resolve `ConstraintKind.VALUES` against them. *"From a brand that
   actually repairs things"* cites a signed `repairability` record.
 - **Nha** — author them into the policy prose and put one **unsigned**
-  greenwashing claim in the control merchant's data.
+  greenwashing claim in **NorthGear's** data (`ng-sustainability-claim`), the
+  signed competitor, not the control. A control merchant that published an
+  unsigned claim would have stopped being a control.
 - **Minh** — render three distinct states: signed-and-priced (credited),
   signed-and-unpriced (cited, $0), unsigned (displayed, never cited). The last
   two both credit nothing, and the screen must still show that one is trusted

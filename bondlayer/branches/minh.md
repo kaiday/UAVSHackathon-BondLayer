@@ -134,9 +134,11 @@ argument:
 
 Rows 2 and 3 both credit nothing, and a viewer must still see instantly that one
 is *verified and counted as evidence* while the other is *not trusted at all*.
-Nha is planting an unsigned greenwashing claim in the control merchant so that
-contrast plays live. Verification and valuation are separate questions — make
-the screen say so.
+Nha is planting an unsigned greenwashing claim in **NorthGear's** data
+(`ng-sustainability-claim`) — the signed competitor, not the control — so that
+contrast plays live. CityCircuit publishes zero records by design; a control
+that carried an unsigned claim would have stopped being a control. Verification
+and valuation are separate questions — make the screen say so.
 
 ### Possibly three merchants, not two
 

@@ -1,5 +1,9 @@
 # Overview progress — Day 1
 
+> **Superseded 12/09 16:41 by [`DAY2-PLAN.md`](DAY2-PLAN.md).** This file is a Day 1
+> snapshot (13:05) kept for the trail. `DAY2-PLAN.md` §1 is the verified state at 16:20
+> and the plan of record from that point; do not read current status from here.
+
 *Revised 12/09 13:05 AEST. Supersedes the 11:10 version. Every status claim re-checked
 against `origin/*` rather than restated.*
 
@@ -144,10 +148,17 @@ checkout` under time pressure sends someone to the wrong place.
 what this morning's version called the one hard blocker:
 
 > **ES256 (P-256/SHA-256) is mandatory.** All implementations MUST verify it. Do not reach
-> for Ed25519 — the Round 1 proposal said Ed25519, the spec says ES256, **and the spec wins.**
+> for Ed25519, **and the spec wins.**
 
 Verified against `ucp.dev/2026-04-08/specification/signatures/`. **Bach is unblocked — this
-is not waiting on Ford.** Two riders:
+is not waiting on Ford.**
+
+**Correction, 12/09 evening (`round2/DAY2-PLAN.md` §2).** This section originally said
+"the Round 1 proposal said Ed25519, the spec says ES256." That has it backwards. The
+submitted Round 1 `main.tex` (§5.1) already specifies ES256 over canonical JSON; it is
+`BondLayer_PROJECT_HANDOVER.md`'s stack summary (§8, "PyNaCl (Ed25519)") that is stale.
+Source-of-truth order when documents disagree: submitted `main.tex` → stage1 spec →
+`types.py` → `WORKPLAN.md` → handover. Two riders on the stage1 spec itself:
 
 - Keys publish in `/.well-known/ucp` under `signing_keys[]` in **JWK format** (RFC 7517):
   `kid`, `kty: "EC"`, curve, `x`, `y`. `kid` resolves there; no match → `key_not_found`.
