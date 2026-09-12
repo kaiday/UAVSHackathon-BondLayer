@@ -1,0 +1,153 @@
+{
+  "request_id": "R01",
+  "utterance": "A laptop under $1,500 I can return easily if it turns out not to suit my work, from a brand that actually repairs things",
+  "bundle": false,
+  "expect_unsatisfied": false,
+  "constraints": [
+    {
+      "text": "laptop under $1,500",
+      "kind": "hard"
+    },
+    {
+      "text": "I can return easily",
+      "kind": "service"
+    },
+    {
+      "text": "not to suit my work",
+      "kind": "soft"
+    },
+    {
+      "text": "from a brand that actually repairs things",
+      "kind": "values"
+    }
+  ],
+  "metrics": {
+    "hard_precision": 1.0,
+    "gold_recall": 1.0,
+    "precision_at_gold": 1.0,
+    "citations": [
+      13,
+      13
+    ],
+    "clauses_answered": [
+      2,
+      2
+    ],
+    "clauses_answered_control": [
+      0,
+      2
+    ]
+  },
+  "unsatisfied": [
+    "I can return easily",
+    "from a brand that actually repairs things"
+  ],
+  "merchants": [
+    {
+      "request_id": "R01",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 14,
+      "legible_share": 0.5,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; voltway won on effective cost.",
+      "sku_id": "CIT-0032",
+      "shelf_price": "1066.00",
+      "effective_cost": "1066.00",
+      "unsatisfied": [
+        "I can return easily",
+        "from a brand that actually repairs things"
+      ]
+    },
+    {
+      "request_id": "R01",
+      "merchant": "northgear",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 0.75,
+      "value_credited_aud": "68.95",
+      "value_withheld_aud": "330",
+      "won": false,
+      "lost_because": "Published value the wire did not carry: $330 was withheld as unverified, unattested or out of scope, so voltway won on effective cost.",
+      "sku_id": "NOR-0033",
+      "shelf_price": "1099.00",
+      "effective_cost": "1030.05",
+      "unsatisfied": [
+        "from a brand that actually repairs things"
+      ]
+    },
+    {
+      "request_id": "R01",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 1.0,
+      "value_credited_aud": "209.95",
+      "value_withheld_aud": "1310.00",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "VOL-0031",
+      "shelf_price": "1142.96",
+      "effective_cost": "933.01",
+      "unsatisfied": []
+    }
+  ],
+  "control": [
+    {
+      "request_id": "R01",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 14,
+      "legible_share": 0.5,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "CIT-0032",
+      "shelf_price": "1066.00",
+      "effective_cost": "1066.00",
+      "unsatisfied": [
+        "I can return easily",
+        "from a brand that actually repairs things"
+      ]
+    },
+    {
+      "request_id": "R01",
+      "merchant": "northgear",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 0.5,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "398.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "NOR-0033",
+      "shelf_price": "1099.00",
+      "effective_cost": "1099.00",
+      "unsatisfied": [
+        "I can return easily",
+        "from a brand that actually repairs things"
+      ]
+    },
+    {
+      "request_id": "R01",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 0.5,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "1519.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "VOL-0031",
+      "shelf_price": "1142.96",
+      "effective_cost": "1142.96",
+      "unsatisfied": [
+        "I can return easily",
+        "from a brand that actually repairs things"
+      ]
+    }
+  ]
+}

@@ -22,35 +22,229 @@ of a complete one.
 
 from __future__ import annotations
 
+import inspect
 from decimal import Decimal
 from typing import Any, Callable, Protocol
 
 from bondlayer.agent.trace import AgentRun, Outcome, Phase, Ranked, Step
+from bondlayer.interpreter.resolver import interpret_hard
+from bondlayer.records.serialise import signed_from_json
+from bondlayer.types import BenefitType, ShopperPolicy, SignedRecord, Sku
+from bondlayer.valuation import (
+    ATTESTED_CONDITIONS,
+    MERCHANT_DOMAINS,
+    REFERENCE_SHOPPER_POLICY,
+    DeterministicValuation,
+)
 
 #: The extension's reverse-domain name, as negotiated on the wire.
 BENEFIT_EXT = "org.bondlayer.benefit_value"
 
+def policy_from(shopper: ShopperPolicy) -> dict[str, Decimal]:
+    """A ``ShopperPolicy`` in the dict shape ``run_request`` takes.
+
+    One shopper, defined once in ``valuation/reference_policy.py``, used by the
+    evaluation, the flip tests and the demo -- so the number on screen is the
+    number in ``docs/eval-results.md``.
+    """
+    return {btype.value: value for btype, value in shopper.values_aud.items()}
+
+
 #: What the shopper thinks each benefit is worth. Lives agent-side and is never
 #: sent to a merchant, so no merchant can price against it (proposal §5.3).
-DEFAULT_POLICY: dict[str, Decimal] = {
-    "free_returns": Decimal("72.00"),
-    "warranty": Decimal("96.00"),
-    "member_price": Decimal("9999"),  # face value, never capped by the shopper
-    "points_earn": Decimal("9999"),
-    "trade_in_credit": Decimal("9999"),
-    "delivery": Decimal("9999"),
-}
+#:
+#: This **is** the reference shopper from ``valuation/reference_policy.py``.
+#: It used to carry ``9999`` sentinels meaning "accept the merchant's face
+#: value, uncapped", which was survivable against the small synthetic ceilings
+#: in the tests and wrong against the real published records: Voltway's $700
+#: laptop trade-in plus points plus member price summed past the shelf price
+#: and drove effective cost negative. A caller who passes no policy now gets
+#: the same shopper the evaluation and the flip tests are scored against, so
+#: the number on screen is the number in ``docs/eval-results.md``.
+DEFAULT_POLICY: dict[str, Decimal] = policy_from(REFERENCE_SHOPPER_POLICY)
 
 
 class Fetcher(Protocol):
-    """Returns a parsed UCP search response for one merchant."""
+    """Returns a parsed UCP search response for one merchant.
+
+    A fetcher may additionally declare a ``plan`` keyword. When it does, it is
+    handed the decoded HARD clauses -- ``{"category": ..., "max_price": ...}``,
+    the shape ``catalog.search`` already takes as query parameters -- so the
+    filter travels as typed parameters instead of as words in a search box. A
+    fetcher that does not declare it keeps working unchanged.
+    """
 
     def __call__(self, merchant: str, query: str, *, extension: bool) -> dict: ...
+
+
+def _accepts_plan(fetch: Fetcher) -> bool:
+    try:
+        params = inspect.signature(fetch).parameters
+    except (TypeError, ValueError):  # a builtin or a C callable
+        return False
+    return "plan" in params or any(
+        p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()
+    )
 
 
 def _decimal(v: Any) -> Decimal:
     # price.amount is a STRING, quantized to 2dp. Never re-round it.
     return Decimal(str(v))
+
+
+# --- the valuation seam -----------------------------------------------------
+#
+# `bondlayer.valuation` is THE valuation (ruling D4/R2). Nothing below computes
+# a credit; it rebuilds the wire response into the objects the valuation takes
+# and hands the arithmetic over. Crediting inline here is what made the
+# composition root and the evaluation disagree by $70 on R01: the inline
+# version skipped scope gating, condition gating and per-benefit-type budget
+# sharing, so a laptop earned the appliance warranty and the opened-audio
+# returns window.
+
+
+def _wire_record(entry: dict, block_issuer: str | None) -> SignedRecord | None:
+    """One wire envelope as a ``SignedRecord``, or ``None`` if it is unreadable.
+
+    The published feed carries every field, so the strict reader handles it.
+    Minimal envelopes -- a hand-written test fixture, a merchant mid-rollout --
+    are filled in from the block: a record with no issuer of its own is the
+    issuing block's, and a record with no timestamp is read as undated rather
+    than dropped. Degrade honestly: an unreadable record is skipped and its
+    absence shows up as a record seen and not credited, never as a crash.
+    """
+    raw = entry.get("record")
+    if not isinstance(raw, dict) or not raw.get("record_id"):
+        return None
+    payload = dict(raw)
+    payload.setdefault("issuer", block_issuer)
+    payload.setdefault("issued_at", "1970-01-01T00:00:00+00:00")
+    ceiling = payload.get("value_ceiling_aud")
+    if ceiling is not None and not isinstance(ceiling, str):
+        payload["value_ceiling_aud"] = str(ceiling)
+    if not payload.get("issuer"):
+        return None
+    try:
+        return signed_from_json({
+            "record": payload,
+            "signature": entry.get("signature"),
+            "key_id": entry.get("key_id"),
+        })
+    except (ValueError, KeyError, TypeError):
+        return None
+
+
+def _wire_sku(product: dict, merchant: str) -> Sku:
+    """One wire product as a ``Sku``, so scope and binding can be checked.
+
+    ``merchant`` is what the valuation's trust map is keyed on: a record binds
+    to this listing only if its issuer is the domain this merchant publishes
+    under. Category carries the scope check -- Voltway's 24-month appliance
+    cover must not attach to a laptop.
+    """
+    attributes = dict(product.get("attributes") or {})
+    attributes["merchant"] = merchant
+    return Sku(
+        sku_id=product.get("id", ""),
+        title=product.get("title", ""),
+        category=str(product.get("category", "")).lower(),
+        shelf_price=_decimal(product.get("price", {}).get("amount", "0")),
+        attributes=attributes,
+    )
+
+
+class _WireVerifier:
+    """Adapts the agent's wire-level ``verify(entry)`` to the ``Signer`` seam.
+
+    The valuation asks a ``Signer`` whether a ``SignedRecord`` verifies; the
+    agent was handed a predicate over the wire envelope instead. This maps one
+    onto the other by identity, so trust stays exactly where the caller put it
+    and this module never decides what verifies.
+    """
+
+    def __init__(self, verify: Callable[[dict], bool] | None,
+                 entries: dict[int, dict]) -> None:
+        self._verify = verify
+        self._entries = entries
+
+    def sign(self, record):  # pragma: no cover - an agent never signs
+        raise NotImplementedError("the agent side never signs a record")
+
+    def verify(self, signed: SignedRecord) -> bool:
+        # Fail closed: no verifier wired means nothing is verified.
+        if self._verify is None:
+            return False
+        entry = self._entries.get(id(signed))
+        return False if entry is None else bool(self._verify(entry))
+
+
+def realisable_credit(valued: Decimal, shelf_price: Decimal) -> tuple[Decimal, Decimal]:
+    """Split a valuation total into what this listing can carry, and what it cannot.
+
+    A benefit cannot be worth more than the thing it is attached to. Merchant-
+    wide records bind to every listing, so a $40 returns window and a $55
+    member price land on a $30 cable and would rank it below free -- which is
+    not a bargain, it is a broken number on screen.
+
+    This is a **ranking floor, not a second valuation**: the input is whatever
+    `bondlayer.valuation` already decided, and the excess is returned rather
+    than discarded so the caller can report it as value the shopper cannot
+    realise here. Both the composition root and the evaluation runner call
+    this, so the agent's ranking and the merchant console cannot disagree.
+    """
+    if valued <= shelf_price:
+        return valued, Decimal("0")
+    return shelf_price, valued - shelf_price
+
+
+def _shopper(policy: dict[str, Decimal]) -> ShopperPolicy:
+    """The agent's ``{benefit_type: Decimal}`` dict as a ``ShopperPolicy``.
+
+    An unknown benefit name is dropped rather than guessed: the valuation
+    treats an absent entry as $0, which is the honest reading of "this shopper
+    never said what that is worth".
+    """
+    values: dict[BenefitType, Decimal] = {}
+    for name, value in policy.items():
+        try:
+            values[BenefitType(name)] = Decimal(str(value))
+        except (ValueError, ArithmeticError):
+            continue
+    return ShopperPolicy(values_aud=values,
+                         max_premium_over_cheapest_aud=Decimal("0"))
+
+
+def _search_query(parsed: list) -> tuple[str, dict]:
+    """The query sent to merchants, built from the HARD clauses.
+
+    A decoded intent is not a keyword string, and sending the raw utterance
+    would waste the decode: "A laptop under $1,500 I can return easily ..."
+    asks a merchant to keyword-match on "return" and "repairs". The SERVICE and
+    VALUES clauses are deliberately **not** sent at all -- they are the
+    shopper's, they are answered from published records on the agent side, and
+    a merchant that never sees them cannot price against them.
+
+    The category and the ceiling travel as typed parameters in ``plan``, not as
+    words in ``q``: ``catalog.search`` matches ``q`` as a shallow substring of
+    the title, and no laptop's title contains the word "laptop". Only a product
+    name the shopper actually said ("ThinkBook 14 G3") belongs in ``q``. With no
+    such name the query is empty, the merchant returns its shelf, and the
+    resolver does the filtering agent-side -- which is the architecture: the
+    merchant publishes, the agent decides.
+    """
+    specs = [s for c in parsed if getattr(getattr(c, "kind", None), "value", "") == "hard"
+             for s in interpret_hard(c.text)]
+    category = next((str(s.value) for s in specs if s.kind == "category"), None)
+    ceilings = [s.value for s in specs if s.kind == "price"]
+    terms = [str(s.value) for s in specs if s.kind == "product"]
+    plan: dict = {}
+    if category:
+        plan["category"] = category
+    if ceilings:
+        plan["max_price"] = str(min(ceilings))
+    if terms:
+        plan["terms"] = terms
+    return " ".join(terms).strip(), plan
 
 
 def run_request(
@@ -60,43 +254,62 @@ def run_request(
     *,
     extension: bool = True,
     parse: Callable[[str], list] | None = None,
+    interpret: Callable[[str], list] | None = None,
     verify: Callable[[dict], bool] | None = None,
     value_of: Callable[[dict], Decimal] | None = None,
     policy: dict[str, Decimal] | None = None,
 ) -> AgentRun:
-    """One shopper request across every merchant, with the reasoning recorded."""
+    """One shopper request across every merchant, with the reasoning recorded.
+
+    ``interpret`` (or its older name ``parse``) is the interpreter's
+    ``parse`` seam. When one is passed, ``Phase.INTENT`` is ``OK``, the decoded
+    constraints are in the step detail, and the query on the wire is built from
+    the HARD clauses instead of the raw utterance. When neither is passed the
+    ABSENT path still runs and the utterance goes through as a keyword query --
+    degrade honestly, and say so in the trace.
+    """
     policy = policy or DEFAULT_POLICY
+    shopper = _shopper(policy)
     steps: list[Step] = []
     constraints: list[dict] = []
+    decode = interpret or parse
+    query = utterance
+    plan: dict = {}
 
     # --- intent -----------------------------------------------------------
-    if parse is None:
+    if decode is None:
         steps.append(Step(Phase.INTENT, Outcome.ABSENT,
                           "No interpreter wired - the request is passed through as a keyword query.",
                           {"utterance": utterance}))
     else:
-        parsed = parse(utterance)
+        parsed = decode(utterance)
         constraints = [{"text": getattr(c, "text", str(c)),
                         "kind": getattr(getattr(c, "kind", None), "value", "unknown")}
                        for c in parsed]
         by_kind: dict[str, int] = {}
         for c in constraints:
             by_kind[c["kind"]] = by_kind.get(c["kind"], 0) + 1
-        unanswerable = by_kind.get("SERVICE", 0) + by_kind.get("VALUES", 0)
+        # ConstraintKind values are lowercase; counting the uppercase spelling
+        # silently reported zero unanswerable clauses on every request.
+        unanswerable = by_kind.get("service", 0) + by_kind.get("values", 0)
+        query, plan = _search_query(parsed)
         steps.append(Step(
             Phase.INTENT, Outcome.OK,
             f"Decoded {len(constraints)} constraints; {unanswerable} of them cannot be "
             f"answered from any catalogue attribute.",
-            {"constraints": constraints, "by_kind": by_kind}))
+            {"constraints": constraints, "by_kind": by_kind,
+             "query": query, "search_plan": plan}))
 
     # --- discovery, negotiation, verification, valuation ------------------
     ranked: list[Ranked] = []
     verifier_missing = verify is None
     any_records = False
+    with_plan = bool(plan) and _accepts_plan(fetch)
 
     for merchant in merchants:
         try:
-            body = fetch(merchant, utterance, extension=extension)
+            body = (fetch(merchant, query, extension=extension, plan=plan)
+                    if with_plan else fetch(merchant, query, extension=extension))
         except PermissionError as exc:  # 406: a legitimate protocol answer
             steps.append(Step(Phase.NEGOTIATION, Outcome.REFUSED,
                               f"{merchant} refused a capability this agent did not declare.",
@@ -123,6 +336,8 @@ def run_request(
         # blocks are positional, one per product, but each carries sku_id
         by_sku = {b.get("sku_id"): b for b in (ext_blocks or [])}
 
+        merchant_id = body.get("business", {}).get("id", merchant)
+
         for product in products:
             sku_id = product.get("id")
             shelf = _decimal(product.get("price", {}).get("amount", "0"))
@@ -130,43 +345,74 @@ def run_request(
             records = block.get("records", [])
             any_records = any_records or bool(records)
 
-            verified, credited_total, citations = [], Decimal("0"), []
+            # Rebuild the wire into what the valuation takes. `entries` keeps
+            # each SignedRecord bound to the envelope it came from, so the
+            # caller's own verifier decides what verified.
+            sku = _wire_sku(product, merchant_id)
+            entries: dict[int, dict] = {}
+            signed_records: list[SignedRecord] = []
+            unreadable: list[dict] = []
             for entry in records:
-                rec = entry.get("record", {})
-                btype = rec.get("benefit_type", "unknown")
-                # `signed` is derived by the server, but trust is ours to decide.
-                ok = False if verifier_missing else bool(verify(entry))
-                if ok:
-                    verified.append(entry)
-                ceiling = rec.get("value_ceiling_aud")
-                if ceiling is None:
-                    # values claim: validated, citable, worth exactly zero
-                    citations.append({"record_id": rec.get("record_id"), "benefit_type": btype,
-                                      "credited": "0.00", "cited": ok,
-                                      "why": "values claim - validated, never priced"})
+                rebuilt = _wire_record(entry, block.get("issuer"))
+                if rebuilt is None:
+                    unreadable.append(entry)
                     continue
-                if not ok:
-                    citations.append({"record_id": rec.get("record_id"), "benefit_type": btype,
-                                      "credited": "0.00", "cited": False,
-                                      "why": "unverified - displayed, never valued"})
-                    continue
-                merchant_ceiling = _decimal(ceiling)
-                shopper_value = policy.get(btype, Decimal("0"))
-                credit = min(merchant_ceiling, shopper_value) if value_of is None else value_of(entry)
-                credited_total += credit
-                citations.append({"record_id": rec.get("record_id"), "benefit_type": btype,
-                                  "credited": f"{credit:.2f}", "cited": True,
-                                  "why": f"min(merchant ceiling {merchant_ceiling}, shopper policy {shopper_value})"})
+                entries[id(rebuilt)] = entry
+                signed_records.append(rebuilt)
+
+            cost = DeterministicValuation(
+                _WireVerifier(verify, entries),
+                merchant_domains=MERCHANT_DOMAINS,
+                satisfied_conditions=ATTESTED_CONDITIONS,
+            ).effective_cost(sku, signed_records, shopper)
+
+            verified = [e for r, e in ((r, entries[id(r)]) for r in signed_records)
+                        if not verifier_missing and verify(e)]
+
+            citations = []
+            for line, rebuilt in zip(cost.credited, signed_records):
+                entry = entries[id(rebuilt)]
+                cited = not verifier_missing and bool(verify(entry))
+                credit = line.credited_aud if value_of is None else value_of(entry)
+                citations.append({
+                    "record_id": line.record_id,
+                    "benefit_type": line.benefit_type.value,
+                    "credited": f"{credit:.2f}",
+                    "cited": cited,
+                    # The valuation's own reason, not a restatement of it.
+                    "why": line.reason,
+                })
+            for entry in unreadable:
+                citations.append({
+                    "record_id": (entry.get("record") or {}).get("record_id"),
+                    "benefit_type": "unknown", "credited": "0.00", "cited": False,
+                    "why": "Record could not be read from the wire; credited $0",
+                })
+
+            valued = (
+                cost.total_credited if value_of is None
+                else sum((Decimal(c["credited"]) for c in citations), Decimal("0"))
+            )
+
+            credited_total, unusable = realisable_credit(valued, shelf)
+            withheld_note = None
+            if not records:
+                withheld_note = "no machine-readable offer published"
+            elif unusable > 0:
+                withheld_note = (
+                    f"${unusable:.2f} of verified benefit exceeds the ${shelf:.2f} "
+                    "shelf price and cannot be realised on this listing"
+                )
 
             ranked.append(Ranked(
-                merchant=body.get("business", {}).get("id", merchant),
+                merchant=merchant_id,
                 sku_id=sku_id, title=product.get("title", ""),
                 shelf_price=shelf, credited=credited_total,
                 effective_cost=shelf - credited_total,
                 records_seen=len(records), records_verified=len(verified),
                 records_credited=sum(1 for c in citations if c["cited"] and c["credited"] != "0.00"),
                 citations=citations,
-                withheld_note=None if records else "no machine-readable offer published",
+                withheld_note=withheld_note,
             ))
 
     # --- verification / valuation honesty ---------------------------------

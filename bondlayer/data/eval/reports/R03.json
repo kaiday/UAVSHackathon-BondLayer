@@ -1,0 +1,132 @@
+{
+  "request_id": "R03",
+  "utterance": "Cheapest 16GB laptop you have",
+  "bundle": false,
+  "expect_unsatisfied": false,
+  "constraints": [
+    {
+      "text": "Cheapest",
+      "kind": "soft"
+    },
+    {
+      "text": "16GB",
+      "kind": "hard"
+    },
+    {
+      "text": "laptop",
+      "kind": "hard"
+    }
+  ],
+  "metrics": {
+    "hard_precision": 1.0,
+    "gold_recall": 1.0,
+    "precision_at_gold": 1.0,
+    "citations": [
+      0,
+      0
+    ],
+    "clauses_answered": [
+      0,
+      0
+    ],
+    "clauses_answered_control": [
+      0,
+      0
+    ]
+  },
+  "unsatisfied": [],
+  "merchants": [
+    {
+      "request_id": "R03",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 14,
+      "legible_share": 1.0,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; voltway won on effective cost.",
+      "sku_id": "CIT-0022",
+      "shelf_price": "1114.50",
+      "effective_cost": "1114.50",
+      "unsatisfied": []
+    },
+    {
+      "request_id": "R03",
+      "merchant": "northgear",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 1.0,
+      "value_credited_aud": "68.95",
+      "value_withheld_aud": "330",
+      "won": false,
+      "lost_because": "Published value the wire did not carry: $330 was withheld as unverified, unattested or out of scope, so voltway won on effective cost.",
+      "sku_id": "NOR-0023",
+      "shelf_price": "1149.00",
+      "effective_cost": "1080.05",
+      "unsatisfied": []
+    },
+    {
+      "request_id": "R03",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 1.0,
+      "value_credited_aud": "209.95",
+      "value_withheld_aud": "1310.00",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "VOL-0021",
+      "shelf_price": "1194.96",
+      "effective_cost": "985.01",
+      "unsatisfied": []
+    }
+  ],
+  "control": [
+    {
+      "request_id": "R03",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 14,
+      "legible_share": 1.0,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "CIT-0022",
+      "shelf_price": "1114.50",
+      "effective_cost": "1114.50",
+      "unsatisfied": []
+    },
+    {
+      "request_id": "R03",
+      "merchant": "northgear",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 1.0,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "398.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "NOR-0023",
+      "shelf_price": "1149.00",
+      "effective_cost": "1149.00",
+      "unsatisfied": []
+    },
+    {
+      "request_id": "R03",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 1.0,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "1519.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "VOL-0021",
+      "shelf_price": "1194.96",
+      "effective_cost": "1194.96",
+      "unsatisfied": []
+    }
+  ]
+}
