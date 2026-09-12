@@ -53,13 +53,13 @@
       "control_merchant": false,
       "fields_exposed": 7,
       "legible_share": 1.0,
-      "value_credited_aud": "149.95",
-      "value_withheld_aud": "1370.00",
+      "value_credited_aud": "102.96",
+      "value_withheld_aud": "1416.99",
       "won": true,
       "lost_because": null,
       "sku_id": "VOL-0143",
       "shelf_price": "102.96",
-      "effective_cost": "-46.99",
+      "effective_cost": "0.00",
       "unsatisfied": []
     }
   ],
