@@ -92,3 +92,56 @@ are frozen, so nothing you build against them is wasted.
 
 The demo query runs end to end through chat → console log → dashboard, from
 seeded state, with the control/BondLayer toggle switching the outcome live.
+
+---
+
+## Added from the Round 2 alignment analysis
+
+I first recorded this branch as having no new scope. That was wrong — two of the
+gaps produce **new response shapes that only exist if you render them.**
+
+### Bundles are a new shape, not a longer list (gap 4)
+
+Nguyen now composes `Bundle` objects: several SKUs proposed together against one
+intent. The problem statement's worked example is an agent asking for
+"beginner-friendly podcasting gear" and the merchant pitching *the ideal
+bundle*, not a list of parts.
+
+So a bundle must not render as three search results stacked up. It needs:
+
+- the items **as a set**, with a combined price
+- the bundle's own `rationale` — why these belong *together*
+- each item keeping its own cited `ResolvedConstraint` notes underneath
+
+If a bundle looks like a list on screen, we have answered the criterion on the
+wire and lost it in the demo. A bundle of one is a valid degenerate case, so
+design for both.
+
+### Values claims must look different from priced ones (gap 5)
+
+The ontology now carries `sustainability`, `ethical_sourcing`, `durability` and
+`repairability`. These are records with `value_ceiling_aud = None`: **validated,
+citable, and worth exactly zero dollars.**
+
+Three states now need to be visually distinct, and the distinction is the whole
+argument:
+
+| State | Treatment |
+|---|---|
+| Signed + priced | cited, and credited in the effective-cost arithmetic |
+| Signed + **not** priced | cited, visibly contributing **$0** — this is the values claim |
+| **Unsigned** | displayed, never cited, valued at zero |
+
+Rows 2 and 3 both credit nothing, and a viewer must still see instantly that one
+is *verified and counted as evidence* while the other is *not trusted at all*.
+Nha is planting an unsigned greenwashing claim in the control merchant so that
+contrast plays live. Verification and valuation are separate questions — make
+the screen say so.
+
+### Possibly three merchants, not two
+
+Handover §8 assumes three merchant profiles; the plan currently has two. If Nha
+authors three, the comparison pane becomes a **three-way ranking** and the
+control/BondLayer toggle sits on top of it rather than replacing it. Confirm the
+count with her before you build the layout — it is cheaper to know now than to
+re-lay-out at 15:00.
