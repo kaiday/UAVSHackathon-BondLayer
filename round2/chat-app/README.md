@@ -105,6 +105,25 @@ with the resolver's per-clause notes, and a clause-by-clause agreement check
 against `constraints` above. With the toggle off the sentence is not sent at
 all and the step says so, DEGRADED. Nothing in `ranked` is computed from it.
 
+`order` closes the loop (FPT's step 5). After the ranking is decided the agent
+checks out `winner` -- `POST /{merchant}/ucp/checkout` via
+`ucp_client.make_checkout`, one unit of the winning SKU, citing exactly the
+record ids it relied on (verified records that moved the effective cost or
+answered a clause; an unverified record is never sent) --
+`bondlayer.agent.close_loop.close_loop`, one appended trace step, whose detail
+this key is (plus `outcome` and `summary`): the `request` body as sent, the
+merchant's `order` object verbatim (`order_id`, `status:
+confirmed_awaiting_payment`, `line_items`, `subtotal`, `payment: {status:
+out_of_scope}` -- no funds move), and `honoured_benefits`, the merchant's
+verdict on every cited id. `dev.ucp.shopping.checkout` is base UCP and is
+declared in both toggle states, so the control pane places a plain order on
+the same route and `honoured_benefits` is `null` there. The page renders this
+as the receipt at the bottom of each pane, the last thing shown, and derives
+nothing from it: the tick or cross is the merchant's `honoured`, the sentence
+is the merchant's `reason`. A merchant that cannot be reached at checkout is a
+DEGRADED step with `order: null`, never a 500 -- the ranking above is not the
+checkout's to lose.
+
 `steps`, `ranked` and `flipped` are `bondlayer.agent.trace.AgentRun` rendered
 as JSON -- the same object `bondlayer/scripts/trace_run.py` prints as text.
 `audit` is kept from the original P6 design (what verified, what was ignored,
