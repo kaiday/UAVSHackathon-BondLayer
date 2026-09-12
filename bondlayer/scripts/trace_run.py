@@ -26,6 +26,7 @@ The two headers this script sends are exactly:
 from __future__ import annotations
 
 import argparse
+import inspect
 import re
 import sys
 from pathlib import Path
@@ -36,13 +37,24 @@ sys.path.insert(0, str(SRC))
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from bondlayer.agent import DEFAULT_POLICY, Outcome, Phase, run_request  # noqa: E402
+from bondlayer.agent import Outcome, Phase, run_request  # noqa: E402
 from bondlayer.agent.trace import AgentRun, Ranked, Step  # noqa: E402
 from bondlayer.interpreter.parser import parse as parse_utterance  # noqa: E402
 from bondlayer.records.serialise import record_from_json  # noqa: E402
 from bondlayer.records.signing import ES256Signer  # noqa: E402
 from bondlayer.types import ConstraintKind, SignedRecord  # noqa: E402
 from bondlayer.ucp.server import create_app  # noqa: E402
+from bondlayer.valuation.reference_policy import REFERENCE_SHOPPER_POLICY  # noqa: E402
+
+#: The reference shopper (bondlayer.valuation.reference_policy) -- what the
+#: pitch's own evaluation is valued against, not composition.py's DEFAULT_POLICY
+#: (its 9999 sentinels exist so an unwired verifier's zero-credit path never
+#: looks capped; they were never meant to be a real shopper's numbers and,
+#: combined with composition.py not yet deduplicating repeat benefit types the
+#: way bondlayer.valuation.DeterministicValuation does, push R01's effective
+#: cost negative). Converted to the ``{benefit_type_value: Decimal}`` shape
+#: ``run_request``'s ``policy`` parameter expects.
+POLICY = {bt.value: v for bt, v in REFERENCE_SHOPPER_POLICY.values_aud.items()}
 
 MERCHANTS = ["voltway", "citycircuit", "northgear"]
 
@@ -146,6 +158,17 @@ def make_verifier(client: TestClient, merchants: list[str]) -> Callable[[dict], 
     return verify
 
 
+def _interpret_kwargs(parser: Callable[[str], list]) -> dict:
+    """Pass the parser as ``interpret`` if ``run_request`` has grown that
+    parameter (WS-A's resolver wiring, DAY2-PLAN.md WS-A step 2), else as
+    ``parse`` (today's signature). Checked by introspection so this script
+    does not have to be edited the moment that lands on a merged base --
+    and does not break before it does.
+    """
+    params = inspect.signature(run_request).parameters
+    return {"interpret": parser} if "interpret" in params else {"parse": parser}
+
+
 # --- rendering ---------------------------------------------------------------
 
 _BAR = "-" * 78
@@ -237,9 +260,9 @@ def main() -> None:
         MERCHANTS,
         make_fetcher(client),
         extension=extension,
-        parse=parse_utterance,
         verify=make_verifier(client, MERCHANTS),
-        policy=DEFAULT_POLICY,
+        policy=POLICY,
+        **_interpret_kwargs(parse_utterance),
     )
     print(render(run, extension=extension))
 
