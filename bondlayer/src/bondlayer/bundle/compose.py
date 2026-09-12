@@ -301,21 +301,20 @@ def _select(constraints: list[Constraint], proposals: list[Proposal]) -> Recipe 
 
 
 def _is_kit(recipe: Recipe, constraints: list[Constraint]) -> bool:
-    """Whether the shopper asked for the whole set rather than one item.
+    """Whether the shopper asked for the whole set rather than for one item.
 
-    "Everything I need to start a podcast" and "beginner-friendly podcasting
-    gear" describe a kit. "A headset for calls under $300" describes one item
-    that happens to be in the same category, and padding it out would be the
-    merchant answering a question nobody asked.
+    One rule: a kit recipe pitches the kit unless the shopper named the single
+    thing they want. "Everything I need to start a podcast" and
+    "beginner-friendly podcasting gear" name no part, so the answer is the
+    set. "A headset for calls under $300" and "microphone under $200" name the
+    part, and answering either with four items is the merchant talking over the
+    shopper.
+
+    It is the same rule on the merchant's side of the wire, where the only
+    intent available is the typed plan: a browse of the whole audio category
+    names no part and gets the kit, while ``q=SM7B`` names one and gets one.
     """
-    if recipe.key != "podcasting":
-        return False
-    intent = _intent_text(constraints)
-    return bool(re.search(
-        r"\beverything\b|\bgear\b|\bkit\b|\bset\s?up\b|\bsetup\b|\bstart\s+a\s+podcast\b"
-        r"|\ball\s+up\b|\bpodcasting\b",
-        intent, re.IGNORECASE,
-    ))
+    return recipe.key == "podcasting" and _named_role(_intent_text(constraints)) is None
 
 
 # --- filling a set for one merchant ------------------------------------------

@@ -27,9 +27,19 @@ from decimal import Decimal
 from typing import Any, Callable, Protocol
 
 from bondlayer.agent.trace import AgentRun, Outcome, Phase, Ranked, Step
-from bondlayer.interpreter.resolver import interpret_hard
+from bondlayer.interpreter.resolver import interpret_hard, interpret_record_need
 from bondlayer.records.serialise import signed_from_json
-from bondlayer.types import BenefitType, ShopperPolicy, SignedRecord, Sku
+from bondlayer.types import (
+    BenefitType,
+    Bundle,
+    Constraint,
+    ConstraintKind,
+    Proposal,
+    ResolvedConstraint,
+    ShopperPolicy,
+    SignedRecord,
+    Sku,
+)
 from bondlayer.valuation import (
     ATTESTED_CONDITIONS,
     MERCHANT_DOMAINS,
@@ -247,6 +257,83 @@ def _search_query(parsed: list) -> tuple[str, dict]:
     return " ".join(terms).strip(), plan
 
 
+# --- the bundling seam ------------------------------------------------------
+#
+# A `Bundler` takes `(constraints, proposals)`. This module never runs the
+# resolver -- the merchant already filtered the shelf from the typed plan, so
+# what came back over the wire *is* this merchant's match for the request. The
+# proposals below are those wire listings, in the order the agent's own
+# valuation ranked them, so the bundler's "first acceptable item wins" rule
+# picks on effective cost without the bundler ever computing one.
+
+
+class Bundler(Protocol):
+    def compose(
+        self, constraints: list[Constraint], proposals: list[Proposal],
+    ) -> list[Bundle]: ...
+
+
+def _typed_constraints(constraints: list[dict]) -> list[Constraint]:
+    """The decoded clauses as ``Constraint``s, whatever parser produced them.
+
+    ``run_request`` accepts any callable as ``interpret`` and only ever reads
+    ``.text`` and ``.kind`` off what comes back. The bundler needs the real
+    types, so they are rebuilt here from the same dicts the trace already
+    carries. A clause whose kind nothing recognised is dropped rather than
+    guessed at.
+    """
+    out: list[Constraint] = []
+    for c in constraints:
+        try:
+            out.append(Constraint(text=c["text"], kind=ConstraintKind(c["kind"])))
+        except (KeyError, ValueError):
+            continue
+    return out
+
+
+def _item_resolved(constraints: list[Constraint], offer: Ranked) -> list[ResolvedConstraint]:
+    """Which of the shopper's clauses this ranked offer answers, and on what.
+
+    Built from the citations ``run_request`` already produced -- a clause is
+    answered when a record of the type it asks for was cited *and verified* on
+    this listing. Nothing is re-decided here: an unverified record is not a
+    citation, so it cannot answer anything, which is the same fail-closed rule
+    the valuation applies.
+    """
+    resolved: list[ResolvedConstraint] = []
+    for constraint in constraints:
+        if constraint.kind not in (ConstraintKind.SERVICE, ConstraintKind.VALUES):
+            continue
+        need = interpret_record_need(constraint.text)
+        if need is None:
+            continue
+        hit = next(
+            (c for c in offer.citations
+             if c.get("cited") and c.get("benefit_type") == need.benefit_type.value),
+            None,
+        )
+        if hit is None:
+            continue
+        resolved.append(ResolvedConstraint(
+            constraint, True, hit.get("record_id"), None, str(hit.get("why", "")),
+        ))
+    return resolved
+
+
+def _proposals_from(ranked: list[Ranked], skus: dict[str, Sku],
+                    constraints: list[Constraint]) -> list[Proposal]:
+    """The ranked wire listings as ``Proposal``s, best effective cost first."""
+    return [
+        Proposal(
+            sku=skus[r.sku_id],
+            resolved=_item_resolved(constraints, r),
+            unsatisfied=[],
+            records=[],
+        )
+        for r in ranked if r.sku_id in skus
+    ]
+
+
 def run_request(
     utterance: str,
     merchants: list[str],
@@ -258,8 +345,15 @@ def run_request(
     verify: Callable[[dict], bool] | None = None,
     value_of: Callable[[dict], Decimal] | None = None,
     policy: dict[str, Decimal] | None = None,
+    bundler: Bundler | None = None,
 ) -> AgentRun:
     """One shopper request across every merchant, with the reasoning recorded.
+
+    ``bundler`` is optional and strictly additive: without one the run is byte
+    for byte what it was, and with one a ``Phase.BUNDLE`` step is appended
+    *after* the ranking and ``AgentRun.bundles`` is populated. A bundler cannot
+    add a listing, change a price or reorder the ranking -- it only says which
+    of the already-ranked offers belong together.
 
     ``interpret`` (or its older name ``parse``) is the interpreter's
     ``parse`` seam. When one is passed, ``Phase.INTENT`` is ``OK``, the decoded
@@ -302,6 +396,9 @@ def run_request(
 
     # --- discovery, negotiation, verification, valuation ------------------
     ranked: list[Ranked] = []
+    #: Every listing that came back, kept as a Sku so the bundler can compose
+    #: sets from the same objects the valuation priced.
+    wire_skus: dict[str, Sku] = {}
     verifier_missing = verify is None
     any_records = False
     with_plan = bool(plan) and _accepts_plan(fetch)
@@ -349,6 +446,7 @@ def run_request(
             # each SignedRecord bound to the envelope it came from, so the
             # caller's own verifier decides what verified.
             sku = _wire_sku(product, merchant_id)
+            wire_skus[sku.sku_id] = sku
             entries: dict[int, dict] = {}
             signed_records: list[SignedRecord] = []
             unreadable: list[dict] = []
@@ -442,5 +540,37 @@ def run_request(
             {"winner": top.sku_id, "flipped": flipped,
              "cheapest_shelf": cheapest_shelf.sku_id}))
 
+    # --- bundling ---------------------------------------------------------
+    # Composition, not matching, and strictly after the ranking: the bundler is
+    # handed the offers the valuation already ordered and only decides which of
+    # them belong together. It cannot add a listing, reorder the ranking, or
+    # cross a merchant boundary, so nothing above this line can change here.
+    bundles: list[Bundle] = []
+    if bundler is not None:
+        typed = _typed_constraints(constraints)
+        bundles = list(bundler.compose(typed, _proposals_from(ranked, wire_skus, typed)))
+        if bundles:
+            best = bundles[0]
+            steps.append(Step(
+                Phase.BUNDLE, Outcome.OK,
+                (f"Composed a set of {len(best.items)} items from "
+                 f"{best.items[0].sku.attributes.get('merchant', 'one merchant')} "
+                 f"at a combined shelf price of {best.combined_shelf_price:.2f}."
+                 if len(best.items) > 1 else
+                 "Nothing on the winning merchant's shelf complements the best "
+                 "match, so the set is that one item."),
+                {"bundles": len(bundles), "bundle_id": best.bundle_id,
+                 "items": [p.sku.sku_id for p in best.items],
+                 "combined_shelf_price": f"{best.combined_shelf_price:.2f}",
+                 "rationale": best.rationale,
+                 "unsatisfied": [c.text for c in best.unsatisfied]}))
+        else:
+            steps.append(Step(
+                Phase.BUNDLE, Outcome.DEGRADED,
+                "No set could be composed from these offers - the request names "
+                "no product family this bundler has a recipe for.",
+                {"bundles": 0}))
+
     return AgentRun(utterance=utterance, extension_enabled=extension,
-                    steps=steps, ranked=ranked, constraints=constraints)
+                    steps=steps, ranked=ranked, constraints=constraints,
+                    bundles=bundles)

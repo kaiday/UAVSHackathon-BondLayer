@@ -16,6 +16,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from bondlayer.bundle import bundle_payload, compose
+from bondlayer.types import Constraint, ConstraintKind, Proposal, Sku
+
 DATA = Path(__file__).resolve().parents[3] / "data"
 RECORDS = DATA / "records"
 
@@ -68,3 +71,39 @@ def for_sku(records: list[dict], sku_id: str) -> list[dict]:
         if target is None or target == sku_id:
             out.append(envelope)
     return out
+
+
+def bundles_for(skus: list[Sku], query: str | None,
+                max_price: float | None = None) -> list[dict]:
+    """Sets the merchant pitches for this search, as wire JSON.
+
+    The problem statement's worked example is a merchant that "pitches the
+    ideal bundle based on that intent", so the merchant composes this itself
+    rather than leaving the agent to guess which of its listings go together --
+    the merchant is the one who knows its own shelf.
+
+    Three limits are worth being honest about. The merchant sees the agent's
+    *typed plan* (category, ceiling, any product name), never the sentence:
+    SERVICE and VALUES clauses are deliberately withheld agent-side so no
+    merchant can price against them. The listings handed over are the ones this
+    search already returned, so nothing is matched twice -- the served shelf is
+    this merchant's answer, and the bundler only groups it.
+
+    And ``max_price`` arrived as a filter on each listing, not on the set,
+    because the wire has no way to say which the shopper meant. It is applied
+    here to the **combined** price, which is the conservative reading: a
+    merchant that pitches a set costing more than the ceiling the agent sent is
+    pitching over the shopper's budget, and dropping an add-on is the cheaper
+    mistake.
+    """
+    if not skus:
+        return []
+    text = " ".join(p for p in (
+        (query or "").strip(),
+        f"under ${max_price:,.2f}" if max_price is not None else "",
+    ) if p)
+    constraints = (
+        [Constraint(text=text, kind=ConstraintKind.HARD)] if text else []
+    )
+    proposals = [Proposal(sku=s, resolved=[], unsatisfied=[], records=[]) for s in skus]
+    return [bundle_payload(b) for b in compose(constraints, proposals)]
