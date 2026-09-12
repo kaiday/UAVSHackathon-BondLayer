@@ -42,7 +42,11 @@ def _run(extension: bool):
 
 
 def test_search_params_decode_category_and_price_ceiling():
-    assert trace_run._search_params(R01) == {"category": "laptop", "max_price": 1500.0}
+    # `limit` rides along on every query: the route defaults to 20, which
+    # silently truncates the shelf a bundle has to be composed from.
+    assert trace_run._search_params(R01) == {
+        "category": "laptop", "max_price": 1500.0, "limit": trace_run.PAGE,
+    }
 
 
 def test_voltway_wins_with_the_extension():

@@ -37,6 +37,21 @@
   "unsatisfied": [
     "send back if it doesn't suit my voice"
   ],
+  "bundle_composed": {
+    "bundle_id": "bnd-voltway-podcasting-434fa50f",
+    "merchant": "voltway",
+    "items": [
+      "VOL-0060"
+    ],
+    "roles": [
+      "microphone"
+    ],
+    "combined_shelf_price": "154.96",
+    "in_gold": 1,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": true
+  },
   "merchants": [
     {
       "request_id": "R27",

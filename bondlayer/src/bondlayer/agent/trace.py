@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import Enum
 
+from bondlayer.types import Bundle
+
 
 class Phase(str, Enum):
     INTENT = "intent"
@@ -23,6 +25,9 @@ class Phase(str, Enum):
     VERIFICATION = "verification"
     VALUATION = "valuation"
     RANKING = "ranking"
+    # Composition, after the ranking: which of the ranked offers belong
+    # together as a set. Never a verification claim, so never `is_evidence`.
+    BUNDLE = "bundle"
 
 
 class Outcome(str, Enum):
@@ -70,6 +75,9 @@ class AgentRun:
     ranked: list[Ranked]
     constraints: list[dict] = field(default_factory=list)
     unsatisfied: list[dict] = field(default_factory=list)
+    #: Sets composed from the ranked offers, best first. Empty when no bundler
+    #: was wired -- additive, so every existing caller keeps working unchanged.
+    bundles: list[Bundle] = field(default_factory=list)
 
     @property
     def winner(self) -> Ranked | None:

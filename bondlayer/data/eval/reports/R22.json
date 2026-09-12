@@ -37,6 +37,21 @@
   "unsatisfied": [
     "I want it to last"
   ],
+  "bundle_composed": {
+    "bundle_id": "bnd-citycircuit-appliance-23286768",
+    "merchant": "citycircuit",
+    "items": [
+      "CIT-0121"
+    ],
+    "roles": [
+      "appliance"
+    ],
+    "combined_shelf_price": "222.13",
+    "in_gold": 1,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": null
+  },
   "merchants": [
     {
       "request_id": "R22",

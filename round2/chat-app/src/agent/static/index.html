@@ -124,6 +124,60 @@
 
   .empty{color:var(--muted);font-size:12.5px;text-align:center;padding:30px 0}
   .err{color:var(--bad);font-size:12.5px}
+
+  /* The bundle is a SET, and has to look like one. Deliberately not the
+     .offer card: one frame around everything, one combined price at the top,
+     one reason underneath it, and the items indented inside as its parts. If
+     it reads as three stacked search results the criterion is lost on screen,
+     whatever the JSON says. */
+  .bundle{
+    border:2px solid var(--accent);border-radius:13px;margin:14px 0 10px;
+    background:linear-gradient(135deg,#f5f9ff,#fff);overflow:hidden;
+  }
+  .bundle-hd{
+    padding:10px 13px;border-bottom:1px solid #d7e3f5;
+    display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;
+  }
+  .bundle-hd .tag{
+    font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+    background:var(--accent);color:#fff;border-radius:999px;padding:2px 9px;flex:none;
+  }
+  .bundle-hd .total{font-weight:800;font-size:17px;color:var(--accent)}
+  .bundle-hd .n{font-size:11.5px;color:var(--muted);margin-left:auto}
+  .bundle-why{
+    padding:9px 13px;font-size:12px;color:#334155;font-style:italic;
+    border-bottom:1px dashed #d7e3f5;
+  }
+  .bundle-items{list-style:none;margin:0;padding:6px 13px 4px}
+  /* The brace: the items are parts of one thing, not a list of results. */
+  .bundle-items li{
+    position:relative;padding:7px 0 7px 26px;border-bottom:1px dashed var(--line);
+  }
+  .bundle-items li:last-child{border-bottom:0}
+  .bundle-items li::before{
+    content:"";position:absolute;left:9px;top:0;bottom:0;width:2px;background:#c9dcf5;
+  }
+  .bundle-items li:first-child::before{top:14px}
+  .bundle-items li:last-child::before{bottom:calc(100% - 14px)}
+  .bundle-items li::after{
+    content:"";position:absolute;left:9px;top:14px;width:11px;height:2px;background:#c9dcf5;
+  }
+  .bi-row{display:flex;gap:8px;align-items:baseline}
+  .bi-row .t{font-size:12.5px;font-weight:600}
+  .bi-row .p{margin-left:auto;font-size:12px;color:var(--muted);flex:none}
+  .role{
+    font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
+    background:#eef2f7;color:var(--accent);border-radius:999px;padding:1px 7px;flex:none;
+  }
+  .bi-notes{margin:4px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:2px}
+  .bi-notes li{padding:0;border:0;font-size:11px;color:var(--muted);padding-left:0}
+  .bi-notes li::before,.bi-notes li::after{display:none}
+  .bundle-foot{
+    padding:8px 13px;border-top:1px solid #d7e3f5;font-size:11.5px;color:#334155;
+    display:flex;justify-content:space-between;gap:9px;flex-wrap:wrap;
+  }
+  .bundle-foot .warn{color:var(--bad)}
+  .bundle-alt{font-size:11px;color:var(--muted);padding:0 13px 9px}
 </style>
 </head>
 <body>
@@ -254,6 +308,74 @@ function traceHtml(steps) {
   ).join('') + '</ul>';
 }
 
+// The bundle is a SET. One frame, one combined price, one reason why these
+// items belong together, and the items indented inside it as its parts -- each
+// with its own notes, because the rationale deliberately says nothing about why
+// any individual item fits. Rendered ABOVE the ranking, since it is the answer
+// to "what should I buy", not another row in a list of offers.
+function bundleItemHtml(it, bySku) {
+  // A clause-level note when the shopper asked something a record answers;
+  // otherwise the records that actually verified and credited this listing.
+  // Either way the evidence is per item, because the bundle's rationale says
+  // nothing about why any individual item fits.
+  let notes = (it.notes || [])
+    .filter(n => n.note)
+    .map(n => '<li>' + (n.evidence_record_id
+      ? 'cites <b>' + esc(n.evidence_record_id) + '</b> &mdash; ' : '')
+      + esc(n.note) + '</li>').join('');
+  if (!notes) {
+    const offer = bySku[it.sku_id];
+    notes = ((offer && offer.citations) || [])
+      .filter(c => c.cited && c.credited !== '0.00')
+      .map(c => '<li>cites <b>' + esc(c.record_id) + '</b> (' +
+        esc(String(c.benefit_type).replace(/_/g, ' ')) + ') ' +
+        money(c.credited) + ' &mdash; ' + esc(c.why) + '</li>').join('');
+  }
+  return '<li>' +
+    '<div class="bi-row">' +
+      '<span class="t">' + esc(it.title) + '</span>' +
+      // The role it plays in the set; its category when the catalogue names no
+      // finer role for it, which is the case for every laptop and phone.
+      '<span class="role">' +
+        esc(String(it.role || it.category || '').replace(/_/g, ' ')) + '</span>' +
+      '<span class="p">' + money(it.shelf_price) + '</span>' +
+    '</div>' +
+    (notes ? '<ul class="bi-notes">' + notes + '</ul>' : '') +
+  '</li>';
+}
+
+function bundleHtml(bundles, ranked) {
+  if (!bundles || !bundles.length) return '';
+  const b = bundles[0];
+  const bySku = {};
+  (ranked || []).forEach(r => { bySku[r.sku_id] = r; });
+  const n = (b.items || []).length;
+  const setLevel = (b.resolved || []).filter(r => r.note)
+    .map(r => esc(r.note)).join(' ');
+  const missed = (b.unsatisfied || [])
+    .map(c => esc(c.text)).join('; ');
+  const others = bundles.slice(1).map(o =>
+    esc(o.merchant) + ' (' + (o.items || []).length + ' items, ' +
+    money(o.combined_shelf_price) + ')').join(' &middot; ');
+
+  return '<div class="bundle">' +
+    '<div class="bundle-hd">' +
+      '<span class="tag">bundle</span>' +
+      '<span class="total">' + money(b.combined_shelf_price) + '</span>' +
+      '<span class="n">' + n + (n === 1 ? ' item' : ' items') +
+        ' &middot; all from ' + esc(b.merchant) + ' &middot; one order</span>' +
+    '</div>' +
+    '<div class="bundle-why">' + esc(b.rationale) + '</div>' +
+    '<ul class="bundle-items">' + (b.items || []).map(it => bundleItemHtml(it, bySku)).join('') + '</ul>' +
+    (setLevel || missed
+      ? '<div class="bundle-foot">' + (setLevel ? '<span>' + setLevel + '</span>' : '') +
+        (missed ? '<span class="warn">unsatisfied for the set: ' + missed + '</span>' : '') +
+        '</div>'
+      : '') +
+    (others ? '<div class="bundle-alt">other merchants could assemble: ' + others + '</div>' : '') +
+  '</div>';
+}
+
 function paneHtml(d, header) {
   if (d.error) return '<p class="err">' + esc(d.error) + '</p>';
   let html = '<div class="hdrline">UCP-Agent: ' + esc(header) + '</div>';
@@ -262,6 +384,7 @@ function paneHtml(d, header) {
     html += '<p class="empty">No merchant returned a matching, priced listing.</p>';
     return html;
   }
+  html += bundleHtml(d.bundles, d.ranked);
   html += d.ranked.map((r, i) => offerHtml(r, i, i === 0, d.constraints)).join('');
   html += d.flipped
     ? '<div class="flip">FLIP: ' + esc(d.winner.merchant) + ' wins on effective cost despite ' +
@@ -311,6 +434,9 @@ async function ask(text) {
 const STARTERS = [
   'A laptop under $1,500 I can return easily if it turns out not to suit my work, from a brand that actually repairs things',
   'A phone under $900 with a decent trade-in offer',
+  // The problem statement's own worked example, and the one that shows a set
+  // rather than a ranking.
+  "Beginner-friendly podcasting gear, I've never recorded anything before",
   'The cheapest laptop you have',
 ];
 

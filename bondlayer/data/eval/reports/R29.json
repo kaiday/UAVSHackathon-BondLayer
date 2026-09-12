@@ -45,6 +45,21 @@
   "unsatisfied": [
     "where it's made"
   ],
+  "bundle_composed": {
+    "bundle_id": "bnd-citycircuit-laptop-c6b63d2d",
+    "merchant": "citycircuit",
+    "items": [
+      "CIT-0019"
+    ],
+    "roles": [
+      "laptop"
+    ],
+    "combined_shelf_price": "1211.50",
+    "in_gold": 1,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": null
+  },
   "merchants": [
     {
       "request_id": "R29",

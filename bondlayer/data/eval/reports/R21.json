@@ -33,6 +33,21 @@
   "unsatisfied": [
     "the returns are genuinely painless"
   ],
+  "bundle_composed": {
+    "bundle_id": "bnd-northgear-laptop-329da7fb",
+    "merchant": "northgear",
+    "items": [
+      "NOR-0033"
+    ],
+    "roles": [
+      "laptop"
+    ],
+    "combined_shelf_price": "1099.00",
+    "in_gold": 1,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": true
+  },
   "merchants": [
     {
       "request_id": "R21",

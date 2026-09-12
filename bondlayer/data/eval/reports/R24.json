@@ -35,6 +35,25 @@
     ]
   },
   "unsatisfied": [],
+  "bundle_composed": {
+    "bundle_id": "bnd-citycircuit-laptop-3821a688",
+    "merchant": "citycircuit",
+    "items": [
+      "CIT-0032",
+      "CIT-0085"
+    ],
+    "roles": [
+      "laptop",
+      "hub"
+    ],
+    "combined_shelf_price": "1152.00",
+    "in_gold": 1,
+    "outside_gold": [
+      "CIT-0085"
+    ],
+    "gold_precision": 0.5,
+    "combined_ceiling_met": true
+  },
   "merchants": [
     {
       "request_id": "R24",

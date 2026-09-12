@@ -39,7 +39,7 @@ from bondlayer.ucp.profile import (
     build_profile,
     load_merchants,
 )
-from bondlayer.ucp.records import for_sku, load_records
+from bondlayer.ucp.records import bundles_for, for_sku, load_records
 
 CATALOG = DATA / "catalog" / "electronics.csv"
 
@@ -102,13 +102,39 @@ def _benefit_block(merchant: Merchant, sku: Sku) -> dict:
     }
 
 
-def _respond(merchant: Merchant, skus: list[Sku], negotiated: Negotiated) -> dict:
+def _bundles_block(skus: list[Sku], query: str | None,
+                   max_price: float | None) -> dict | None:
+    """The merchant's pitched sets, as one trailing block on the extension.
+
+    Additive in the only sense that matters here: it rides the benefit
+    extension, so it is gated by exactly the same negotiation as every record.
+    An agent that did not declare ``org.bondlayer.benefit_value`` never reaches
+    this function, and the control merchant -- which does not publish the
+    extension at all -- cannot serve it.
+
+    It is appended *after* the per-SKU blocks and carries ``sku_id: None``,
+    because it is a property of the result set rather than of any one listing.
+    Consumers that index the list positionally or map it by ``sku_id`` are
+    unaffected; ``kind`` is there so a reader never has to infer the shape.
+    """
+    bundles = bundles_for(skus, query, max_price)
+    if not bundles:
+        return None
+    return {"sku_id": None, "kind": "bundles", "bundles": bundles}
+
+
+def _respond(merchant: Merchant, skus: list[Sku], negotiated: Negotiated,
+             *, query: str | None = None, max_price: float | None = None,
+             bundles: bool = False) -> dict:
     """The single response builder. There is no second one.
 
     Note what is *not* here: any test of the merchant's role, name or
     manifest. The extension block appears when the extension survived
     negotiation, and for no other reason. That is what makes graceful
     degradation structural rather than conditional.
+
+    ``bundles`` is set by ``catalog.search`` and not by ``catalog.lookup``: a
+    lookup is one listing, and a set of one adds nothing to it.
     """
     body: dict = {
         "business": {"id": merchant.id, "name": merchant.display_name},
@@ -118,9 +144,12 @@ def _respond(merchant: Merchant, skus: list[Sku], negotiated: Negotiated) -> dic
         "products": [_product(s) for s in skus],
     }
     if BENEFIT_VALUE in negotiated:
-        body["extensions"] = {
-            BENEFIT_VALUE: [_benefit_block(merchant, s) for s in skus]
-        }
+        blocks = [_benefit_block(merchant, s) for s in skus]
+        if bundles:
+            block = _bundles_block(skus, query, max_price)
+            if block is not None:
+                blocks.append(block)
+        body["extensions"] = {BENEFIT_VALUE: blocks}
     return body
 
 
@@ -153,7 +182,13 @@ def catalog_search(
         # attributes and embeddings. This is transport, not intelligence.
         needle = q.lower()
         skus = [s for s in skus if needle in s.title.lower()]
-    return _respond(merchant, skus[:limit], negotiated)
+    # `category` is the typed plan the agent sent; `q` is a product name the
+    # shopper actually said. Either names the intent well enough to compose
+    # against, and neither carries a SERVICE or VALUES clause -- those are
+    # withheld agent-side so no merchant can price against them.
+    return _respond(merchant, skus[:limit], negotiated,
+                    query=" ".join(p for p in (category, q) if p),
+                    max_price=max_price, bundles=True)
 
 
 @router.get("/{merchant_id}/ucp/catalog/lookup")

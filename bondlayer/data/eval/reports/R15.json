@@ -37,6 +37,25 @@
   "unsatisfied": [
     "easy to return if the audio is no good"
   ],
+  "bundle_composed": {
+    "bundle_id": "bnd-voltway-podcasting-e45b7e41",
+    "merchant": "voltway",
+    "items": [
+      "VOL-0060",
+      "VOL-0074",
+      "VOL-0080"
+    ],
+    "roles": [
+      "microphone",
+      "headphones",
+      "cable"
+    ],
+    "combined_shelf_price": "340.08",
+    "in_gold": 3,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": true
+  },
   "merchants": [
     {
       "request_id": "R15",

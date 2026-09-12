@@ -66,6 +66,8 @@ if str(ROOT / "src") not in sys.path:  # runnable without an editable install
 
 from bondlayer.adapters.catalog import CsvCatalogAdapter  # noqa: E402
 from bondlayer.agent.composition import realisable_credit  # noqa: E402
+from bondlayer.bundle import compose as compose_bundles  # noqa: E402
+from bondlayer.bundle import role_of  # noqa: E402
 from bondlayer.interpreter.parser import parse  # noqa: E402
 from bondlayer.interpreter.resolver import resolve_detailed  # noqa: E402
 from bondlayer.records.serialise import load_signed  # noqa: E402
@@ -217,6 +219,71 @@ def score(request: dict, proposals: list[Proposal], valid_ids: set[str]) -> Outc
     )
 
 
+# --- bundling: scoring a set against a gold set -----------------------------
+
+
+@dataclass
+class BundleScore:
+    """One ``(bundle)`` request's composed set, scored against its gold set.
+
+    Flat precision and recall score a *list*; three of these requests have a
+    *set* for an answer, and "did the resolver return all 34 audio SKUs" is not
+    the question the shopper asked. This reads the composed bundle instead: how
+    many items, from how many merchants, at what combined price, and how many
+    of those items the frozen gold set contains.
+
+    ``in_gold`` is precision over the items actually composed, not over the
+    whole returned shelf. It is the number that says whether the set is made of
+    things the shopper asked for.
+    """
+
+    bundle_id: str
+    merchant: str
+    items: list[str]
+    roles: list[str]
+    combined: Decimal
+    in_gold: int
+    outside_gold: list[str]
+    ceiling_ok: bool | None
+
+    @property
+    def precision(self) -> float:
+        return self.in_gold / len(self.items) if self.items else 0.0
+
+
+def score_bundle(request: dict, proposals: list[Proposal]) -> BundleScore | None:
+    """Compose a set for this request and score it. ``None`` if none composed."""
+    constraints = parse(request["utterance"])
+    bundles = compose_bundles(constraints, proposals)
+    if not bundles:
+        return None
+    best = bundles[0]
+    gold = set(request["gold_skus"])
+    got = [p.sku.sku_id for p in best.items]
+    ceiling = [r.satisfied for r in best.resolved
+               if r.evidence_attribute == "combined_shelf_price"]
+    return BundleScore(
+        bundle_id=best.bundle_id,
+        merchant=str(best.items[0].sku.attributes.get("merchant", "")),
+        items=got,
+        roles=[role_of(p) or p.sku.category for p in best.items],
+        combined=best.combined_shelf_price,
+        in_gold=len([s for s in got if s in gold]),
+        outside_gold=[s for s in got if s not in gold],
+        ceiling_ok=all(ceiling) if ceiling else None,
+    )
+
+
+def bundle_column(request: dict, score: BundleScore | None) -> str:
+    """The extra column: a set's answer, or a dash where a set is not asked for."""
+    if not request["bundle"]:
+        return "—"
+    if score is None:
+        return "**none composed**"
+    return (f"{score.in_gold}/{len(score.items)} in gold, "
+            f"${score.combined:,.2f}")
+
+
 # --- the merchant's side of the same request --------------------------------
 
 
@@ -361,6 +428,7 @@ def run() -> int:
     requests = load_requests()
 
     rows: list[tuple[dict, Outcome, Outcome]] = []
+    bundle_scores: dict[str, BundleScore | None] = {}
     REPORTS.mkdir(parents=True, exist_ok=True)
 
     for request in requests:
@@ -368,6 +436,12 @@ def run() -> int:
         bond = score(request, resolve_detailed(constraints, skus, kept).proposals, valid_ids)
         ctrl = score(request, resolve_detailed(constraints, skus, []).proposals, valid_ids)
         rows.append((request, bond, ctrl))
+
+        # Composed from the same proposals that were just scored -- the bundler
+        # never re-matches, so this adds no resolution work and cannot change
+        # any metric above.
+        bundle = score_bundle(request, bond.proposals)
+        bundle_scores[request["id"]] = bundle
 
         payload = {
             "request_id": request["id"],
@@ -384,6 +458,17 @@ def run() -> int:
                 "clauses_answered_control": [ctrl.clauses_answered, ctrl.clauses_total],
             },
             "unsatisfied": bond.unsatisfied_texts,
+            "bundle_composed": None if bundle is None else {
+                "bundle_id": bundle.bundle_id,
+                "merchant": bundle.merchant,
+                "items": bundle.items,
+                "roles": bundle.roles,
+                "combined_shelf_price": str(bundle.combined),
+                "in_gold": bundle.in_gold,
+                "outside_gold": bundle.outside_gold,
+                "gold_precision": round(bundle.precision, 4),
+                "combined_ceiling_met": bundle.ceiling_ok,
+            },
             "merchants": merchant_rows(request, bond, published, verifiers, with_records=True),
             "control": merchant_rows(request, ctrl, published, verifiers, with_records=False),
         }
@@ -391,11 +476,12 @@ def run() -> int:
             json.dumps(payload, indent=2, sort_keys=False) + "\n", encoding="utf-8",
         )
 
-    table = render(rows, dropped)
+    table = render(rows, dropped, bundle_scores)
     print(table)
 
     RESULTS.parent.mkdir(parents=True, exist_ok=True)
-    RESULTS.write_text(document(rows, dropped, at_commit), encoding="utf-8")
+    RESULTS.write_text(document(rows, dropped, at_commit, bundle_scores),
+                       encoding="utf-8")
     print(f"\nWrote {RESULTS.relative_to(ROOT)} and "
           f"{len(requests)} reports to {REPORTS.relative_to(ROOT)}/")
 
@@ -438,12 +524,14 @@ def totals(rows: list[tuple[dict, Outcome, Outcome]]) -> dict:
     }
 
 
-def render(rows: list[tuple[dict, Outcome, Outcome]], dropped: list[str]) -> str:
+def render(rows: list[tuple[dict, Outcome, Outcome]], dropped: list[str],
+           bundles: dict[str, BundleScore | None] | None = None) -> str:
+    bundles = bundles or {}
     head = (
         "| id | n | hard prec | gold recall | prec@|gold| | citations | "
-        "SERVICE+VALUES answered | control | unsatisfied |"
+        "SERVICE+VALUES answered | control | bundle | unsatisfied |"
     )
-    rule = "|---|---:|---:|---:|---:|---:|---:|---:|---|"
+    rule = "|---|---:|---:|---:|---:|---:|---:|---:|---|---|"
     lines = [head, rule]
     for request, bond, ctrl in rows:
         flag = "reported" if bond.reports_unsatisfied else "-"
@@ -456,7 +544,8 @@ def render(rows: list[tuple[dict, Outcome, Outcome]], dropped: list[str]) -> str
             f"| {bond.precision_at_gold:.2f} "
             f"| {bond.citations_valid}/{bond.citations_total} "
             f"| {bond.clauses_answered}/{bond.clauses_total} "
-            f"| {ctrl.clauses_answered}/{ctrl.clauses_total} | {flag} |"
+            f"| {ctrl.clauses_answered}/{ctrl.clauses_total} "
+            f"| {bundle_column(request, bundles.get(request['id']))} | {flag} |"
         )
     t = totals(rows)
     lines.append(
@@ -465,7 +554,7 @@ def render(rows: list[tuple[dict, Outcome, Outcome]], dropped: list[str]) -> str
         f"| **{t['citations'][0]}/{t['citations'][1]}** "
         f"| **{t['answerable'][0]}/{t['answerable'][1]}** "
         f"| **{t['answerable_control'][0]}/{t['answerable_control'][1]}** "
-        f"| {t['unsatisfied_honesty'][0]}/{t['unsatisfied_honesty'][1]} |"
+        f"| | {t['unsatisfied_honesty'][0]}/{t['unsatisfied_honesty'][1]} |"
     )
     if dropped:
         lines.append("")
@@ -525,8 +614,44 @@ def _generic_miss(bundle: bool) -> str:
     )
 
 
+def bundle_section(rows: list[tuple[dict, Outcome, Outcome]],
+                   bundles: dict[str, BundleScore | None]) -> str:
+    """What the three ``(bundle)`` requests got, as sets.
+
+    These three are the requests flat precision reads worst, and for a reason
+    that is not a bug: their gold answer is a *set*, and a resolver that does
+    not compose returns every eligible item in every eligible category. The
+    bundler's output is scored here instead -- precision over the items it
+    actually put in the set.
+    """
+    lines = []
+    for request, _bond, _ctrl in rows:
+        if not request["bundle"]:
+            continue
+        score = bundles.get(request["id"])
+        if score is None:
+            lines.append(f"- **{request['id']}** — no set composed.")
+            continue
+        listed = ", ".join(f"`{s}` ({r})" for s, r in zip(score.items, score.roles))
+        line = (
+            f"- **{request['id']}** — {len(score.items)} items from "
+            f"**{score.merchant}**, combined **${score.combined:,.2f}**, "
+            f"{score.in_gold}/{len(score.items)} in the frozen gold set "
+            f"(precision {score.precision:.2f}). {listed}."
+        )
+        if score.ceiling_ok is not None:
+            line += (" Combined-price ceiling met."
+                     if score.ceiling_ok else " **Combined-price ceiling missed.**")
+        if score.outside_gold:
+            line += (f" Outside gold: {', '.join(f'`{s}`' for s in score.outside_gold)}.")
+        lines.append(line)
+    return "\n".join(lines)
+
+
 def document(rows: list[tuple[dict, Outcome, Outcome]], dropped: list[str],
-             at_commit: str) -> str:
+             at_commit: str,
+             bundles: dict[str, BundleScore | None] | None = None) -> str:
+    bundles = bundles or {}
     t = totals(rows)
     answered_share = t["answerable"][0] / t["answerable"][1] if t["answerable"][1] else 0.0
     control_share = t["answerable_control"][0] / t["answerable_control"][1] if t["answerable_control"][1] else 0.0
@@ -584,7 +709,24 @@ verify would be a bug.
 
 ## Per request
 
-{render(rows, dropped)}
+{render(rows, dropped, bundles)}
+
+## Dynamic bundling
+
+Three of the thirty requests have a **set** for a gold answer, and they are the
+three flat precision reads worst — not because the matching is wrong but
+because the question is. "Everything I need to start a podcast" is answered by a
+microphone, headphones, an interface and a cable, not by all 34 audio SKUs, and
+a resolver that does not compose can only return the latter. The `bundle` column
+scores what the bundler actually composed: how many of the items it put in the
+set are in the frozen gold set, and what the set costs all up.
+
+{bundle_section(rows, bundles)}
+
+The bundler composes from the proposals the resolver already returned and never
+re-matches, so nothing in the table above moves because bundling exists — the
+flat precision and recall figures for R06, R07 and R24 are exactly what they
+were. It is an additional answer, not a correction to the old one.
 
 ## Where it misses, and why
 

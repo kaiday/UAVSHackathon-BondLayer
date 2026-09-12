@@ -41,6 +41,21 @@
   "unsatisfied": [
     "decent cover if it breaks in year two"
   ],
+  "bundle_composed": {
+    "bundle_id": "bnd-northgear-laptop-2d12704d",
+    "merchant": "northgear",
+    "items": [
+      "NOR-0023"
+    ],
+    "roles": [
+      "laptop"
+    ],
+    "combined_shelf_price": "1149.00",
+    "in_gold": 1,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": true
+  },
   "merchants": [
     {
       "request_id": "R02",

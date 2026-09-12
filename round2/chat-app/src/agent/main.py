@@ -25,6 +25,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -39,6 +40,7 @@ load_dotenv(CHAT_APP / ".env")
 
 from bondlayer.agent import run_request
 from bondlayer.agent.trace import AgentRun
+from bondlayer.bundle import CategoryBundler, bundle_payload
 
 from . import llm, ucp_client
 
@@ -106,9 +108,30 @@ def index():
     return FileResponse(STATIC_DIR / "index.html")
 
 
+#: ``catalog.search`` defaults to 20 results and caps at 100. Twenty silently
+#: truncates a 149-row catalogue, and bundling is where that shows: "a work
+#: laptop and a dock" sends no category (two product nouns widen the filter, so
+#: the agent does the filtering), and every accessory falls off the end of page
+#: one -- the set comes back as a laptop on its own. Set as a client-level
+#: default so it rides every search without reaching into the fetcher.
+#:
+#: NOTE for Nguyen: this belongs in ``ucp_client._params_from_plan``, next to
+#: the other query parameters, exactly as ``bondlayer/scripts/trace_run.py``
+#: now does it. It is here only because WS-G's brief does not name
+#: ``ucp_client.py``.
+PAGE = 100
+
+
+def _fetcher():
+    return ucp_client.make_fetcher(
+        httpx.Client(base_url=ucp_client.MERCHANT_BASE_URL, timeout=10,
+                     params={"limit": PAGE}),
+    )
+
+
 @app.post("/query")
 def handle_query(request: ShoppingQuery) -> dict:
-    fetch = ucp_client.make_fetcher()
+    fetch = _fetcher()
     verify = ucp_client.make_verifier()
 
     run = run_request(
@@ -118,6 +141,11 @@ def handle_query(request: ShoppingQuery) -> dict:
         extension=request.bondlayer_enabled,
         verify=verify,
         policy=ucp_client.POLICY,
+        # Composition, after the ranking. The bundler cannot add a listing,
+        # change a price or reorder the ranking -- everything above stays
+        # exactly what it was before bundling existed (D1: the deterministic
+        # ranking is never replaced, only added to).
+        bundler=CategoryBundler(),
         **ucp_client.interpret_kwargs(run_request),
     )
 
@@ -154,6 +182,10 @@ def handle_query(request: ShoppingQuery) -> dict:
         "cheapest_shelf": cheapest_shelf,
         "flipped": flipped,
         "recommendation": prose["text"],
+        # The set, best first. Each item carries its own notes, because the
+        # bundle's rationale deliberately says nothing about why any individual
+        # item fits -- that is already written on the item.
+        "bundles": [bundle_payload(b) for b in run.bundles],
         "audit": _audit(run),
         "transcript": llm.transcript_payload(),
     }
