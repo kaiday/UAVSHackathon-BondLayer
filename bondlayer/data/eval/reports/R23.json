@@ -107,5 +107,37 @@
         "delivered this week"
       ]
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 3,
+    "gold_total": 3,
+    "parsed_total": 3,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "2TB",
+        "gold_kind": "HARD",
+        "parsed": "2TB",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "portable SSD",
+        "gold_kind": "HARD",
+        "parsed": "Portable SSD",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "delivered this week",
+        "gold_kind": "SERVICE",
+        "parsed": "delivered this week",
+        "parsed_kind": "service"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

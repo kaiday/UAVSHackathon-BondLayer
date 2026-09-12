@@ -143,5 +143,37 @@
       "effective_cost": "1922.96",
       "unsatisfied": []
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 3,
+    "gold_total": 3,
+    "parsed_total": 3,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "ThinkBook 14",
+        "gold_kind": "HARD",
+        "parsed": "ThinkBook 14",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "i7",
+        "gold_kind": "HARD",
+        "parsed": "i7",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "1TB",
+        "gold_kind": "HARD",
+        "parsed": "1TB",
+        "parsed_kind": "hard"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

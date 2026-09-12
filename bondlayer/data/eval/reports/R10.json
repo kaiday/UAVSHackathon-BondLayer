@@ -147,5 +147,40 @@
       "effective_cost": "2806.96",
       "unsatisfied": []
     }
-  ]
+  ],
+  "decode": {
+    "precision": 0.5,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 2,
+    "gold_total": 2,
+    "parsed_total": 4,
+    "perfect": false,
+    "pairs": [
+      {
+        "gold": "32GB",
+        "gold_kind": "HARD",
+        "parsed": "32GB",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "for video editing",
+        "gold_kind": "SOFT",
+        "parsed": "for video editing",
+        "parsed_kind": "soft"
+      }
+    ],
+    "misses": [],
+    "extras": [
+      {
+        "text": "laptop",
+        "kind": "hard"
+      },
+      {
+        "text": "money is not really the issue",
+        "kind": "soft"
+      }
+    ],
+    "kind_confusions": []
+  }
 }

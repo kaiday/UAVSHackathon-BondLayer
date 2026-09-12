@@ -143,5 +143,36 @@
       "effective_cost": "1194.96",
       "unsatisfied": []
     }
-  ]
+  ],
+  "decode": {
+    "precision": 0.6667,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 2,
+    "gold_total": 2,
+    "parsed_total": 3,
+    "perfect": false,
+    "pairs": [
+      {
+        "gold": "16GB",
+        "gold_kind": "HARD",
+        "parsed": "16GB",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "cheapest",
+        "gold_kind": "SOFT",
+        "parsed": "Cheapest",
+        "parsed_kind": "soft"
+      }
+    ],
+    "misses": [],
+    "extras": [
+      {
+        "text": "laptop",
+        "kind": "hard"
+      }
+    ],
+    "kind_confusions": []
+  }
 }

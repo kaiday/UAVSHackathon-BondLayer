@@ -95,5 +95,31 @@
       "effective_cost": "102.96",
       "unsatisfied": []
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 2,
+    "gold_total": 2,
+    "parsed_total": 2,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "two-year cover",
+        "gold_kind": "HARD",
+        "parsed": "Two-year cover",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "laptop",
+        "gold_kind": "HARD",
+        "parsed": "laptop",
+        "parsed_kind": "hard"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

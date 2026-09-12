@@ -123,5 +123,37 @@
         "carbon neutral"
       ]
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 3,
+    "gold_total": 3,
+    "parsed_total": 3,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "under $600",
+        "gold_kind": "HARD",
+        "parsed": "Under $600",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "phone",
+        "gold_kind": "HARD",
+        "parsed": "phone",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "carbon neutral",
+        "gold_kind": "VALUES",
+        "parsed": "carbon neutral",
+        "parsed_kind": "values"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

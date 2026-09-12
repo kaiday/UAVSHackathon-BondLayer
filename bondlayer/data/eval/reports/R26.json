@@ -121,5 +121,37 @@
         "I hate throwing things away"
       ]
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 3,
+    "gold_total": 3,
+    "parsed_total": 3,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "under $700",
+        "gold_kind": "HARD",
+        "parsed": "under $700",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "phone",
+        "gold_kind": "HARD",
+        "parsed": "phone",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "hate throwing things away",
+        "gold_kind": "VALUES",
+        "parsed": "I hate throwing things away",
+        "parsed_kind": "values"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

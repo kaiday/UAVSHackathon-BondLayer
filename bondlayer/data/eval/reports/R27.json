@@ -153,5 +153,37 @@
         "send back if it doesn't suit my voice"
       ]
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 3,
+    "gold_total": 3,
+    "parsed_total": 3,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "under $200",
+        "gold_kind": "HARD",
+        "parsed": "under $200",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "microphone",
+        "gold_kind": "HARD",
+        "parsed": "Microphone",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "send back if it doesn't suit",
+        "gold_kind": "SERVICE",
+        "parsed": "send back if it doesn't suit my voice",
+        "parsed_kind": "service"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

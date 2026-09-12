@@ -151,5 +151,48 @@
       "effective_cost": "2806.96",
       "unsatisfied": []
     }
-  ]
+  ],
+  "decode": {
+    "precision": 0.8,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 4,
+    "gold_total": 4,
+    "parsed_total": 5,
+    "perfect": false,
+    "pairs": [
+      {
+        "gold": "32GB",
+        "gold_kind": "HARD",
+        "parsed": "32GB",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "RTX",
+        "gold_kind": "HARD",
+        "parsed": "RTX",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "under $3,000",
+        "gold_kind": "HARD",
+        "parsed": "under $3,000",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "gaming",
+        "gold_kind": "SOFT",
+        "parsed": "Gaming",
+        "parsed_kind": "soft"
+      }
+    ],
+    "misses": [],
+    "extras": [
+      {
+        "text": "laptop",
+        "kind": "hard"
+      }
+    ],
+    "kind_confusions": []
+  }
 }

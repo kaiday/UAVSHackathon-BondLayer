@@ -149,5 +149,31 @@
         "the returns are genuinely painless"
       ]
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 2,
+    "gold_total": 2,
+    "parsed_total": 2,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "under $1,600",
+        "gold_kind": "HARD",
+        "parsed": "laptop under $1,600",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "returns genuinely painless",
+        "gold_kind": "SERVICE",
+        "parsed": "the returns are genuinely painless",
+        "parsed_kind": "service"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

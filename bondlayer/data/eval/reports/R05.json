@@ -117,5 +117,31 @@
         "lets you fix it yourself"
       ]
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 2,
+    "gold_total": 2,
+    "parsed_total": 2,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "under $1,000",
+        "gold_kind": "HARD",
+        "parsed": "phone under $1,000",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "lets you fix it yourself",
+        "gold_kind": "VALUES",
+        "parsed": "lets you fix it yourself",
+        "parsed_kind": "values"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

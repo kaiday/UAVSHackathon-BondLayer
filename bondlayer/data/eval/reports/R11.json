@@ -139,5 +139,37 @@
         "delivered free if possible"
       ]
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 3,
+    "gold_total": 3,
+    "parsed_total": 3,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "monitor",
+        "gold_kind": "HARD",
+        "parsed": "Monitor",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "around $800",
+        "gold_kind": "SOFT",
+        "parsed": "around $800",
+        "parsed_kind": "soft"
+      },
+      {
+        "gold": "delivered free if possible",
+        "gold_kind": "SERVICE",
+        "parsed": "delivered free if possible",
+        "parsed_kind": "service"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

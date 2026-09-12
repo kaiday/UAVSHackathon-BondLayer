@@ -155,5 +155,37 @@
         "I want it to last"
       ]
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 3,
+    "gold_total": 3,
+    "parsed_total": 3,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "rice cooker",
+        "gold_kind": "HARD",
+        "parsed": "Rice cooker",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "cheapest",
+        "gold_kind": "SOFT",
+        "parsed": "cheapest",
+        "parsed_kind": "soft"
+      },
+      {
+        "gold": "I want it to last",
+        "gold_kind": "VALUES",
+        "parsed": "I want it to last",
+        "parsed_kind": "values"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

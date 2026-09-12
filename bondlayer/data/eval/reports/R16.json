@@ -153,5 +153,31 @@
         "supported in five years"
       ]
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 2,
+    "gold_total": 2,
+    "parsed_total": 2,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "laptop",
+        "gold_kind": "HARD",
+        "parsed": "laptop",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "still supported in five years",
+        "gold_kind": "VALUES",
+        "parsed": "supported in five years",
+        "parsed_kind": "values"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }

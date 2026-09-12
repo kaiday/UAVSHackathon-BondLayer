@@ -157,5 +157,42 @@
         "decent cover if it breaks in year two"
       ]
     }
-  ]
+  ],
+  "decode": {
+    "precision": 0.75,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 3,
+    "gold_total": 3,
+    "parsed_total": 4,
+    "perfect": false,
+    "pairs": [
+      {
+        "gold": "no more than $2,500",
+        "gold_kind": "HARD",
+        "parsed": "no more than $2,500",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "for design work",
+        "gold_kind": "SOFT",
+        "parsed": "for design work",
+        "parsed_kind": "soft"
+      },
+      {
+        "gold": "cover if it breaks in year two",
+        "gold_kind": "SERVICE",
+        "parsed": "decent cover if it breaks in year two",
+        "parsed_kind": "service"
+      }
+    ],
+    "misses": [],
+    "extras": [
+      {
+        "text": "laptop",
+        "kind": "hard"
+      }
+    ],
+    "kind_confusions": []
+  }
 }

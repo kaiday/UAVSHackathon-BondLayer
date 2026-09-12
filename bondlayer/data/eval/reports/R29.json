@@ -165,5 +165,48 @@
         "where it's made"
       ]
     }
-  ]
+  ],
+  "decode": {
+    "precision": 0.8,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 4,
+    "gold_total": 4,
+    "parsed_total": 5,
+    "perfect": false,
+    "pairs": [
+      {
+        "gold": "14 inch",
+        "gold_kind": "HARD",
+        "parsed": "14 inch",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "16GB",
+        "gold_kind": "HARD",
+        "parsed": "16GB",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "best value",
+        "gold_kind": "SOFT",
+        "parsed": "Best value",
+        "parsed_kind": "soft"
+      },
+      {
+        "gold": "I care where it's made",
+        "gold_kind": "VALUES",
+        "parsed": "where it's made",
+        "parsed_kind": "values"
+      }
+    ],
+    "misses": [],
+    "extras": [
+      {
+        "text": "laptop",
+        "kind": "hard"
+      }
+    ],
+    "kind_confusions": []
+  }
 }

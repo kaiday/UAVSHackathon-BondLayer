@@ -139,5 +139,31 @@
       "effective_cost": "1455.00",
       "unsatisfied": []
     }
-  ]
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 2,
+    "gold_total": 2,
+    "parsed_total": 2,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "ThinkBook 14 G3",
+        "gold_kind": "HARD",
+        "parsed": "ThinkBook 14 G3",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "16 gigs",
+        "gold_kind": "HARD",
+        "parsed": "16 gigs",
+        "parsed_kind": "hard"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
 }
