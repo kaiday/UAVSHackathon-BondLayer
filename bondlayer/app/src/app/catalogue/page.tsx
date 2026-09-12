@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { products } from "@/lib/dashboard-data";
 
 export default function CataloguePage() {
@@ -37,7 +38,7 @@ export default function CataloguePage() {
             <tbody>
               {products.map((product) => (
                 <tr key={product.sku}>
-                  <td><strong>{product.name}</strong><small>{product.sku}</small></td>
+                  <td><div className="product-identity"><span className="product-thumb"><Image src={product.image} alt="" width={42} height={42} sizes="42px" /></span><span><strong>{product.name}</strong><small>{product.sku}</small></span></div></td>
                   <td>{product.category}</td>
                   <td>{product.requests}</td>
                   <td>

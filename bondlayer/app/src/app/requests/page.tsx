@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ClipboardList } from "lucide-react";
 
 const requests = [
   { id: "REQ-0017", agent: "buyer-agent.demo", age: "Just now", summary: "Laptop under $1,600 · painless returns", status: "Ranking changed", tone: "success", title: "Laptop with painless returns", latency: "184 ms", quote: "A laptop under $1,600 — I’d rather pay a bit more if the returns are genuinely painless.", tags: ["Hard filter · ≤ $1,600", "Product · laptop", "Service · painless returns", "Preference · pay slightly more"], stages: [["01 · Intent", "4 constraints decoded"], ["02 · Exposure", "5 signed records served"], ["03 · Valuation", "$257.03 credited"], ["04 · Outcome", "Voltway ranked #1"]], products: ["Voltway Surface Laptop Go 3 · $1,142.96", "NorthGear Surface Laptop Go 3 · $1,099.00", "CityCircuit Surface Laptop Go 3 · $1,066.00"], reasons: ["Warranty credit capped at $74.50", "Unsigned claims were displayed but valued at $0", "CityCircuit lost $46.66 of unexpressed value"] },
@@ -21,7 +22,7 @@ export default function RequestsPage() {
 
       <div className="request-console">
         <aside className="request-inbox">
-          <header><div><h2>Evaluation requests</h2><p>30 frozen scenarios · seeded state</p></div><span className="pill success">Run complete</span></header>
+          <header><div><h2 className="request-heading-title"><span className="section-icon"><ClipboardList size={17} strokeWidth={2.2} /></span>Evaluation requests</h2><p>30 frozen scenarios · seeded state</p></div><span className="pill success">Run complete</span></header>
           <div className="request-items">
             {requests.map((item) => (
               <button className={item.id === selectedId ? "selected" : ""} key={item.id} onClick={() => setSelectedId(item.id)} type="button">
@@ -35,16 +36,16 @@ export default function RequestsPage() {
 
         <section className="request-detail">
           <header><div><h2>Request explanation</h2><p>{request.id} · {request.agent} · verified</p></div><span className={`pill ${request.tone}`}>{request.status}</span></header>
-          <div className="request-detail-body">
+          <div className="request-detail-body" key={request.id}>
             <div className="request-title-row"><div><h3>{request.title}</h3><p>Completed in {request.latency}</p></div><code>UCP · Request-Id {request.id.toLowerCase()}</code></div>
             <blockquote>“{request.quote}”</blockquote>
             <div className="intent-tags">{request.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
             <div className="explanation-stages">
-              {request.stages.map(([label, value]) => <article key={label}><small>{label}</small><strong>{value}</strong></article>)}
+              {request.stages.map(([label, value]) => <article key={label}><small>{label}</small><strong className={value.includes("$") ? "money-pill" : "data-pill"}>{value}</strong></article>)}
             </div>
             <div className="explanation-notes">
-              <article><h3>Products considered</h3><ul>{request.products.map((product) => <li key={product}>{product}</li>)}</ul></article>
-              <article><h3>What the console explains</h3><ul>{request.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></article>
+              <article><h3>Products considered</h3><ul>{request.products.map((product) => { const [name, price] = product.split(" · "); return <li key={product}><span>{name}</span><b className="money-pill">{price}</b></li>; })}</ul></article>
+              <article><h3>What the console explains</h3><ul>{request.reasons.map((reason) => <li key={reason}>{reason.split(/(\$[\d,.]+)/g).map((part, index) => part.startsWith("$") ? <b className="money-pill" key={`${reason}-${index}`}>{part}</b> : part)}</li>)}</ul></article>
             </div>
           </div>
         </section>
