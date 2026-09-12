@@ -127,7 +127,10 @@ def _parse_price(raw: str) -> Decimal:
     if not cleaned:
         raise ValueError(f"no numeric content in price {raw!r}")
     try:
-        return Decimal(cleaned)
+        # Quantized so money leaves the adapter in one shape. "1455", "1455.0"
+        # and "$1,455.00" all arrive as 1455.00 -- otherwise the inconsistency
+        # the merchant published simply moves onto the wire.
+        return Decimal(cleaned).quantize(Decimal("0.01"))
     except InvalidOperation as exc:  # pragma: no cover - guarded by the regex
         raise ValueError(f"unparseable price {raw!r}") from exc
 
