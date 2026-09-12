@@ -23,15 +23,27 @@ OUT = Path(__file__).resolve().parents[1] / "data" / "catalog" / "electronics.cs
 # the third ranker and carries the planted unsigned greenwashing claim.
 MERCHANTS = ("voltway", "citycircuit", "northgear")
 
-MESS = """Deliberate defects the adapter must survive (count: 34)
-  8  inconsistent RAM units: "16GB" / "16 GB" / "16384MB"
-  6  price formats: "1,499.00" / "1499" / "$1499.00" / "1499.0"
-  5  near-duplicate titles differing only by spacing or generation
-  4  missing weight_kg
-  3  missing battery_wh on non-battery items (legitimately empty)
-  3  brand casing drift: "Lenovo" / "LENOVO" / "lenovo"
-  3  screen size as "14" / "14.0" / '14"'
-  2  same GTIN listed by two merchants (a genuine cross-merchant match)
+MESS = """Deliberate mess, authored into the PRODUCTS table below.
+
+These are VARIANTS AS AUTHORED, not a count of the emitted file. Each authored
+variant fans out across however many merchants carry that product, so the
+emitted CSV has many more affected rows than there are entries here.
+
+  inconsistent RAM units      "16GB" / "16 GB" / "16384MB"
+  price formats               "1,499.00" / "1499" / "$1499.00" / "1499.0"
+  near-duplicate titles       differing only by spacing or generation
+  missing weight_kg           absent where a real export would have it
+  empty battery_wh            legitimately empty on non-battery items
+  brand casing drift          "Lenovo" / "LENOVO" / "lenovo"
+  screen size formats         "14" / "14.0" / '14"'
+  shared GTIN                 the genuine cross-merchant match signal
+
+DO NOT QUOTE A DEFECT COUNT FROM THIS DOCSTRING. The authoritative figure is
+whatever the catalogue adapter's analyse() -> CatalogReport actually measures
+on the emitted file, because that applies the adapter's own rule definitions.
+Independent counts disagree -- "price format" alone lands anywhere between 56
+and 98 depending on whether a bare integer counts as a defect. Quote the
+adapter, or quote nothing.
 """
 
 # (model_key, brand, category, title, cpu, ram, storage, screen, weight, wh, gtin)

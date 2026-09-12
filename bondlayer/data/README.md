@@ -6,9 +6,23 @@ Everything downstream can start. Authored 12/09/2026 on `feat/nha-eval-data`.
 |---|---|---|
 | `eval/taxonomy.md` | The four clause kinds and why the split is the product | Hieu (labels), everyone (pitch) |
 | `eval/requests.json` | **FROZEN** 30 requests, 80 constraints, gold answers | Hieu (tuning target), Nha (Day 2 eval run) |
-| `catalog/electronics.csv` | 62 distinct products, 148 listings, 3 merchants, 34 planted defects | Nguyen (adapter), Hieu (matching) |
+| `catalog/electronics.csv` | 62 distinct products, 148 listings, 3 merchants, deliberate attribute noise | Nguyen (adapter), Hieu (matching) |
 | `policies/*.md` | Retailer prose with facts buried in sentences | Hieu (converter) |
 | `policies/manifests.json` | Who publishes what, incl. the planted unsigned claim | Nguyen (serving), Bach (signing) |
+
+## Do not quote a defect count
+
+An earlier version of this file said "34 planted defects". That number described
+the authored `PRODUCTS` table in `scripts/make_catalog.py`, not the 148-row CSV
+it emits -- each authored variant fans out across every merchant carrying that
+product. The figure was wrong for the emitted file and should not appear in the
+pitch, the README or the deck.
+
+The authoritative count is whatever the catalogue adapter's
+`analyse() -> CatalogReport` measures, because that applies the adapter's own
+rule definitions. Independent counts genuinely disagree: "price format" alone
+lands between 56 and 98 depending on whether a bare integer is a defect. Quote
+the adapter's report, or quote nothing.
 
 ## Rules
 
