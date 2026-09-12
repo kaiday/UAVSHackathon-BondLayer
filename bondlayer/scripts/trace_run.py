@@ -29,6 +29,7 @@ import argparse
 import inspect
 import re
 import sys
+import textwrap
 from pathlib import Path
 from typing import Callable
 
@@ -39,6 +40,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from bondlayer.agent import Outcome, Phase, run_request  # noqa: E402
 from bondlayer.agent.trace import AgentRun, Ranked, Step  # noqa: E402
+from bondlayer.bundle import CategoryBundler, role_of  # noqa: E402
 from bondlayer.interpreter.parser import parse as parse_utterance  # noqa: E402
 from bondlayer.records.serialise import record_from_json  # noqa: E402
 from bondlayer.records.signing import ES256Signer  # noqa: E402
@@ -86,7 +88,7 @@ def _search_params(utterance: str) -> dict:
     if not utterance or not utterance.strip():
         # composition.run_request sends an empty ``query`` when the shopper
         # named no product; the typed plan carries category and ceiling instead.
-        return {}
+        return {"limit": PAGE}
     hard_text = " ".join(
         c.text for c in parse_utterance(utterance) if c.kind is ConstraintKind.HARD
     ) or utterance
@@ -95,12 +97,21 @@ def _search_params(utterance: str) -> dict:
         None,
     )
     price_match = _PRICE.search(hard_text)
-    params: dict = {}
+    params: dict = {"limit": PAGE}
     if category:
         params["category"] = category
     if price_match:
         params["max_price"] = float(price_match.group(1).replace(",", ""))
     return params
+
+
+#: ``catalog.search`` defaults to 20 results and caps at 100. Twenty silently
+#: truncates a 149-row catalogue, which matters for bundling: a podcasting
+#: request names no category, so the untruncated shelf is what the set has to
+#: be composed from, and a microphone that fell off the end of page one cannot
+#: be in it. Asking for the cap costs nothing offline and changes no ranking --
+#: every request whose plan filters at all returns well under 20 per merchant.
+PAGE = 100
 
 
 def _params_from_plan(plan: dict) -> dict:
@@ -109,7 +120,7 @@ def _params_from_plan(plan: dict) -> dict:
     The interpreter already decoded category, ceiling and any product name;
     this only spells them the way the search route reads them.
     """
-    params: dict = {}
+    params: dict = {"limit": PAGE}
     if plan.get("category"):
         params["category"] = str(plan["category"])
     if plan.get("max_price") is not None:
@@ -202,6 +213,125 @@ def _money(value) -> str:
     return f"${value:.2f}"
 
 
+def _wrap(text: str, indent: str = "  ", width: int = 78) -> list[str]:
+    return textwrap.wrap(text, width=width, initial_indent=indent,
+                         subsequent_indent=indent) or [indent.rstrip()]
+
+
+def render_bundles(run: AgentRun) -> list[str]:
+    """The composed set, rendered as a set.
+
+    The point of this block is that it must not read as three search results
+    stacked on top of each other. So the set gets one price and one reason --
+    the combined total and the rationale for why these items belong *together*
+    -- and the items hang underneath it as its parts, each with the notes that
+    justified it individually. If a judge can read this as a list of offers,
+    the criterion is lost on screen whatever the JSON says.
+    """
+    if not run.bundles:
+        return []
+    best = run.bundles[0]
+    merchant = str(best.items[0].sku.attributes.get("merchant", "?"))
+    lines = [_BAR, f"BUNDLE - {len(best.items)} items composed as one set "
+                   f"({best.bundle_id})"]
+    lines.append("")
+    lines.append(f"  {merchant.upper()}   combined shelf price "
+                 f"{_money(best.combined_shelf_price)}   "
+                 f"one merchant, one order")
+    lines.append("")
+    lines.extend(_wrap("why these belong together: " + best.rationale, "  "))
+    lines.append("")
+
+    # Each item's own evidence, underneath it. A clause-level note is shown
+    # when the shopper asked something a record answers; otherwise the records
+    # that verified on that listing are cited directly. Either way the evidence
+    # is per item, because the bundle's rationale deliberately says nothing
+    # about why any individual item fits.
+    by_sku = {r.sku_id: r for r in run.ranked}
+
+    def paying_citations(item) -> list[dict]:
+        offer = by_sku.get(item.sku.sku_id)
+        return [c for c in (offer.citations if offer else [])
+                if c.get("cited") and c.get("credited") not in (None, "0.00")]
+
+    # A record the merchant publishes shelf-wide credits every item in the set
+    # identically. Printing it five times says the same thing five times and
+    # buries what is actually per item, so it is hoisted to where it belongs:
+    # this really is a property of the set, which is the argument for buying
+    # the set from one merchant in the first place.
+    shared: list[dict] = []
+    if len(best.items) > 1:
+        common = set.intersection(*(
+            {c["record_id"] for c in paying_citations(i)} for i in best.items
+        ))
+        seen_ids: set[str] = set()
+        for c in paying_citations(best.items[0]):
+            if c["record_id"] in common and c["record_id"] not in seen_ids:
+                shared.append(c)
+                seen_ids.add(c["record_id"])
+    shared_ids = {c["record_id"] for c in shared}
+
+    if shared:
+        lines.append("  records that cover every item in this set:")
+        for c in shared:
+            lines.extend(_wrap(
+                f"cites {c['record_id']} ({c['benefit_type']}) ${c['credited']} "
+                f"per item - {c['why']}", "    "))
+        lines.append("")
+
+    for n, item in enumerate(best.items, start=1):
+        role = (role_of(item) or item.sku.category).replace("_", " ")
+        lines.append(
+            f"   {n}. {item.sku.title[:44]:<44}{_money(item.sku.shelf_price):>10}"
+            f"   [{role}]"
+        )
+        for note in item.resolved:
+            mark = "cites" if note.evidence_record_id else "note "
+            lines.extend(_wrap(f"{mark} {note.note}", "        "))
+        if item.resolved:
+            continue
+        offer = by_sku.get(item.sku.sku_id)
+        cited = [c for c in (offer.citations if offer else []) if c.get("cited")]
+        if not cited:
+            lines.append("        note  matched on catalogue attributes; this "
+                         "listing published no record that verified")
+            continue
+        # What is left after the set-level records: only what is true of this
+        # item and not of its neighbours.
+        own = [c for c in paying_citations(item) if c["record_id"] not in shared_ids]
+        for c in own:
+            lines.extend(_wrap(
+                f"cites {c['record_id']} ({c['benefit_type']}) "
+                f"${c['credited']} - {c['why']}", "        "))
+        zeroed = len(cited) - len(paying_citations(item))
+        tail = []
+        if not own and shared:
+            tail.append("covered by the set-level records above")
+        if zeroed:
+            tail.append(f"{zeroed} further verified record"
+                        f"{'s' if zeroed != 1 else ''} credit $0 here, out of "
+                        "scope for this category")
+        if tail:
+            lines.extend(_wrap("note  " + "; ".join(tail), "        "))
+    lines.append("")
+    lines.append(f"   {'combined':<47}{_money(best.combined_shelf_price):>10}")
+
+    for note in best.resolved:
+        lines.extend(_wrap(f"set-level: {note.note}", "  "))
+    for c in best.unsatisfied:
+        lines.extend(_wrap(f"set-level UNSATISFIED ({c.kind.value}): {c.text}", "  "))
+
+    others = run.bundles[1:]
+    if others:
+        lines.append("")
+        lines.append("  other merchants could also assemble a set:")
+        for b in others:
+            m = str(b.items[0].sku.attributes.get("merchant", "?"))
+            lines.append(f"    {m:<13}{len(b.items)} items"
+                         f"{_money(b.combined_shelf_price):>12}")
+    return lines
+
+
 def render(run: AgentRun, *, extension: bool) -> str:
     lines: list[str] = []
     lines.append("=" * 78)
@@ -259,6 +389,7 @@ def render(run: AgentRun, *, extension: bool) -> str:
         lines.append(
             f"NO FLIP: {top.merchant} ({top.sku_id}) wins on both shelf price and effective cost."
         )
+    lines.extend(render_bundles(run))
     lines.append("=" * 78)
     return "\n".join(lines)
 
@@ -282,6 +413,7 @@ def main() -> None:
         extension=extension,
         verify=make_verifier(client, MERCHANTS),
         policy=POLICY,
+        bundler=CategoryBundler(),
         **_interpret_kwargs(parse_utterance),
     )
     print(render(run, extension=extension))

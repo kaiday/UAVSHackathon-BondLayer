@@ -157,6 +157,10 @@ class Slot:
     gate: str = "kit"
     intent_words: tuple[str, ...] = ()  # for gate="intent"
     scope_to_anchor: bool = False  # a warranty must cover the anchor's category
+    #: Why *this* part belongs with the anchor. Only the clauses of slots that
+    #: actually got filled reach the rationale, so a set that could not find a
+    #: cable never claims to explain one.
+    because: str = ""
 
 
 @dataclass(frozen=True)
@@ -174,16 +178,18 @@ _PODCASTING = Recipe(
     key="podcasting",
     anchor=Slot("microphone", "audio", ("microphone",)),
     complements=(
-        Slot("headphones", "audio", ("headphones",)),
-        Slot("audio interface", "audio", ("interface",)),
-        Slot("XLR cable", "audio", ("cable",)),
-        Slot("boom arm", "audio", ("stand",)),
+        Slot("headphones", "audio", ("headphones",),
+             because="closed-back headphones are what stop the monitor mix "
+                     "bleeding back into the take"),
+        Slot("audio interface", "audio", ("interface",),
+             because="the interface is what gets the microphone into a computer"),
+        Slot("XLR cable", "audio", ("cable",),
+             because="the cable is what connects the two"),
+        Slot("boom arm", "audio", ("stand",),
+             because="the arm keeps the microphone off the desk and away from "
+                     "keyboard noise"),
     ),
-    togetherness=(
-        "the interface is what gets the microphone into a computer, the cable is "
-        "what gets the microphone into the interface, and closed-back headphones "
-        "are what stop the monitor mix bleeding back into the take"
-    ),
+    togetherness="these are the parts one recording chain needs",
     triggers=(
         r"podcast\w*", r"record\s+interviews", r"voice[\s-]?over", r"streaming",
         r"start\s+a\s+podcast", r"recording",
@@ -196,17 +202,21 @@ _LAPTOP = Recipe(
     complements=(
         Slot("extended cover", "warranty", gate="intent",
              intent_words=(r"cover\b", r"warrant\w*", r"breaks?\b", r"protection"),
-             scope_to_anchor=True),
+             scope_to_anchor=True,
+             because="the cover is written against this machine, so a claim "
+                     "never turns on which merchant sold which half"),
         Slot("dock", "accessory", ("dock", "hub"), gate="intent",
-             intent_words=(r"dock\b", r"hub\b")),
+             intent_words=(r"dock\b", r"hub\b"),
+             because="the dock is what turns the laptop into the desk setup, "
+                     "and it has to match the ports this machine actually has"),
         Slot("monitor", "accessory", ("monitor",), gate="intent",
-             intent_words=(r"monitor\b", r"second\s+screen")),
-        Slot("carry sleeve", "accessory", ("sleeve",), gate="standing"),
+             intent_words=(r"monitor\b", r"second\s+screen"),
+             because="the monitor is the other half of the same desk"),
+        Slot("carry sleeve", "accessory", ("sleeve",), gate="standing",
+             because="the sleeve is sized for this machine and is what makes "
+                     "carrying it every day survivable"),
     ),
-    togetherness=(
-        "the add-ons attach to this machine specifically and are bought on the "
-        "same order, so one returns window and one delivery cover the lot"
-    ),
+    togetherness="the add-ons attach to this machine specifically",
     triggers=(r"laptop\w*", r"notebook", r"macbook"),
 )
 
@@ -216,13 +226,13 @@ _PHONE = Recipe(
     complements=(
         Slot("extended cover", "warranty", gate="intent",
              intent_words=(r"cover\b", r"warrant\w*", r"breaks?\b", r"protection"),
-             scope_to_anchor=True),
-        Slot("fast charger", "accessory", ("charger",), gate="standing"),
+             scope_to_anchor=True,
+             because="the cover is written against this handset"),
+        Slot("fast charger", "accessory", ("charger",), gate="standing",
+             because="the charger is what the handset needs and is rarely in "
+                     "the box any more"),
     ),
-    togetherness=(
-        "the handset and the parts that keep it running ship on one order from "
-        "one merchant, so a single returns window covers the set"
-    ),
+    togetherness="the handset ships with the parts that keep it running",
     triggers=(r"phone\w*", r"smartphone", r"handset"),
 )
 
@@ -233,12 +243,11 @@ _APPLIANCE = Recipe(
         Slot("extended cover", "warranty", gate="intent",
              intent_words=(r"cover\b", r"warrant\w*", r"breaks?\b", r"last\b",
                            r"protection"),
-             scope_to_anchor=True),
+             scope_to_anchor=True,
+             because="the cover is written against this appliance, so the "
+                     "claim never turns on which merchant sold which half"),
     ),
-    togetherness=(
-        "the cover is written against this appliance and is bought with it, so "
-        "the claim never turns on which merchant sold which half"
-    ),
+    togetherness="the cover and the appliance are bought as one",
     triggers=(r"vacuum", r"coffee\s+machine", r"rice\s+cooker", r"kettle",
               r"toaster", r"microwave", r"appliance"),
 )
@@ -454,8 +463,16 @@ def _rationale(recipe: Recipe, merchant: str, slots: list[Slot],
         )
     names = [s.name for s in slots]
     listed = ", ".join(names[:-1]) + f" and {names[-1]}"
+    # Only the parts actually in the set explain themselves. A recipe that
+    # wanted a cable and could not find one must not describe the cable.
+    because = [s.because for s in slots[1:] if s.because]
+    if because:
+        reason = (", ".join(because[:-1]) + f" and {because[-1]}"
+                  if len(because) > 1 else because[0])
+    else:
+        reason = recipe.togetherness
     return (
-        f"A {listed} bought together from {merchant}: {recipe.togetherness}. "
+        f"A {listed} bought together from {merchant}: {reason}. "
         f"One merchant and one order, so the returns window, the warranty and "
         f"the delivery terms apply to the set rather than to {len(items)} "
         "unrelated purchases."
@@ -594,10 +611,17 @@ def compose(constraints: list[Constraint], proposals: list[Proposal]) -> list[Bu
     if not built:
         return []
 
+    # Ordered by how complete the set is, then by where its anchor sat in the
+    # order we were handed. That second key is the caller's ranking -- effective
+    # cost agent-side, the resolver's own order merchant-side -- so the best set
+    # is anchored on the best offer rather than on the cheapest shelf price.
+    # Re-sorting these by price would be the bundler quietly ranking, which is
+    # not its job and would contradict the ranking printed directly above it.
+    rank = {p.sku.sku_id: i for i, p in enumerate(proposals)}
+
     def order(entry: tuple[str, list[Proposal], list[Slot]]) -> tuple:
         merchant, items, _ = entry
-        total = sum((p.sku.shelf_price for p in items), Decimal("0"))
-        return (-len(items), total, merchant)
+        return (-len(items), rank.get(items[0].sku.sku_id, len(rank)), merchant)
 
     built.sort(key=order)
 

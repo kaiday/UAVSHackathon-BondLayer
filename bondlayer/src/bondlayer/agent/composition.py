@@ -27,7 +27,11 @@ from decimal import Decimal
 from typing import Any, Callable, Protocol
 
 from bondlayer.agent.trace import AgentRun, Outcome, Phase, Ranked, Step
-from bondlayer.interpreter.resolver import interpret_hard, interpret_record_need
+from bondlayer.interpreter.resolver import (
+    _plan_categories,
+    interpret_hard,
+    interpret_record_need,
+)
 from bondlayer.records.serialise import signed_from_json
 from bondlayer.types import (
     BenefitType,
@@ -242,9 +246,21 @@ def _search_query(parsed: list) -> tuple[str, dict]:
     resolver does the filtering agent-side -- which is the architecture: the
     merchant publishes, the agent decides.
     """
-    specs = [s for c in parsed if getattr(getattr(c, "kind", None), "value", "") == "hard"
-             for s in interpret_hard(c.text)]
-    category = next((str(s.value) for s in specs if s.kind == "category"), None)
+    hard = [c for c in parsed
+            if getattr(getattr(c, "kind", None), "value", "") == "hard"]
+    by_text = {c.text: interpret_hard(c.text) for c in hard}
+    specs = [s for group in by_text.values() for s in group]
+
+    # How the category clauses combine is the resolver's rule, called here
+    # rather than reimplemented, so the shelf the merchant is asked for and the
+    # shelf the resolver filters cannot drift apart. Two product nouns ("a work
+    # laptop and a dock") widen it to both categories -- and `catalog.search`
+    # takes one `category`, so the honest move is to send none and let the
+    # agent filter. That is the architecture stated above: the merchant
+    # publishes, the agent decides. Sending only the first noun would silently
+    # drop the dock before any bundler could see it.
+    wanted, _scoping = _plan_categories(hard, by_text)
+    category = str(next(iter(wanted))) if wanted and len(wanted) == 1 else None
     ceilings = [s.value for s in specs if s.kind == "price"]
     terms = [str(s.value) for s in specs if s.kind == "product"]
     plan: dict = {}
