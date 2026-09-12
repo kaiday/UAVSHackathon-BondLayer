@@ -4,6 +4,7 @@ import ChatPane from './components/ChatPane'
 import ResultsView from './components/ResultsView'
 import EvidenceTimeline from './components/EvidenceTimeline'
 import TranscriptPanel from './components/TranscriptPanel'
+import UCPLog from './components/UCPLog'
 
 interface EvidenceRecord {
   id: string
@@ -26,6 +27,12 @@ interface RankedResult {
   evidence_records: EvidenceRecord[]
 }
 
+interface UCPLogEntry {
+  step: string
+  detail: string
+  [key: string]: string | string[] | number | undefined
+}
+
 interface AgentResponse {
   user_query: string
   parsed_intent: string
@@ -34,6 +41,15 @@ interface AgentResponse {
   bondlayer_enabled: boolean
   transcript: Record<string, string>
   ucp_header: string | null
+  ucp_negotiation_log?: UCPLogEntry[]
+  records_state_log?: Array<{
+    record_id: string
+    status: string
+    value: number
+    credited: number
+    verified: boolean
+    reason?: string
+  }>
 }
 
 function App() {
@@ -159,6 +175,14 @@ function App() {
 
                 {/* Evidence Timeline */}
                 <EvidenceTimeline response={displayResponse!} />
+
+                {/* UCP Negotiation Log */}
+                {displayResponse!.ucp_negotiation_log && displayResponse!.ucp_negotiation_log.length > 0 && (
+                  <UCPLog
+                    log={displayResponse!.ucp_negotiation_log}
+                    bondlayerEnabled={displayResponse!.bondlayer_enabled}
+                  />
+                )}
 
                 {/* Transcript Toggle */}
                 <div className="transcript-section">

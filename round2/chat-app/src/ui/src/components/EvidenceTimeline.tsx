@@ -6,6 +6,10 @@ interface EvidenceRecord {
   source: string
   signed: boolean
   verified: boolean
+  state?: string  // "signed_priced" | "signed_unpriced" | "unsigned"
+  credited_value?: number
+  canonical_json?: string | null
+  signature?: string | null
 }
 
 interface RankedResult {
@@ -26,6 +30,14 @@ interface EvidenceTimelineProps {
     results: RankedResult[]
     final_recommendation: string
     bondlayer_enabled: boolean
+    records_state_log?: Array<{
+      record_id: string
+      status: string
+      value: number
+      credited: number
+      verified: boolean
+      reason?: string
+    }>
   }
 }
 
@@ -37,6 +49,12 @@ export default function EvidenceTimeline({ response }: EvidenceTimelineProps) {
       product_name: result.product_name,
       merchant: result.merchant,
       productPrice: result.price,
+      // Use the state field if available (from real signing)
+      state: record.state || (
+        !record.signed ? 'unsigned' :
+        record.value === null || record.value === 0 ? 'signed_unpriced' :
+        'signed_priced'
+      ),
     }))
   )
 
@@ -49,14 +67,10 @@ export default function EvidenceTimeline({ response }: EvidenceTimelineProps) {
     )
   }
 
-  // Group records by state
-  const signedPriced = allRecords.filter(
-    (r) => r.signed && r.verified && r.value !== null
-  )
-  const signedUnpriced = allRecords.filter(
-    (r) => r.signed && r.verified && r.value === null
-  )
-  const unsigned = allRecords.filter((r) => !r.signed)
+  // Group records by state (from backend)
+  const signedPriced = allRecords.filter((r) => r.state === 'signed_priced')
+  const signedUnpriced = allRecords.filter((r) => r.state === 'signed_unpriced')
+  const unsigned = allRecords.filter((r) => r.state === 'unsigned')
 
   return (
     <div className="evidence-timeline">
@@ -79,9 +93,10 @@ export default function EvidenceTimeline({ response }: EvidenceTimelineProps) {
               <div className="record-content">
                 <strong>{record.description}</strong>
                 <p className="record-source">{record.source}</p>
-                {record.value && (
-                  <span className="record-value">+${record.value.toFixed(2)}</span>
-                )}
+                {record.signature && <p className="record-sig">Signature: {record.signature}</p>}
+                <span className="record-value">
+                  +${(record.credited_value || record.value || 0).toFixed(2)} credited
+                </span>
               </div>
             </div>
           ))}
@@ -123,11 +138,9 @@ export default function EvidenceTimeline({ response }: EvidenceTimelineProps) {
               <div className="record-content">
                 <strong>{record.description}</strong>
                 <p className="record-source">{record.source}</p>
-                {record.value && (
-                  <span className="record-value" style={{ color: '#999' }}>
-                    (claimed: ${record.value.toFixed(2)}) → $0 credited
-                  </span>
-                )}
+                <span className="record-value" style={{ color: '#999' }}>
+                  Claimed: ${(record.value || 0).toFixed(2)} → Credited: $0
+                </span>
               </div>
             </div>
           ))}
@@ -136,11 +149,24 @@ export default function EvidenceTimeline({ response }: EvidenceTimelineProps) {
 
       <div className="timeline-summary">
         <p>
-          <strong>Total Evidence Records:</strong> {allRecords.length} •
-          <strong> Credited:</strong> {signedPriced.length} •
-          <strong> Verified but unpriced:</strong> {signedUnpriced.length} •
-          <strong> Unverified:</strong> {unsigned.length}
+          <strong>Total Records:</strong> {allRecords.length} •
+          <strong> Total Credited:</strong> ${allRecords.reduce((sum, r) => sum + (r.credited_value || 0), 0).toFixed(2)} •
+          <strong> Signed:</strong> {signedPriced.length + signedUnpriced.length} •
+          <strong> Unsigned:</strong> {unsigned.length}
         </p>
+        {response.records_state_log && response.records_state_log.length > 0 && (
+          <details className="record-log">
+            <summary>Record Signing Log ({response.records_state_log.length})</summary>
+            <div className="log-content">
+              {response.records_state_log.map((log) => (
+                <div key={log.record_id} className="log-entry">
+                  <strong>{log.status}</strong>: {log.record_id} → ${log.credited} credited {log.verified && '(verified)'}
+                  {log.reason && <span className="log-reason">({log.reason})</span>}
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
       </div>
     </div>
   )
