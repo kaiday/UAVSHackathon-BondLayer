@@ -11,9 +11,14 @@ between them is what their manifest declares.
 
 ```bash
 cd bondlayer
-pip install -e .
-python run_server.py
+pip install -e .          # note the trailing dot
+python run_server.py      # :8000, or the next free port if it is busy
 ```
+
+Pass a port if you want a specific one: `python run_server.py 8123`, or set
+`PORT`. If something else already holds :8000 the launcher moves up and prints
+the URL it actually bound -- so you never end up reading a stale build on the
+port you expected.
 
 No network call, no API key, no model call, no key generation. Everything is
 seeded from `data/`, because venue wifi is shared by twenty teams.
