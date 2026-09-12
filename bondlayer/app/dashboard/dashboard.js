@@ -286,6 +286,139 @@ function Analytics() {
   `;
 }
 
+// --- Requests: "why we lost" ------------------------------------------
+//
+// Everything here is a projection of RequestReport, off /onboard/requests*.
+// Four figures, one sentence, per merchant, three-way. Legible first, pretty
+// second -- the dashboard's polish scores lower than the logic it renders.
+
+function money(v) {
+  const n = Number(v);
+  return "$" + n.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function pct(v) {
+  return Math.round(v * 100) + "%";
+}
+
+function RequestPicker({ requests, selected, onSelect }) {
+  return html`
+    <div class="card">
+      <div class="card-head">
+        <span class="step">R</span>
+        <h2>Requests (${requests.length})</h2>
+      </div>
+      <div class="card-body tight req-list">
+        ${requests.map((r) => {
+          const won = r.merchants.find((m) => m.won);
+          return html`
+            <button
+              key=${r.request_id}
+              class="req-row"
+              aria-pressed=${String(r.request_id === selected)}
+              onClick=${() => onSelect(r.request_id)}
+            >
+              <span class="req-id">${r.request_id}</span>
+              <span class="req-utterance">${r.utterance}</span>
+              <span class="req-winner">${won ? won.merchant : "no winner"}</span>
+            </button>
+          `;
+        })}
+      </div>
+    </div>
+  `;
+}
+
+function MerchantRow({ row }) {
+  return html`
+    <div class="merchant-row ${row.won ? "won" : ""}">
+      <div class="merchant-row-head">
+        <div class="merchant-row-name">
+          ${row.merchant}
+          ${row.control_merchant && html`<span class="role">control</span>`}
+        </div>
+        <span class="verdict ${row.won ? "win" : "loss"}">${row.won ? "won" : "lost"}</span>
+      </div>
+      <div class="four-figures">
+        <div class="figure">
+          <div class="v">${row.fields_exposed}</div>
+          <div class="k">fields exposed</div>
+        </div>
+        <div class="figure">
+          <div class="v">${pct(row.legible_share)}</div>
+          <div class="k">legible share of the real offer</div>
+        </div>
+        <div class="figure">
+          <div class="v credited">${money(row.value_credited_aud)}</div>
+          <div class="k">verified value credited</div>
+        </div>
+        <div class="figure">
+          <div class="v withheld">${money(row.value_withheld_aud)}</div>
+          <div class="k">value withheld by the wire</div>
+        </div>
+      </div>
+      <div class="why">
+        <b>${row.won ? "Why we won: " : "Why we lost: "}</b>
+        ${row.lost_because || "Highest verified value credited against the shopper's stated intent."}
+      </div>
+    </div>
+  `;
+}
+
+function RequestDetail({ report }) {
+  return html`
+    <div class="card">
+      <div class="card-head">
+        <span class="step">R</span>
+        <h2>${report.request_id} — ${report.utterance}</h2>
+      </div>
+      <div class="card-body tight">
+        ${report.merchants.map((row) => html`<${MerchantRow} row=${row} key=${row.merchant} />`)}
+      </div>
+    </div>
+  `;
+}
+
+function Requests() {
+  const [requests, setRequests] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [report, setReport] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    api("/onboard/requests")
+      .then((rs) => {
+        setRequests(rs);
+        setSelected((s) => s || (rs[0] && rs[0].request_id));
+      })
+      .catch((e) => setError(String(e.message || e)));
+  }, []);
+
+  useEffect(() => {
+    if (!selected) return;
+    setReport(null);
+    api(`/onboard/requests/${selected}`)
+      .then(setReport)
+      .catch((e) => setError(String(e.message || e)));
+  }, [selected]);
+
+  if (error) return html`<div class="card"><div class="card-body">${error}</div></div>`;
+
+  return html`
+    <${Fragment}>
+      <h1 class="page-title">Why we lost</h1>
+      <p class="page-sub">
+        One of the 30 frozen requests. Same query, three merchants, one wire.
+        Four figures per merchant, then the sentence that explains the ranking.
+      </p>
+      <${RequestPicker} requests=${requests} selected=${selected} onSelect=${setSelected} />
+      ${report
+        ? html`<${RequestDetail} report=${report} />`
+        : html`<div class="card"><div class="empty">Loading…</div></div>`}
+    <//>
+  `;
+}
+
 function Onboarding() {
   const [merchants, setMerchants] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -351,6 +484,12 @@ function App() {
               Onboarding
             </button>
             <button
+              aria-current=${tab === "requests" ? "page" : null}
+              onClick=${() => setTab("requests")}
+            >
+              Requests
+            </button>
+            <button
               aria-current=${tab === "analytics" ? "page" : null}
               onClick=${() => setTab("analytics")}
             >
@@ -359,7 +498,11 @@ function App() {
           </nav>
         </div>
       </header>
-      <main>${tab === "onboarding" ? html`<${Onboarding} />` : html`<${Analytics} />`}</main>
+      <main>
+        ${tab === "onboarding" && html`<${Onboarding} />`}
+        ${tab === "requests" && html`<${Requests} />`}
+        ${tab === "analytics" && html`<${Analytics} />`}
+      </main>
     <//>
   `;
 }
