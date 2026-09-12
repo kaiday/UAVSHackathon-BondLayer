@@ -24,7 +24,7 @@ from fastapi.staticfiles import StaticFiles
 
 from bondlayer.adapters import CsvCatalogAdapter
 from bondlayer.types import Sku
-from bondlayer.ucp import intent, onboard
+from bondlayer.ucp import checkout, intent, onboard
 from bondlayer.ucp.capabilities import (
     BENEFIT_VALUE,
     CATALOG_LOOKUP,
@@ -218,6 +218,7 @@ def create_app() -> FastAPI:
     app.include_router(router)
     app.include_router(onboard.router)
     app.include_router(intent.router)
+    app.include_router(checkout.router)
     if DASHBOARD.is_dir():
         # React is vendored under app/dashboard/vendor and served from here.
         # No CDN: a script tag pointing at the internet is a live fetch at demo
