@@ -5,3 +5,7 @@ __pycache__/
 .pytest_cache/
 *.log
 keys/*.pem
+*.egg-info/
+build/
+dist/
+data/uploads/
