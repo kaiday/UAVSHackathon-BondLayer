@@ -1,0 +1,1616 @@
+{
+  "frozen": "2026-09-12",
+  "freeze_rule": "Frozen before any benefit record existed. Do not regenerate.",
+  "taxonomy": "data/eval/taxonomy.md",
+  "catalogue": "data/catalog/electronics.csv",
+  "count": 30,
+  "requests": [
+    {
+      "id": "R01",
+      "utterance": "A laptop under $1,500 I can return easily if it turns out not to suit my work, from a brand that actually repairs things",
+      "constraints": [
+        {
+          "text": "under $1,500",
+          "kind": "HARD"
+        },
+        {
+          "text": "suits my work",
+          "kind": "SOFT"
+        },
+        {
+          "text": "I can return it easily",
+          "kind": "SERVICE"
+        },
+        {
+          "text": "a brand that actually repairs things",
+          "kind": "VALUES"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0003",
+        "CIT-0019",
+        "CIT-0022",
+        "CIT-0032",
+        "NOR-0020",
+        "NOR-0023",
+        "NOR-0033",
+        "VOL-0001",
+        "VOL-0002",
+        "VOL-0018",
+        "VOL-0021",
+        "VOL-0031"
+      ],
+      "gold_model_keys": [
+        "ideapad5",
+        "sb-go3",
+        "tb14g3-i5",
+        "vivobook16"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "THE DEMO QUERY. One clause of each kind. The last two are unanswerable from the catalogue alone."
+    },
+    {
+      "id": "R02",
+      "utterance": "I need a laptop for design work, no more than $2,500, and I want decent cover if it breaks in year two",
+      "constraints": [
+        {
+          "text": "no more than $2,500",
+          "kind": "HARD"
+        },
+        {
+          "text": "for design work",
+          "kind": "SOFT"
+        },
+        {
+          "text": "cover if it breaks in year two",
+          "kind": "SERVICE"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0003",
+        "CIT-0005",
+        "CIT-0007",
+        "CIT-0010",
+        "CIT-0014",
+        "CIT-0019",
+        "CIT-0022",
+        "CIT-0024",
+        "CIT-0027",
+        "CIT-0029",
+        "CIT-0032",
+        "CIT-0125",
+        "CIT-0128",
+        "NOR-0006",
+        "NOR-0008",
+        "NOR-0011",
+        "NOR-0020",
+        "NOR-0023",
+        "NOR-0025",
+        "NOR-0030",
+        "NOR-0033",
+        "NOR-0126",
+        "NOR-0129",
+        "VOL-0001",
+        "VOL-0002",
+        "VOL-0004",
+        "VOL-0009",
+        "VOL-0012",
+        "VOL-0013",
+        "VOL-0018",
+        "VOL-0021",
+        "VOL-0028",
+        "VOL-0031",
+        "VOL-0124",
+        "VOL-0127"
+      ],
+      "gold_model_keys": [
+        "elitebook",
+        "gram16",
+        "ideapad5",
+        "mba13-m3",
+        "mba15-m3",
+        "sb-go3",
+        "swift14",
+        "tb14g3-i5",
+        "tb14g3-i7",
+        "tb14g4-i7",
+        "tp-e16",
+        "vivobook16",
+        "xps13-9340"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Warranty clause resolves to a warranty benefit record, not a catalogue field."
+    },
+    {
+      "id": "R03",
+      "utterance": "Cheapest 16GB laptop you have",
+      "constraints": [
+        {
+          "text": "16GB",
+          "kind": "HARD"
+        },
+        {
+          "text": "cheapest",
+          "kind": "SOFT"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0003",
+        "CIT-0005",
+        "CIT-0007",
+        "CIT-0010",
+        "CIT-0014",
+        "CIT-0016",
+        "CIT-0019",
+        "CIT-0022",
+        "CIT-0024",
+        "CIT-0027",
+        "CIT-0029",
+        "CIT-0032",
+        "CIT-0035",
+        "CIT-0125",
+        "CIT-0128",
+        "NOR-0006",
+        "NOR-0008",
+        "NOR-0011",
+        "NOR-0017",
+        "NOR-0020",
+        "NOR-0023",
+        "NOR-0025",
+        "NOR-0030",
+        "NOR-0033",
+        "NOR-0036",
+        "NOR-0126",
+        "NOR-0129",
+        "VOL-0001",
+        "VOL-0002",
+        "VOL-0004",
+        "VOL-0009",
+        "VOL-0012",
+        "VOL-0013",
+        "VOL-0015",
+        "VOL-0018",
+        "VOL-0021",
+        "VOL-0026",
+        "VOL-0028",
+        "VOL-0031",
+        "VOL-0034",
+        "VOL-0124",
+        "VOL-0127"
+      ],
+      "gold_model_keys": [
+        "elitebook",
+        "gram16",
+        "ideapad5",
+        "legion5",
+        "mba13-m3",
+        "mba15-m3",
+        "sb-go3",
+        "swift14",
+        "tb14g3-i5",
+        "tb14g3-i7",
+        "tb14g4-i7",
+        "tp-e16",
+        "vivobook16",
+        "xps13-9340",
+        "zb14-g11"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Control case: fully answerable from the catalogue. A plain feed should do fine here, and that is the point."
+    },
+    {
+      "id": "R04",
+      "utterance": "Something light I can carry every day, under 1.3kg, budget around $2,000",
+      "constraints": [
+        {
+          "text": "under 1.3kg",
+          "kind": "HARD"
+        },
+        {
+          "text": "around $2,000",
+          "kind": "SOFT"
+        },
+        {
+          "text": "carry every day",
+          "kind": "SOFT"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0003",
+        "CIT-0005",
+        "CIT-0007",
+        "CIT-0010",
+        "CIT-0014",
+        "CIT-0016",
+        "CIT-0019",
+        "CIT-0022",
+        "CIT-0024",
+        "CIT-0027",
+        "CIT-0029",
+        "CIT-0032",
+        "CIT-0035",
+        "CIT-0125",
+        "CIT-0128",
+        "NOR-0006",
+        "NOR-0008",
+        "NOR-0011",
+        "NOR-0017",
+        "NOR-0020",
+        "NOR-0023",
+        "NOR-0025",
+        "NOR-0030",
+        "NOR-0033",
+        "NOR-0036",
+        "NOR-0126",
+        "NOR-0129",
+        "VOL-0001",
+        "VOL-0002",
+        "VOL-0004",
+        "VOL-0009",
+        "VOL-0012",
+        "VOL-0013",
+        "VOL-0015",
+        "VOL-0018",
+        "VOL-0021",
+        "VOL-0026",
+        "VOL-0028",
+        "VOL-0031",
+        "VOL-0034",
+        "VOL-0124",
+        "VOL-0127"
+      ],
+      "gold_model_keys": [
+        "elitebook",
+        "gram16",
+        "ideapad5",
+        "legion5",
+        "mba13-m3",
+        "mba15-m3",
+        "sb-go3",
+        "swift14",
+        "tb14g3-i5",
+        "tb14g3-i7",
+        "tb14g4-i7",
+        "tp-e16",
+        "vivobook16",
+        "xps13-9340",
+        "zb14-g11"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "'around' makes budget SOFT; 'under 1.3kg' stays HARD. Taxonomy rule 3."
+    },
+    {
+      "id": "R05",
+      "utterance": "A phone under $1,000 from a company that lets you fix it yourself",
+      "constraints": [
+        {
+          "text": "under $1,000",
+          "kind": "HARD"
+        },
+        {
+          "text": "lets you fix it yourself",
+          "kind": "VALUES"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0050",
+        "VOL-0049",
+        "VOL-0130"
+      ],
+      "gold_model_keys": [
+        "nord4",
+        "px8a"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Repairability is a VALUES claim: signed, cited, worth $0."
+    },
+    {
+      "id": "R06",
+      "utterance": "Everything I need to start a podcast, under $1,200 all up",
+      "constraints": [
+        {
+          "text": "under $1,200 all up",
+          "kind": "HARD"
+        },
+        {
+          "text": "everything to start a podcast",
+          "kind": "SOFT"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0055",
+        "CIT-0057",
+        "CIT-0061",
+        "CIT-0063",
+        "CIT-0066",
+        "CIT-0069",
+        "CIT-0072",
+        "CIT-0075",
+        "CIT-0078",
+        "CIT-0081",
+        "CIT-0132",
+        "CIT-0134",
+        "NOR-0056",
+        "NOR-0058",
+        "NOR-0064",
+        "NOR-0067",
+        "NOR-0070",
+        "NOR-0073",
+        "NOR-0076",
+        "NOR-0079",
+        "NOR-0082",
+        "NOR-0135",
+        "VOL-0054",
+        "VOL-0059",
+        "VOL-0060",
+        "VOL-0062",
+        "VOL-0065",
+        "VOL-0068",
+        "VOL-0071",
+        "VOL-0074",
+        "VOL-0077",
+        "VOL-0080",
+        "VOL-0131",
+        "VOL-0133"
+      ],
+      "gold_model_keys": [
+        "at2020",
+        "ath-m50x",
+        "atr2100",
+        "hd280",
+        "mv7",
+        "psa1",
+        "rodeai1",
+        "rodecaster",
+        "scarlett2i2",
+        "sm4",
+        "sm58",
+        "sm7b",
+        "wh1000",
+        "xlr3m"
+      ],
+      "bundle": true,
+      "expect_unsatisfied": false,
+      "notes": "BUNDLE. Gold is a set. Combined price is the constraint, not per-item price."
+    },
+    {
+      "id": "R07",
+      "utterance": "Beginner-friendly podcasting gear, I've never recorded anything before",
+      "constraints": [
+        {
+          "text": "beginner-friendly",
+          "kind": "SOFT"
+        },
+        {
+          "text": "podcasting gear",
+          "kind": "SOFT"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0055",
+        "CIT-0057",
+        "CIT-0061",
+        "CIT-0063",
+        "CIT-0066",
+        "CIT-0069",
+        "CIT-0072",
+        "CIT-0075",
+        "CIT-0078",
+        "CIT-0081",
+        "CIT-0132",
+        "CIT-0134",
+        "NOR-0056",
+        "NOR-0058",
+        "NOR-0064",
+        "NOR-0067",
+        "NOR-0070",
+        "NOR-0073",
+        "NOR-0076",
+        "NOR-0079",
+        "NOR-0082",
+        "NOR-0135",
+        "VOL-0054",
+        "VOL-0059",
+        "VOL-0060",
+        "VOL-0062",
+        "VOL-0065",
+        "VOL-0068",
+        "VOL-0071",
+        "VOL-0074",
+        "VOL-0077",
+        "VOL-0080",
+        "VOL-0131",
+        "VOL-0133"
+      ],
+      "gold_model_keys": [
+        "at2020",
+        "ath-m50x",
+        "atr2100",
+        "hd280",
+        "mv7",
+        "psa1",
+        "rodeai1",
+        "rodecaster",
+        "scarlett2i2",
+        "sm4",
+        "sm58",
+        "sm7b",
+        "wh1000",
+        "xlr3m"
+      ],
+      "bundle": true,
+      "expect_unsatisfied": false,
+      "notes": "BUNDLE. The problem statement's own worked example, near-verbatim."
+    },
+    {
+      "id": "R08",
+      "utterance": "A vacuum under $1,000 with a long warranty",
+      "constraints": [
+        {
+          "text": "under $1,000",
+          "kind": "HARD"
+        },
+        {
+          "text": "vacuum",
+          "kind": "HARD"
+        },
+        {
+          "text": "long warranty",
+          "kind": "SERVICE"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0109",
+        "CIT-0111",
+        "CIT-0117",
+        "CIT-0121",
+        "CIT-0122",
+        "CIT-0137",
+        "NOR-0112",
+        "NOR-0118",
+        "NOR-0123",
+        "NOR-0138",
+        "VOL-0108",
+        "VOL-0110",
+        "VOL-0116",
+        "VOL-0119",
+        "VOL-0120",
+        "VOL-0136"
+      ],
+      "gold_model_keys": [
+        "air-pure",
+        "cof-bam",
+        "kettle-t",
+        "mw-flat",
+        "rb-v12",
+        "rice-10",
+        "toast4"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Warranty length differs by merchant and is only visible as a record."
+    },
+    {
+      "id": "R09",
+      "utterance": "Coffee machine, under $800, must be returnable if I don't get on with it",
+      "constraints": [
+        {
+          "text": "under $800",
+          "kind": "HARD"
+        },
+        {
+          "text": "coffee machine",
+          "kind": "HARD"
+        },
+        {
+          "text": "returnable if I don't get on with it",
+          "kind": "SERVICE"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0111",
+        "CIT-0117",
+        "CIT-0121",
+        "CIT-0122",
+        "CIT-0137",
+        "NOR-0112",
+        "NOR-0118",
+        "NOR-0123",
+        "NOR-0138",
+        "VOL-0110",
+        "VOL-0116",
+        "VOL-0119",
+        "VOL-0120",
+        "VOL-0136"
+      ],
+      "gold_model_keys": [
+        "air-pure",
+        "cof-bam",
+        "kettle-t",
+        "mw-flat",
+        "rice-10",
+        "toast4"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Return window is the deciding clause."
+    },
+    {
+      "id": "R10",
+      "utterance": "A 32GB laptop for video editing, money is not really the issue",
+      "constraints": [
+        {
+          "text": "32GB",
+          "kind": "HARD"
+        },
+        {
+          "text": "for video editing",
+          "kind": "SOFT"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0003",
+        "CIT-0005",
+        "CIT-0007",
+        "CIT-0010",
+        "CIT-0014",
+        "CIT-0016",
+        "CIT-0019",
+        "CIT-0022",
+        "CIT-0024",
+        "CIT-0027",
+        "CIT-0029",
+        "CIT-0032",
+        "CIT-0035",
+        "CIT-0125",
+        "CIT-0128",
+        "NOR-0006",
+        "NOR-0008",
+        "NOR-0011",
+        "NOR-0017",
+        "NOR-0020",
+        "NOR-0023",
+        "NOR-0025",
+        "NOR-0030",
+        "NOR-0033",
+        "NOR-0036",
+        "NOR-0126",
+        "NOR-0129",
+        "VOL-0001",
+        "VOL-0002",
+        "VOL-0004",
+        "VOL-0009",
+        "VOL-0012",
+        "VOL-0013",
+        "VOL-0015",
+        "VOL-0018",
+        "VOL-0021",
+        "VOL-0026",
+        "VOL-0028",
+        "VOL-0031",
+        "VOL-0034",
+        "VOL-0124",
+        "VOL-0127"
+      ],
+      "gold_model_keys": [
+        "elitebook",
+        "gram16",
+        "ideapad5",
+        "legion5",
+        "mba13-m3",
+        "mba15-m3",
+        "sb-go3",
+        "swift14",
+        "tb14g3-i5",
+        "tb14g3-i7",
+        "tb14g4-i7",
+        "tp-e16",
+        "vivobook16",
+        "xps13-9340",
+        "zb14-g11"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "No budget clause at all. Interpreter must not invent one."
+    },
+    {
+      "id": "R11",
+      "utterance": "Monitor for a home office, around $800, delivered free if possible",
+      "constraints": [
+        {
+          "text": "monitor",
+          "kind": "HARD"
+        },
+        {
+          "text": "around $800",
+          "kind": "SOFT"
+        },
+        {
+          "text": "delivered free if possible",
+          "kind": "SERVICE"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0085",
+        "CIT-0087",
+        "CIT-0089",
+        "CIT-0092",
+        "CIT-0096",
+        "CIT-0098",
+        "CIT-0101",
+        "CIT-0104",
+        "NOR-0088",
+        "NOR-0090",
+        "NOR-0093",
+        "NOR-0099",
+        "NOR-0102",
+        "NOR-0105",
+        "VOL-0083",
+        "VOL-0084",
+        "VOL-0086",
+        "VOL-0091",
+        "VOL-0094",
+        "VOL-0095",
+        "VOL-0097",
+        "VOL-0100",
+        "VOL-0103"
+      ],
+      "gold_model_keys": [
+        "bag15",
+        "chg-100",
+        "dock-tb4",
+        "hub-usbc",
+        "kb-mx",
+        "mon27",
+        "mon32",
+        "ms-mx3",
+        "pb-737",
+        "ssd2tb"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Delivery threshold is a benefit record."
+    },
+    {
+      "id": "R12",
+      "utterance": "I want the most sustainable phone you sell",
+      "constraints": [
+        {
+          "text": "phone",
+          "kind": "HARD"
+        },
+        {
+          "text": "most sustainable",
+          "kind": "VALUES"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0039",
+        "CIT-0040",
+        "CIT-0043",
+        "CIT-0046",
+        "CIT-0050",
+        "CIT-0052",
+        "NOR-0041",
+        "NOR-0044",
+        "NOR-0047",
+        "NOR-0053",
+        "VOL-0037",
+        "VOL-0038",
+        "VOL-0042",
+        "VOL-0045",
+        "VOL-0048",
+        "VOL-0049",
+        "VOL-0051",
+        "VOL-0130"
+      ],
+      "gold_model_keys": [
+        "fp5",
+        "ip15",
+        "ip15p",
+        "nord4",
+        "px8a",
+        "px9",
+        "px9p",
+        "s24",
+        "s24u"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Pure VALUES ranking. Contributes no dollars; decided entirely on signed claims. northgear's greenwashing claim is unsigned and must not win this."
+    },
+    {
+      "id": "R13",
+      "utterance": "Laptop under $1,200, 16GB, and I want to be able to trade in my old one",
+      "constraints": [
+        {
+          "text": "under $1,200",
+          "kind": "HARD"
+        },
+        {
+          "text": "16GB",
+          "kind": "HARD"
+        },
+        {
+          "text": "trade in my old one",
+          "kind": "SERVICE"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0022",
+        "CIT-0032",
+        "NOR-0023",
+        "NOR-0033",
+        "VOL-0021",
+        "VOL-0031"
+      ],
+      "gold_model_keys": [
+        "sb-go3",
+        "vivobook16"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Trade-in credit is a priced benefit record."
+    },
+    {
+      "id": "R14",
+      "utterance": "A headset for calls under $300",
+      "constraints": [
+        {
+          "text": "under $300",
+          "kind": "HARD"
+        },
+        {
+          "text": "headset for calls",
+          "kind": "SOFT"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0061",
+        "CIT-0066",
+        "CIT-0069",
+        "CIT-0072",
+        "CIT-0075",
+        "CIT-0078",
+        "CIT-0081",
+        "CIT-0134",
+        "NOR-0067",
+        "NOR-0070",
+        "NOR-0073",
+        "NOR-0076",
+        "NOR-0079",
+        "NOR-0082",
+        "NOR-0135",
+        "VOL-0059",
+        "VOL-0060",
+        "VOL-0065",
+        "VOL-0068",
+        "VOL-0071",
+        "VOL-0074",
+        "VOL-0077",
+        "VOL-0080"
+      ],
+      "gold_model_keys": [
+        "at2020",
+        "ath-m50x",
+        "atr2100",
+        "hd280",
+        "psa1",
+        "rodeai1",
+        "scarlett2i2",
+        "sm4",
+        "sm58",
+        "xlr3m"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Simple two-clause baseline."
+    },
+    {
+      "id": "R15",
+      "utterance": "Something to record interviews on the go, under $500, easy to return if the audio is no good",
+      "constraints": [
+        {
+          "text": "under $500",
+          "kind": "HARD"
+        },
+        {
+          "text": "record interviews on the go",
+          "kind": "SOFT"
+        },
+        {
+          "text": "easy to return",
+          "kind": "SERVICE"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0057",
+        "CIT-0061",
+        "CIT-0066",
+        "CIT-0069",
+        "CIT-0072",
+        "CIT-0075",
+        "CIT-0078",
+        "CIT-0081",
+        "CIT-0134",
+        "NOR-0058",
+        "NOR-0067",
+        "NOR-0070",
+        "NOR-0073",
+        "NOR-0076",
+        "NOR-0079",
+        "NOR-0082",
+        "NOR-0135",
+        "VOL-0059",
+        "VOL-0060",
+        "VOL-0065",
+        "VOL-0068",
+        "VOL-0071",
+        "VOL-0074",
+        "VOL-0077",
+        "VOL-0080",
+        "VOL-0133"
+      ],
+      "gold_model_keys": [
+        "at2020",
+        "ath-m50x",
+        "atr2100",
+        "hd280",
+        "mv7",
+        "psa1",
+        "rodeai1",
+        "scarlett2i2",
+        "sm4",
+        "sm58",
+        "xlr3m"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Use-case clause is SOFT and must resolve to inferred attributes, stated."
+    },
+    {
+      "id": "R16",
+      "utterance": "A laptop that will still be supported in five years",
+      "constraints": [
+        {
+          "text": "laptop",
+          "kind": "HARD"
+        },
+        {
+          "text": "still supported in five years",
+          "kind": "VALUES"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0003",
+        "CIT-0005",
+        "CIT-0007",
+        "CIT-0010",
+        "CIT-0014",
+        "CIT-0016",
+        "CIT-0019",
+        "CIT-0022",
+        "CIT-0024",
+        "CIT-0027",
+        "CIT-0029",
+        "CIT-0032",
+        "CIT-0035",
+        "CIT-0125",
+        "CIT-0128",
+        "NOR-0006",
+        "NOR-0008",
+        "NOR-0011",
+        "NOR-0017",
+        "NOR-0020",
+        "NOR-0023",
+        "NOR-0025",
+        "NOR-0030",
+        "NOR-0033",
+        "NOR-0036",
+        "NOR-0126",
+        "NOR-0129",
+        "VOL-0001",
+        "VOL-0002",
+        "VOL-0004",
+        "VOL-0009",
+        "VOL-0012",
+        "VOL-0013",
+        "VOL-0015",
+        "VOL-0018",
+        "VOL-0021",
+        "VOL-0026",
+        "VOL-0028",
+        "VOL-0031",
+        "VOL-0034",
+        "VOL-0124",
+        "VOL-0127"
+      ],
+      "gold_model_keys": [
+        "elitebook",
+        "gram16",
+        "ideapad5",
+        "legion5",
+        "mba13-m3",
+        "mba15-m3",
+        "sb-go3",
+        "swift14",
+        "tb14g3-i5",
+        "tb14g3-i7",
+        "tb14g4-i7",
+        "tp-e16",
+        "vivobook16",
+        "xps13-9340",
+        "zb14-g11"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": true,
+      "notes": "UNSATISFIABLE by design. No merchant publishes a support-lifetime claim. Must appear in unsatisfied, not be silently dropped."
+    },
+    {
+      "id": "R17",
+      "utterance": "Under $600, a phone, and it must be carbon neutral",
+      "constraints": [
+        {
+          "text": "under $600",
+          "kind": "HARD"
+        },
+        {
+          "text": "phone",
+          "kind": "HARD"
+        },
+        {
+          "text": "carbon neutral",
+          "kind": "VALUES"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0050",
+        "VOL-0049"
+      ],
+      "gold_model_keys": [
+        "nord4"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": true,
+      "notes": "UNSATISFIABLE VALUES clause on a satisfiable product set. Partial answer plus honest flag."
+    },
+    {
+      "id": "R18",
+      "utterance": "The ThinkBook 14 G3 with 16 gigs",
+      "constraints": [
+        {
+          "text": "ThinkBook 14 G3",
+          "kind": "HARD"
+        },
+        {
+          "text": "16 gigs",
+          "kind": "HARD"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0003",
+        "VOL-0001",
+        "VOL-0002"
+      ],
+      "gold_model_keys": [
+        "tb14g3-i5"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "NEAR-DUPLICATE TRAP. Three listings, two of them differing only in spacing. Substring matching returns all three as distinct products; a real matcher collapses them by GTIN."
+    },
+    {
+      "id": "R19",
+      "utterance": "A ThinkBook 14, i7, 1TB",
+      "constraints": [
+        {
+          "text": "ThinkBook 14",
+          "kind": "HARD"
+        },
+        {
+          "text": "i7",
+          "kind": "HARD"
+        },
+        {
+          "text": "1TB",
+          "kind": "HARD"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0005",
+        "NOR-0006",
+        "VOL-0004"
+      ],
+      "gold_model_keys": [
+        "tb14g4-i7"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Generation trap: G3 and G4 differ by one character in the title."
+    },
+    {
+      "id": "R20",
+      "utterance": "XPS 13 with 16GB",
+      "constraints": [
+        {
+          "text": "XPS 13",
+          "kind": "HARD"
+        },
+        {
+          "text": "16GB",
+          "kind": "HARD"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0007",
+        "CIT-0010",
+        "NOR-0008",
+        "NOR-0011",
+        "VOL-0009"
+      ],
+      "gold_model_keys": [
+        "xps13-9340"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Second near-duplicate pair, formatted differently."
+    },
+    {
+      "id": "R21",
+      "utterance": "A laptop under $1,600 \u2014 I'd rather pay a bit more if the returns are genuinely painless",
+      "constraints": [
+        {
+          "text": "under $1,600",
+          "kind": "HARD"
+        },
+        {
+          "text": "returns genuinely painless",
+          "kind": "SERVICE"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0003",
+        "CIT-0019",
+        "CIT-0022",
+        "CIT-0029",
+        "CIT-0032",
+        "CIT-0125",
+        "NOR-0020",
+        "NOR-0023",
+        "NOR-0030",
+        "NOR-0033",
+        "NOR-0126",
+        "VOL-0001",
+        "VOL-0002",
+        "VOL-0018",
+        "VOL-0021",
+        "VOL-0031"
+      ],
+      "gold_model_keys": [
+        "ideapad5",
+        "sb-go3",
+        "tb14g3-i5",
+        "tb14g3-i7",
+        "tp-e16",
+        "vivobook16"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "TIE-BREAK. Shelf prices are close; only the return-window record separates them. This is the effective-cost story in one request."
+    },
+    {
+      "id": "R22",
+      "utterance": "Rice cooker, cheapest one, but I want it to last",
+      "constraints": [
+        {
+          "text": "rice cooker",
+          "kind": "HARD"
+        },
+        {
+          "text": "cheapest",
+          "kind": "SOFT"
+        },
+        {
+          "text": "I want it to last",
+          "kind": "VALUES"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0106",
+        "CIT-0109",
+        "CIT-0111",
+        "CIT-0114",
+        "CIT-0117",
+        "CIT-0121",
+        "CIT-0122",
+        "CIT-0137",
+        "NOR-0107",
+        "NOR-0112",
+        "NOR-0115",
+        "NOR-0118",
+        "NOR-0123",
+        "NOR-0138",
+        "VOL-0108",
+        "VOL-0110",
+        "VOL-0113",
+        "VOL-0116",
+        "VOL-0119",
+        "VOL-0120",
+        "VOL-0136"
+      ],
+      "gold_model_keys": [
+        "air-pure",
+        "cof-bam",
+        "cof-bar",
+        "kettle-t",
+        "mw-flat",
+        "rb-v12",
+        "rb-v15",
+        "rice-10",
+        "toast4"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Durability is a VALUES claim, not a spec."
+    },
+    {
+      "id": "R23",
+      "utterance": "Portable SSD, 2TB, delivered this week",
+      "constraints": [
+        {
+          "text": "2TB",
+          "kind": "HARD"
+        },
+        {
+          "text": "portable SSD",
+          "kind": "HARD"
+        },
+        {
+          "text": "delivered this week",
+          "kind": "SERVICE"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0085",
+        "CIT-0087",
+        "CIT-0089",
+        "CIT-0092",
+        "CIT-0096",
+        "CIT-0098",
+        "CIT-0101",
+        "CIT-0104",
+        "NOR-0088",
+        "NOR-0090",
+        "NOR-0093",
+        "NOR-0099",
+        "NOR-0102",
+        "NOR-0105",
+        "VOL-0083",
+        "VOL-0084",
+        "VOL-0086",
+        "VOL-0091",
+        "VOL-0094",
+        "VOL-0095",
+        "VOL-0097",
+        "VOL-0100",
+        "VOL-0103"
+      ],
+      "gold_model_keys": [
+        "bag15",
+        "chg-100",
+        "dock-tb4",
+        "hub-usbc",
+        "kb-mx",
+        "mon27",
+        "mon32",
+        "ms-mx3",
+        "pb-737",
+        "ssd2tb"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Delivery speed is a service clause with no catalogue column."
+    },
+    {
+      "id": "R24",
+      "utterance": "A work laptop and a dock, under $2,200 together",
+      "constraints": [
+        {
+          "text": "under $2,200 together",
+          "kind": "HARD"
+        },
+        {
+          "text": "work laptop",
+          "kind": "SOFT"
+        },
+        {
+          "text": "dock",
+          "kind": "HARD"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0003",
+        "CIT-0005",
+        "CIT-0007",
+        "CIT-0010",
+        "CIT-0014",
+        "CIT-0016",
+        "CIT-0019",
+        "CIT-0022",
+        "CIT-0024",
+        "CIT-0027",
+        "CIT-0029",
+        "CIT-0032",
+        "CIT-0035",
+        "CIT-0125",
+        "CIT-0128",
+        "NOR-0006",
+        "NOR-0008",
+        "NOR-0011",
+        "NOR-0017",
+        "NOR-0020",
+        "NOR-0023",
+        "NOR-0025",
+        "NOR-0030",
+        "NOR-0033",
+        "NOR-0036",
+        "NOR-0126",
+        "NOR-0129",
+        "VOL-0001",
+        "VOL-0002",
+        "VOL-0004",
+        "VOL-0009",
+        "VOL-0012",
+        "VOL-0013",
+        "VOL-0015",
+        "VOL-0018",
+        "VOL-0021",
+        "VOL-0026",
+        "VOL-0028",
+        "VOL-0031",
+        "VOL-0034",
+        "VOL-0124",
+        "VOL-0127"
+      ],
+      "gold_model_keys": [
+        "elitebook",
+        "gram16",
+        "ideapad5",
+        "legion5",
+        "mba13-m3",
+        "mba15-m3",
+        "sb-go3",
+        "swift14",
+        "tb14g3-i5",
+        "tb14g3-i7",
+        "tb14g4-i7",
+        "tp-e16",
+        "vivobook16",
+        "xps13-9340",
+        "zb14-g11"
+      ],
+      "bundle": true,
+      "expect_unsatisfied": false,
+      "notes": "BUNDLE across two categories. Combined-price constraint."
+    },
+    {
+      "id": "R25",
+      "utterance": "Gaming laptop, 32GB, RTX, under $3,000",
+      "constraints": [
+        {
+          "text": "32GB",
+          "kind": "HARD"
+        },
+        {
+          "text": "RTX",
+          "kind": "HARD"
+        },
+        {
+          "text": "under $3,000",
+          "kind": "HARD"
+        },
+        {
+          "text": "gaming",
+          "kind": "SOFT"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0003",
+        "CIT-0005",
+        "CIT-0007",
+        "CIT-0010",
+        "CIT-0014",
+        "CIT-0019",
+        "CIT-0022",
+        "CIT-0024",
+        "CIT-0027",
+        "CIT-0029",
+        "CIT-0032",
+        "CIT-0035",
+        "CIT-0125",
+        "CIT-0128",
+        "NOR-0006",
+        "NOR-0008",
+        "NOR-0011",
+        "NOR-0020",
+        "NOR-0023",
+        "NOR-0025",
+        "NOR-0030",
+        "NOR-0033",
+        "NOR-0036",
+        "NOR-0126",
+        "NOR-0129",
+        "VOL-0001",
+        "VOL-0002",
+        "VOL-0004",
+        "VOL-0009",
+        "VOL-0012",
+        "VOL-0013",
+        "VOL-0018",
+        "VOL-0021",
+        "VOL-0026",
+        "VOL-0028",
+        "VOL-0031",
+        "VOL-0034",
+        "VOL-0124",
+        "VOL-0127"
+      ],
+      "gold_model_keys": [
+        "elitebook",
+        "gram16",
+        "ideapad5",
+        "legion5",
+        "mba13-m3",
+        "mba15-m3",
+        "sb-go3",
+        "swift14",
+        "tb14g3-i5",
+        "tb14g3-i7",
+        "tb14g4-i7",
+        "tp-e16",
+        "vivobook16",
+        "xps13-9340"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "All-HARD request. Baseline for filter correctness."
+    },
+    {
+      "id": "R26",
+      "utterance": "I'm on a tight budget but I hate throwing things away \u2014 phone, under $700",
+      "constraints": [
+        {
+          "text": "under $700",
+          "kind": "HARD"
+        },
+        {
+          "text": "phone",
+          "kind": "HARD"
+        },
+        {
+          "text": "hate throwing things away",
+          "kind": "VALUES"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0050",
+        "VOL-0049"
+      ],
+      "gold_model_keys": [
+        "nord4"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "VALUES clause phrased as sentiment, not as a spec word. Tests decoding rather than keyword pickup."
+    },
+    {
+      "id": "R27",
+      "utterance": "Microphone under $200 that I can send back if it doesn't suit my voice",
+      "constraints": [
+        {
+          "text": "under $200",
+          "kind": "HARD"
+        },
+        {
+          "text": "microphone",
+          "kind": "HARD"
+        },
+        {
+          "text": "send back if it doesn't suit",
+          "kind": "SERVICE"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0061",
+        "CIT-0066",
+        "CIT-0075",
+        "CIT-0078",
+        "CIT-0081",
+        "NOR-0067",
+        "NOR-0076",
+        "NOR-0079",
+        "NOR-0082",
+        "VOL-0059",
+        "VOL-0060",
+        "VOL-0065",
+        "VOL-0071",
+        "VOL-0074",
+        "VOL-0077",
+        "VOL-0080"
+      ],
+      "gold_model_keys": [
+        "at2020",
+        "atr2100",
+        "hd280",
+        "psa1",
+        "rodeai1",
+        "sm58",
+        "xlr3m"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Cheap item where the return window is worth a meaningful fraction of the price."
+    },
+    {
+      "id": "R28",
+      "utterance": "Two-year cover on a laptop I already own",
+      "constraints": [
+        {
+          "text": "two-year cover",
+          "kind": "HARD"
+        },
+        {
+          "text": "laptop",
+          "kind": "HARD"
+        }
+      ],
+      "gold_skus": [
+        "NOR-0140",
+        "NOR-0142",
+        "NOR-0144",
+        "NOR-0146",
+        "NOR-0148",
+        "VOL-0139",
+        "VOL-0141",
+        "VOL-0143",
+        "VOL-0145",
+        "VOL-0147"
+      ],
+      "gold_model_keys": [
+        "wty-adh-24",
+        "wty-app-36",
+        "wty-lap-24",
+        "wty-lap-36",
+        "wty-phn-24"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Service SKU as the product itself. citycircuit stocks none, so it cannot answer at all."
+    },
+    {
+      "id": "R29",
+      "utterance": "Best value 14 inch laptop with 16GB, and I do care where it's made",
+      "constraints": [
+        {
+          "text": "14 inch",
+          "kind": "HARD"
+        },
+        {
+          "text": "16GB",
+          "kind": "HARD"
+        },
+        {
+          "text": "best value",
+          "kind": "SOFT"
+        },
+        {
+          "text": "I care where it's made",
+          "kind": "VALUES"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0003",
+        "CIT-0005",
+        "CIT-0007",
+        "CIT-0010",
+        "CIT-0014",
+        "CIT-0016",
+        "CIT-0019",
+        "CIT-0022",
+        "CIT-0024",
+        "CIT-0027",
+        "CIT-0029",
+        "CIT-0032",
+        "CIT-0035",
+        "CIT-0125",
+        "CIT-0128",
+        "NOR-0006",
+        "NOR-0008",
+        "NOR-0011",
+        "NOR-0017",
+        "NOR-0020",
+        "NOR-0023",
+        "NOR-0025",
+        "NOR-0030",
+        "NOR-0033",
+        "NOR-0036",
+        "NOR-0126",
+        "NOR-0129",
+        "VOL-0001",
+        "VOL-0002",
+        "VOL-0004",
+        "VOL-0009",
+        "VOL-0012",
+        "VOL-0013",
+        "VOL-0015",
+        "VOL-0018",
+        "VOL-0021",
+        "VOL-0026",
+        "VOL-0028",
+        "VOL-0031",
+        "VOL-0034",
+        "VOL-0124",
+        "VOL-0127"
+      ],
+      "gold_model_keys": [
+        "elitebook",
+        "gram16",
+        "ideapad5",
+        "legion5",
+        "mba13-m3",
+        "mba15-m3",
+        "sb-go3",
+        "swift14",
+        "tb14g3-i5",
+        "tb14g3-i7",
+        "tb14g4-i7",
+        "tp-e16",
+        "vivobook16",
+        "xps13-9340",
+        "zb14-g11"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Four clauses, all four kinds represented across the set. Screen size is formatted three different ways in the catalogue."
+    },
+    {
+      "id": "R30",
+      "utterance": "Anything under $100 that would make a good gift",
+      "constraints": [
+        {
+          "text": "under $100",
+          "kind": "HARD"
+        },
+        {
+          "text": "a good gift",
+          "kind": "SOFT"
+        }
+      ],
+      "gold_skus": [
+        "CIT-0081",
+        "CIT-0085",
+        "CIT-0104",
+        "NOR-0082",
+        "NOR-0105",
+        "NOR-0144",
+        "VOL-0080",
+        "VOL-0084",
+        "VOL-0103"
+      ],
+      "gold_model_keys": [
+        "bag15",
+        "hub-usbc",
+        "wty-phn-24",
+        "xlr3m"
+      ],
+      "bundle": false,
+      "expect_unsatisfied": false,
+      "notes": "Deliberately vague. Per the workshop steer, must return a best-understanding recommendation with the assumption stated -- never a hard failure."
+    }
+  ]
+}

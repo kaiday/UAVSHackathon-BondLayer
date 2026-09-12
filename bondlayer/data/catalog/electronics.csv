@@ -1,0 +1,149 @@
+sku,merchant,model_key,title,brand,category,price,currency,cpu,ram,storage,screen_in,weight_kg,battery_wh,gtin,condition,stock
+VOL-0001,voltway,tb14g3-i5,ThinkBook 14 G3 i5 16GB 512GB,Lenovo,laptop,1455,AUD,i5-1335U,16GB,512GB,14,1.4,60,9312001000011,new,10
+VOL-0002,voltway,tb14g3-i5,ThinkBook 14  G3  i5 16 GB 512GB,LENOVO,laptop,1455.0,AUD,i5-1335U,16 GB,512 GB,14.0,1.4,60,9312001000011,new,17
+CIT-0003,citycircuit,tb14g3-i5,ThinkBook 14  G3  i5 16 GB 512GB,LENOVO,laptop,"1,357.03",AUD,i5-1335U,16 GB,512 GB,14.0,1.4,60,9312001000011,new,24
+VOL-0004,voltway,tb14g4-i7,ThinkBook 14 G4 i7 16GB 1TB,lenovo,laptop,$1922.96,AUD,i7-1455U,16384MB,1TB,"14""",,60,9312001000028,new,31
+CIT-0005,citycircuit,tb14g4-i7,ThinkBook 14 G4 i7 16GB 1TB,lenovo,laptop,1793.5,AUD,i7-1455U,16384MB,1TB,"14""",,60,9312001000028,new,38
+NOR-0006,northgear,tb14g4-i7,ThinkBook 14 G4 i7 16GB 1TB,lenovo,laptop,"1,849.00",AUD,i7-1455U,16384MB,1TB,"14""",,60,9312001000028,new,5
+CIT-0007,citycircuit,xps13-9340,XPS 13 9340 16GB 512GB,Dell,laptop,$2133.03,AUD,Ultra 7 155H,16GB,512GB,13.4,1.19,55,9312001000035,new,12
+NOR-0008,northgear,xps13-9340,XPS 13 9340 16GB 512GB,Dell,laptop,2199.0,AUD,Ultra 7 155H,16GB,512GB,13.4,1.19,55,9312001000035,new,19
+VOL-0009,voltway,xps13-9340,XPS 13 (9340) 16 GB 512 GB,Dell,laptop,2287,AUD,Ultra 7 155H,16 GB,512GB,13.4,1.19,55,9312001000035,new,26
+CIT-0010,citycircuit,xps13-9340,XPS 13 (9340) 16 GB 512 GB,Dell,laptop,$2133.03,AUD,Ultra 7 155H,16 GB,512GB,13.4,1.19,55,9312001000035,new,33
+NOR-0011,northgear,xps13-9340,XPS 13 (9340) 16 GB 512 GB,Dell,laptop,2199.0,AUD,Ultra 7 155H,16 GB,512GB,13.4,1.19,55,9312001000035,new,40
+VOL-0012,voltway,mba13-m3,MacBook Air 13 M3 16GB 512GB,Apple,laptop,2079,AUD,M3,16GB,512GB,13.6,1.24,52,9312001000042,new,7
+VOL-0013,voltway,mba15-m3,MacBook Air 15 M3 16GB 512GB,Apple,laptop,2391.0,AUD,M3,16 GB,512GB,15.3,1.51,66,9312001000059,new,14
+CIT-0014,citycircuit,mba15-m3,MacBook Air 15 M3 16GB 512GB,Apple,laptop,"2,230.03",AUD,M3,16 GB,512GB,15.3,1.51,66,9312001000059,new,21
+VOL-0015,voltway,zb14-g11,ZBook Firefly 14 G11 32GB 1TB,HP,laptop,$3222.96,AUD,Ultra 7 165H,32GB,1TB,14,1.39,56,9312001000066,new,28
+CIT-0016,citycircuit,zb14-g11,ZBook Firefly 14 G11 32GB 1TB,HP,laptop,3006.0,AUD,Ultra 7 165H,32GB,1TB,14,1.39,56,9312001000066,new,35
+NOR-0017,northgear,zb14-g11,ZBook Firefly 14 G11 32GB 1TB,HP,laptop,"3,099.00",AUD,Ultra 7 165H,32GB,1TB,14,1.39,56,9312001000066,new,42
+VOL-0018,voltway,ideapad5,IdeaPad Slim 5 16GB 512GB,Lenovo,laptop,$1298.96,AUD,Ryzen 7 8845HS,16GB,512GB,14,1.46,57,9312001000073,new,9
+CIT-0019,citycircuit,ideapad5,IdeaPad Slim 5 16GB 512GB,Lenovo,laptop,1211.5,AUD,Ryzen 7 8845HS,16GB,512GB,14,1.46,57,9312001000073,new,16
+NOR-0020,northgear,ideapad5,IdeaPad Slim 5 16GB 512GB,Lenovo,laptop,"1,249.00",AUD,Ryzen 7 8845HS,16GB,512GB,14,1.46,57,9312001000073,new,23
+VOL-0021,voltway,vivobook16,Vivobook 16 i5 16GB 512GB,ASUS,laptop,$1194.96,AUD,i5-13500H,16GB,512GB,16,1.88,70,9312001000080,new,30
+CIT-0022,citycircuit,vivobook16,Vivobook 16 i5 16GB 512GB,ASUS,laptop,1114.5,AUD,i5-13500H,16GB,512GB,16,1.88,70,9312001000080,new,37
+NOR-0023,northgear,vivobook16,Vivobook 16 i5 16GB 512GB,ASUS,laptop,"1,149.00",AUD,i5-13500H,16GB,512GB,16,1.88,70,9312001000080,new,4
+CIT-0024,citycircuit,swift14,Swift 14 AI 16GB 1TB,Acer,laptop,$1648.03,AUD,Ultra 7 258V,16GB,1TB,14,1.3,65,9312001000097,new,11
+NOR-0025,northgear,swift14,Swift 14 AI 16GB 1TB,Acer,laptop,1699.0,AUD,Ultra 7 258V,16GB,1TB,14,1.3,65,9312001000097,new,18
+VOL-0026,voltway,gram16,gram 16 16GB 512GB,LG,laptop,2599,AUD,Ultra 7 155H,16GB,512GB,16,1.19,80,9312001000103,new,25
+CIT-0027,citycircuit,gram16,gram 16 16GB 512GB,LG,laptop,$2424.03,AUD,Ultra 7 155H,16GB,512GB,16,1.19,80,9312001000103,new,32
+VOL-0028,voltway,tp-e16,ThinkPad E16 Gen 2 16GB 512GB,Lenovo,laptop,"1,610.96",AUD,Ultra 5 125U,16GB,512GB,16,1.78,57,9312001000110,new,39
+CIT-0029,citycircuit,tp-e16,ThinkPad E16 Gen 2 16GB 512GB,Lenovo,laptop,1503,AUD,Ultra 5 125U,16GB,512GB,16,1.78,57,9312001000110,new,6
+NOR-0030,northgear,tp-e16,ThinkPad E16 Gen 2 16GB 512GB,Lenovo,laptop,$1549,AUD,Ultra 5 125U,16GB,512GB,16,1.78,57,9312001000110,new,13
+VOL-0031,voltway,sb-go3,Surface Laptop Go 3 8GB 256GB,Microsoft,laptop,"1,142.96",AUD,i5-1235U,8GB,256GB,12.4,1.13,41,9312001000127,new,20
+CIT-0032,citycircuit,sb-go3,Surface Laptop Go 3 8GB 256GB,Microsoft,laptop,1066,AUD,i5-1235U,8GB,256GB,12.4,1.13,41,9312001000127,new,27
+NOR-0033,northgear,sb-go3,Surface Laptop Go 3 8GB 256GB,Microsoft,laptop,$1099,AUD,i5-1235U,8GB,256GB,12.4,1.13,41,9312001000127,new,34
+VOL-0034,voltway,legion5,Legion 5 16 32GB 1TB RTX4060,Lenovo,laptop,"2,806.96",AUD,Ryzen 7 7840HS,32GB,1TB,16,2.4,80,9312001000134,new,41
+CIT-0035,citycircuit,legion5,Legion 5 16 32GB 1TB RTX4060,Lenovo,laptop,2618,AUD,Ryzen 7 7840HS,32GB,1TB,16,2.4,80,9312001000134,new,8
+NOR-0036,northgear,legion5,Legion 5 16 32GB 1TB RTX4060,Lenovo,laptop,$2699,AUD,Ryzen 7 7840HS,32GB,1TB,16,2.4,80,9312001000134,new,15
+VOL-0037,voltway,px9,Pixel 9 128GB,Google,phone,"1,402.96",AUD,Tensor G4,12GB,128GB,6.3,0.198,18,9312002000015,new,22
+VOL-0038,voltway,px9p,Pixel 9 Pro 256GB,Google,phone,$1766.96,AUD,Tensor G4,16GB,256GB,6.3,0.199,18,9312002000022,new,29
+CIT-0039,citycircuit,px9p,Pixel 9 Pro 256GB,Google,phone,1648.0,AUD,Tensor G4,16GB,256GB,6.3,0.199,18,9312002000022,new,36
+CIT-0040,citycircuit,s24,Galaxy S24 256GB,Samsung,phone,1357,AUD,Snapdragon 8 Gen 3,8GB,256GB,6.2,0.167,15,9312002000039,new,3
+NOR-0041,northgear,s24,Galaxy S24 256GB,Samsung,phone,$1399,AUD,Snapdragon 8 Gen 3,8GB,256GB,6.2,0.167,15,9312002000039,new,10
+VOL-0042,voltway,s24u,Galaxy S24 Ultra 512GB,Samsung,phone,"2,286.96",AUD,Snapdragon 8 Gen 3,12GB,512GB,6.8,0.232,19,9312002000046,new,17
+CIT-0043,citycircuit,s24u,Galaxy S24 Ultra 512GB,Samsung,phone,2133,AUD,Snapdragon 8 Gen 3,12GB,512GB,6.8,0.232,19,9312002000046,new,24
+NOR-0044,northgear,s24u,Galaxy S24 Ultra 512GB,Samsung,phone,$2199,AUD,Snapdragon 8 Gen 3,12GB,512GB,6.8,0.232,19,9312002000046,new,31
+VOL-0045,voltway,ip15,iPhone 15 128GB,Apple,phone,"1,454.96",AUD,A16,6GB,128GB,6.1,0.171,12,9312002000053,new,38
+CIT-0046,citycircuit,ip15,iPhone 15 128GB,Apple,phone,1357,AUD,A16,6GB,128GB,6.1,0.171,12,9312002000053,new,5
+NOR-0047,northgear,ip15,iPhone 15 128GB,Apple,phone,$1399,AUD,A16,6GB,128GB,6.1,0.171,12,9312002000053,new,12
+VOL-0048,voltway,ip15p,iPhone 15 Pro 256GB,Apple,phone,"1,922.96",AUD,A17 Pro,8GB,256GB,6.1,0.187,12,9312002000060,new,19
+VOL-0049,voltway,nord4,Phone (2a) 256GB,Nothing,phone,$570.96,AUD,Dimensity 7200,12GB,256GB,6.7,0.19,17,9312002000077,new,26
+CIT-0050,citycircuit,nord4,Phone (2a) 256GB,Nothing,phone,532.5,AUD,Dimensity 7200,12GB,256GB,6.7,0.19,17,9312002000077,new,33
+VOL-0051,voltway,fp5,Fairphone 5 256GB,Fairphone,phone,1143,AUD,QCM6490,8GB,256GB,6.46,0.212,17,9312002000084,new,40
+CIT-0052,citycircuit,fp5,Fairphone 5 256GB,Fairphone,phone,$1066.03,AUD,QCM6490,8GB,256GB,6.46,0.212,17,9312002000084,new,7
+NOR-0053,northgear,fp5,Fairphone 5 256GB,Fairphone,phone,1099.0,AUD,QCM6490,8GB,256GB,6.46,0.212,17,9312002000084,new,14
+VOL-0054,voltway,sm7b,SM7B Dynamic Microphone,Shure,audio,727,AUD,,,,,0.765,,9312003000012,new,21
+CIT-0055,citycircuit,sm7b,SM7B Dynamic Microphone,Shure,audio,$678.03,AUD,,,,,0.765,,9312003000012,new,28
+NOR-0056,northgear,sm7b,SM7B Dynamic Microphone,Shure,audio,699.0,AUD,,,,,0.765,,9312003000012,new,35
+CIT-0057,citycircuit,mv7,MV7+ USB/XLR Microphone,Shure,audio,436,AUD,,,,,0.55,,9312003000029,new,42
+NOR-0058,northgear,mv7,MV7+ USB/XLR Microphone,Shure,audio,$449,AUD,,,,,0.55,,9312003000029,new,9
+VOL-0059,voltway,at2020,AT2020 Condenser Microphone,Audio-Technica,audio,175.76,AUD,,,,,0.345,,9312003000036,new,16
+VOL-0060,voltway,atr2100,ATR2100x USB Microphone,Audio-Technica,audio,$154.96,AUD,,,,,0.31,,9312003000043,new,23
+CIT-0061,citycircuit,atr2100,ATR2100x USB Microphone,Audio-Technica,audio,144.5,AUD,,,,,0.31,,9312003000043,new,30
+VOL-0062,voltway,rodecaster,RODECaster Duo,RODE,audio,831,AUD,,,,,1.87,,9312003000050,new,37
+CIT-0063,citycircuit,rodecaster,RODECaster Duo,RODE,audio,$775.03,AUD,,,,,1.87,,9312003000050,new,4
+NOR-0064,northgear,rodecaster,RODECaster Duo,RODE,audio,799.0,AUD,,,,,1.87,,9312003000050,new,11
+VOL-0065,voltway,rodeai1,AI-1 Audio Interface,RODE,audio,197,AUD,,,,,0.36,,9312003000067,new,18
+CIT-0066,citycircuit,rodeai1,AI-1 Audio Interface,RODE,audio,$183.33,AUD,,,,,0.36,,9312003000067,new,25
+NOR-0067,northgear,rodeai1,AI-1 Audio Interface,RODE,audio,189.0,AUD,,,,,0.36,,9312003000067,new,32
+VOL-0068,voltway,scarlett2i2,Scarlett 2i2 4th Gen,Focusrite,audio,280,AUD,,,,,0.55,,9312003000074,new,39
+CIT-0069,citycircuit,scarlett2i2,Scarlett 2i2 4th Gen,Focusrite,audio,$260.93,AUD,,,,,0.55,,9312003000074,new,6
+NOR-0070,northgear,scarlett2i2,Scarlett 2i2 4th Gen,Focusrite,audio,269.0,AUD,,,,,0.55,,9312003000074,new,13
+VOL-0071,voltway,psa1,PSA1+ Boom Arm,RODE,audio,186,AUD,,,,,1.3,,9312003000081,new,20
+CIT-0072,citycircuit,ath-m50x,ATH-M50x Headphones,Audio-Technica,audio,241.5,AUD,,,,,0.285,,9312003000098,new,27
+NOR-0073,northgear,ath-m50x,ATH-M50x Headphones,Audio-Technica,audio,249.00,AUD,,,,,0.285,,9312003000098,new,34
+VOL-0074,voltway,hd280,HD 280 Pro Headphones,Sennheiser,audio,$154.96,AUD,,,,,0.285,,9312003000104,new,41
+CIT-0075,citycircuit,hd280,HD 280 Pro Headphones,Sennheiser,audio,144.5,AUD,,,,,0.285,,9312003000104,new,8
+NOR-0076,northgear,hd280,HD 280 Pro Headphones,Sennheiser,audio,149.00,AUD,,,,,0.285,,9312003000104,new,15
+VOL-0077,voltway,sm58,SM58 Dynamic Microphone,Shure,audio,$165.36,AUD,,,,,0.298,,9312003000111,new,22
+CIT-0078,citycircuit,sm58,SM58 Dynamic Microphone,Shure,audio,154.2,AUD,,,,,0.298,,9312003000111,new,29
+NOR-0079,northgear,sm58,SM58 Dynamic Microphone,Shure,audio,159.00,AUD,,,,,0.298,,9312003000111,new,36
+VOL-0080,voltway,xlr3m,XLR Cable 3m,RODE,audio,$30.16,AUD,,,,,0.18,,9312003000128,new,3
+CIT-0081,citycircuit,xlr3m,XLR Cable 3m,RODE,audio,28.1,AUD,,,,,0.18,,9312003000128,new,10
+NOR-0082,northgear,xlr3m,XLR Cable 3m,RODE,audio,29.00,AUD,,,,,0.18,,9312003000128,new,17
+VOL-0083,voltway,dock-tb4,Thunderbolt 4 Dock 11-in-1,Anker,accessory,$414.96,AUD,,,,,0.62,,9312004000019,new,24
+VOL-0084,voltway,hub-usbc,USB-C Hub 7-in-1,Anker,accessory,92.56,AUD,,,,,0.12,,9312004000026,new,31
+CIT-0085,citycircuit,hub-usbc,USB-C Hub 7-in-1,Anker,accessory,86,AUD,,,,,0.12,,9312004000026,new,38
+VOL-0086,voltway,mon27,UltraSharp U2724D 27in,Dell,accessory,779.0,AUD,,,,27,6.4,,9312004000033,new,5
+CIT-0087,citycircuit,mon27,UltraSharp U2724D 27in,Dell,accessory,726.53,AUD,,,,27,6.4,,9312004000033,new,12
+NOR-0088,northgear,mon27,UltraSharp U2724D 27in,Dell,accessory,749,AUD,,,,27,6.4,,9312004000033,new,19
+CIT-0089,citycircuit,mon32,32UN880 UltraFine 32in,LG,accessory,1357.0,AUD,,,,32,9.2,,9312004000040,new,26
+NOR-0090,northgear,mon32,32UN880 UltraFine 32in,LG,accessory,"1,399.00",AUD,,,,32,9.2,,9312004000040,new,33
+VOL-0091,voltway,kb-mx,MX Keys S Keyboard,Logitech,accessory,$206.96,AUD,,,,,0.81,,9312004000057,new,40
+CIT-0092,citycircuit,kb-mx,MX Keys S Keyboard,Logitech,accessory,193.0,AUD,,,,,0.81,,9312004000057,new,7
+NOR-0093,northgear,kb-mx,MX Keys S Keyboard,Logitech,accessory,199.00,AUD,,,,,0.81,,9312004000057,new,14
+VOL-0094,voltway,ms-mx3,MX Master 3S Mouse,Logitech,accessory,$175.76,AUD,,,,,0.141,,9312004000064,new,21
+VOL-0095,voltway,ssd2tb,T7 Shield 2TB Portable SSD,Samsung,accessory,290.16,AUD,,,2TB,,0.098,,9312004000071,new,28
+CIT-0096,citycircuit,ssd2tb,T7 Shield 2TB Portable SSD,Samsung,accessory,271,AUD,,,2TB,,0.098,,9312004000071,new,35
+VOL-0097,voltway,pb-737,737 Power Bank 24000mAh,Anker,accessory,259.0,AUD,,,,,0.63,86,9312004000088,new,42
+CIT-0098,citycircuit,pb-737,737 Power Bank 24000mAh,Anker,accessory,241.53,AUD,,,,,0.63,86,9312004000088,new,9
+NOR-0099,northgear,pb-737,737 Power Bank 24000mAh,Anker,accessory,249,AUD,,,,,0.63,86,9312004000088,new,16
+VOL-0100,voltway,chg-100,Nexode 100W GaN Charger,Ugreen,accessory,123.8,AUD,,,,,0.21,,9312004000095,new,23
+CIT-0101,citycircuit,chg-100,Nexode 100W GaN Charger,Ugreen,accessory,115.43,AUD,,,,,0.21,,9312004000095,new,30
+NOR-0102,northgear,chg-100,Nexode 100W GaN Charger,Ugreen,accessory,119,AUD,,,,,0.21,,9312004000095,new,37
+VOL-0103,voltway,bag15,Laptop Sleeve 16in,Bellroy,accessory,82.2,AUD,,,,,0.23,,9312004000101,new,4
+CIT-0104,citycircuit,bag15,Laptop Sleeve 16in,Bellroy,accessory,76.63,AUD,,,,,0.23,,9312004000101,new,11
+NOR-0105,northgear,bag15,Laptop Sleeve 16in,Bellroy,accessory,79,AUD,,,,,0.23,,9312004000101,new,18
+CIT-0106,citycircuit,rb-v15,V15 Detect Absolute,Dyson,appliance,1211.5,AUD,,,,,3.0,,9312005000016,new,25
+NOR-0107,northgear,rb-v15,V15 Detect Absolute,Dyson,appliance,"1,249.00",AUD,,,,,3.0,,9312005000016,new,32
+VOL-0108,voltway,rb-v12,V12 Detect Slim,Dyson,appliance,$986.96,AUD,,,,,2.2,,9312005000023,new,39
+CIT-0109,citycircuit,rb-v12,V12 Detect Slim,Dyson,appliance,920.5,AUD,,,,,2.2,,9312005000023,new,6
+VOL-0110,voltway,air-pure,Purifier Cool Gen1,Dyson,appliance,779,AUD,,,,,4.5,,9312005000030,new,13
+CIT-0111,citycircuit,air-pure,Purifier Cool Gen1,Dyson,appliance,$726.53,AUD,,,,,4.5,,9312005000030,new,20
+NOR-0112,northgear,air-pure,Purifier Cool Gen1,Dyson,appliance,749.0,AUD,,,,,4.5,,9312005000030,new,27
+VOL-0113,voltway,cof-bar,Barista Express Impress,Breville,appliance,1143,AUD,,,,,12.4,,9312005000047,new,34
+CIT-0114,citycircuit,cof-bar,Barista Express Impress,Breville,appliance,$1066.03,AUD,,,,,12.4,,9312005000047,new,41
+NOR-0115,northgear,cof-bar,Barista Express Impress,Breville,appliance,1099.0,AUD,,,,,12.4,,9312005000047,new,8
+VOL-0116,voltway,cof-bam,Bambino Plus,Breville,appliance,571,AUD,,,,,5.0,,9312005000054,new,15
+CIT-0117,citycircuit,cof-bam,Bambino Plus,Breville,appliance,$532.53,AUD,,,,,5.0,,9312005000054,new,22
+NOR-0118,northgear,cof-bam,Bambino Plus,Breville,appliance,549.0,AUD,,,,,5.0,,9312005000054,new,29
+VOL-0119,voltway,mw-flat,Flatbed Microwave 27L,Panasonic,appliance,446,AUD,,,,,10.0,,9312005000061,new,36
+VOL-0120,voltway,rice-10,10-Cup Rice Cooker,Tiger,appliance,238.2,AUD,,,,,4.2,,9312005000078,new,3
+CIT-0121,citycircuit,rice-10,10-Cup Rice Cooker,Tiger,appliance,222.13,AUD,,,,,4.2,,9312005000078,new,10
+CIT-0122,citycircuit,kettle-t,Variable Temperature Kettle,Smeg,appliance,$241.53,AUD,,,,,1.6,,9312005000085,new,17
+NOR-0123,northgear,kettle-t,Variable Temperature Kettle,Smeg,appliance,249.0,AUD,,,,,1.6,,9312005000085,new,24
+VOL-0124,voltway,tb14g3-i7,ThinkBook 14 G3 i7 16GB 512GB,Lenovo,laptop,1663,AUD,i7-1355U,16GB,512GB,14,1.4,60,9312001000141,new,31
+CIT-0125,citycircuit,tb14g3-i7,ThinkBook 14 G3 i7 16GB 512GB,Lenovo,laptop,$1551.03,AUD,i7-1355U,16GB,512GB,14,1.4,60,9312001000141,new,38
+NOR-0126,northgear,tb14g3-i7,ThinkBook 14 G3 i7 16GB 512GB,Lenovo,laptop,1599.0,AUD,i7-1355U,16GB,512GB,14,1.4,60,9312001000141,new,5
+VOL-0127,voltway,elitebook,EliteBook 840 G11 16GB 512GB,HP,laptop,1975,AUD,Ultra 5 125U,16 GB,512GB,14,1.32,56,9312001000158,new,12
+CIT-0128,citycircuit,elitebook,EliteBook 840 G11 16GB 512GB,HP,laptop,$1842.03,AUD,Ultra 5 125U,16 GB,512GB,14,1.32,56,9312001000158,new,19
+NOR-0129,northgear,elitebook,EliteBook 840 G11 16GB 512GB,HP,laptop,1899.0,AUD,Ultra 5 125U,16 GB,512GB,14,1.32,56,9312001000158,new,26
+VOL-0130,voltway,px8a,Pixel 8a 128GB,Google,phone,883,AUD,Tensor G3,8GB,128GB,6.1,0.188,18,9312002000091,new,33
+VOL-0131,voltway,wh1000,WH-1000XM5 Headphones,Sony,audio,571.0,AUD,,,,,0.25,,9312003000135,new,40
+CIT-0132,citycircuit,wh1000,WH-1000XM5 Headphones,Sony,audio,532.53,AUD,,,,,0.25,,9312003000135,new,7
+VOL-0133,voltway,sm4,Wireless ME Microphone,RODE,audio,$310.96,AUD,,,,,0.033,,9312003000142,new,14
+CIT-0134,citycircuit,sm4,Wireless ME Microphone,RODE,audio,290.0,AUD,,,,,0.033,,9312003000142,new,21
+NOR-0135,northgear,sm4,Wireless ME Microphone,RODE,audio,299.00,AUD,,,,,0.033,,9312003000142,new,28
+VOL-0136,voltway,toast4,4-Slice Toaster,Smeg,appliance,$342.16,AUD,,,,,3.9,,9312005000092,new,35
+CIT-0137,citycircuit,toast4,4-Slice Toaster,Smeg,appliance,319.1,AUD,,,,,3.9,,9312005000092,new,42
+NOR-0138,northgear,toast4,4-Slice Toaster,Smeg,appliance,329.00,AUD,,,,,3.9,,9312005000092,new,9
+VOL-0139,voltway,wty-lap-24,Extended Cover 24mo - Laptop,,warranty,$154.96,AUD,,,,,,,,new,16
+NOR-0140,northgear,wty-lap-24,Extended Cover 24mo - Laptop,,warranty,149.0,AUD,,,,,,,,new,23
+VOL-0141,voltway,wty-lap-36,Extended Cover 36mo - Laptop,,warranty,228,AUD,,,,,,,,new,30
+NOR-0142,northgear,wty-lap-36,Extended Cover 36mo - Laptop,,warranty,$219,AUD,,,,,,,,new,37
+VOL-0143,voltway,wty-phn-24,Extended Cover 24mo - Phone,,warranty,102.96,AUD,,,,,,,,new,4
+NOR-0144,northgear,wty-phn-24,Extended Cover 24mo - Phone,,warranty,99,AUD,,,,,,,,new,11
+VOL-0145,voltway,wty-app-36,Extended Cover 36mo - Appliance,,warranty,134.2,AUD,,,,,,,,new,18
+NOR-0146,northgear,wty-app-36,Extended Cover 36mo - Appliance,,warranty,129.00,AUD,,,,,,,,new,25
+VOL-0147,voltway,wty-adh-24,Accidental Damage 24mo,,warranty,$186.16,AUD,,,,,,,,new,32
+NOR-0148,northgear,wty-adh-24,Accidental Damage 24mo,,warranty,179.0,AUD,,,,,,,,new,39
