@@ -82,10 +82,28 @@ prints the URL it actually bound).
   "winner": { "...": "the top of ranked" },
   "flipped": true,
   "recommendation": "one paragraph, model or template",
+  "merchant_decodes": {"kind": "merchant_decode", "outcome": "ok", "summary": "2 of 3 merchants decoded the request themselves; ...",
+                       "merchant_decodes": [{"merchant": "voltway", "negotiated": true,
+                                             "decoded_intent": {"constraints": [...], "assumptions": [...], "clarifying_question": null},
+                                             "proposals": [{"sku_id": "VOL-0001", "title": "...", "price": "1455.00", "resolved": [...], "unsatisfied": []}],
+                                             "agreement": {"clauses": [...], "agreed": 4, "total": 4}}]},
   "audit": [{"sku_id": "...", "verified_count": 2, "verified": [...], "ignored_count": 1, "ignored": [...]}],
   "transcript": []
 }
 ```
+
+`merchant_decodes` is the merchant's side of the decode. With the toggle on,
+`UCP-Agent` also declares `org.bondlayer.intent_match`, and after `run_request`
+has finished the agent sends the shopper's sentence verbatim to every merchant
+(`POST /{merchant}/ucp/intent/propose`, via `ucp_client.make_proposer`) and
+records what each one understood and proposed --
+`bondlayer.agent.merchant_decode.run_with_merchant_decode`, one appended trace
+step, whose detail this key is (plus the step's `outcome` and `summary`). Per
+merchant: whether it negotiated the capability (CityCircuit never does, and
+answers 406), its `decoded_intent` block verbatim, its first five proposals
+with the resolver's per-clause notes, and a clause-by-clause agreement check
+against `constraints` above. With the toggle off the sentence is not sent at
+all and the step says so, DEGRADED. Nothing in `ranked` is computed from it.
 
 `steps`, `ranked` and `flipped` are `bondlayer.agent.trace.AgentRun` rendered
 as JSON -- the same object `bondlayer/scripts/trace_run.py` prints as text.
@@ -104,6 +122,19 @@ published record: three visually distinct states -- signed and priced
 $0 -- a values claim, worth stating but never a price), and unsigned (grey,
 shown, never cited, with the reason). A SERVICE or VALUES constraint with no
 citation to answer it carries `← no catalogue attribute answers this`.
+
+Between the trace and the ranking sits **"Merchant's own reading"** -- one
+dashed block per pane, rendered from `merchant_decodes` and deliberately
+styled like neither an offer card nor the bundle frame so it cannot be read
+as a second ranking. Per merchant: a badge saying whether it negotiated
+`org.bondlayer.intent_match`, the merchant's own constraint rows (`kind ·
+clause · interpretation`) each marked ✓/✗ against the agent's decode, the
+merchant's plain-sentence assumptions, its clarifying question when it asked
+one, and its first proposal with the same clause-by-clause resolver lines the
+ranked offers use, so the two seats look identical on screen. In the control
+pane the block says the sentence was not sent. The ranking below it never
+reads this block: it is what the merchant understood and proposed; the ranking
+is what the agent verified and decided.
 
 **Kept as a single static page, not React/Vite.** An unwired React/Vite
 scaffold shipped in `src/ui/` from an earlier phase; every launch path
