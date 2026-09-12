@@ -39,6 +39,7 @@ sys.path.insert(0, str(CHAT_APP.parent))
 load_dotenv(CHAT_APP / ".env")
 
 from bondlayer.agent import run_request
+from bondlayer.agent.close_loop import close_loop, close_loop_step, record_unreachable
 from bondlayer.agent.merchant_decode import merchant_decode_step, run_with_merchant_decode
 from bondlayer.agent.trace import AgentRun
 from bondlayer.bundle import CategoryBundler, bundle_payload
@@ -181,6 +182,15 @@ def handle_query(request: ShoppingQuery) -> dict:
         bundler=CategoryBundler(),
         **ucp_client.interpret_kwargs(run_request),
     )
+    # Step 5: the winning offer becomes an order (POST /ucp/checkout), citing
+    # exactly the record ids the agent relied on. One more step on the trace;
+    # the ranking above is already decided and nothing here reads back into it.
+    # A merchant that cannot be reached at checkout is recorded as a degraded
+    # last step, never a 500: the ranking is not the checkout's to lose.
+    try:
+        close_loop(run, checkout=ucp_client.make_checkout(), agent_ref="chat-app")
+    except httpx.HTTPError as exc:
+        record_unreachable(run, exc)
 
     steps = [
         {"phase": s.phase.value, "outcome": s.outcome.value, "summary": s.summary, "detail": s.detail}
@@ -221,6 +231,18 @@ def handle_query(request: ShoppingQuery) -> dict:
     )
     flipped = bool(winner and cheapest_shelf and winner["sku_id"] != cheapest_shelf["sku_id"])
 
+    # The close-loop step's detail -- the request sent, the merchant's order
+    # object and its honoured-benefits verdicts -- plus its outcome and summary
+    # so the page can render the receipt without hunting through ``steps``.
+    order_step = close_loop_step(run)
+    order = (
+        {**order_step.detail, "outcome": order_step.outcome.value,
+         "summary": order_step.summary}
+        if order_step is not None else
+        {"kind": "close_loop", "order": None, "outcome": "absent",
+         "summary": "No close-loop step on this run."}
+    )
+
     return {
         "user_query": request.query,
         "bondlayer_enabled": request.bondlayer_enabled,
@@ -240,6 +262,10 @@ def handle_query(request: ShoppingQuery) -> dict:
         # itself (POST /ucp/intent/propose), with a clause-by-clause agreement
         # check against ``constraints`` above. Additive; ``ranked`` never reads it.
         "merchant_decodes": merchant_decodes,
+        # The loop closed: the winning offer as the merchant confirmed it,
+        # with the verdict on every record the agent cited. Additive; the
+        # ranking never reads it.
+        "order": order,
         "audit": _audit(run),
         "transcript": llm.transcript_payload(),
     }

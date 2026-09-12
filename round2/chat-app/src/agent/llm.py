@@ -142,7 +142,7 @@ def narrate(run: AgentRun) -> dict[str, Any]:
         return {"text": text, "source": "model", "note": f"prose: {DEFAULT_MODEL}"}
     except Exception as exc:  # noqa: BLE001 - any failure here falls back, never raises
         return {"text": template_text, "source": "template",
-                 "note": f"prose: template (model call failed: {exc})"}
+                 "note": f"prose: template (model call failed: {type(exc).__name__})"}
 
 
 def transcript_payload() -> list[dict]:
