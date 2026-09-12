@@ -71,10 +71,16 @@ def test_control_merchant_publishes_no_extension(client):
     assert IDENTITY_LINKING in body["capabilities"]
 
 
-def test_signing_keys_present_and_empty_until_bach_publishes(client):
-    # An empty list is a real state: records that cannot be verified are
-    # displayed and never valued. It must not crash or fabricate a key.
-    assert client.get("/voltway/.well-known/ucp").json()["signing_keys"] == []
+def test_signing_keys_published_for_signers_and_absent_for_the_control(client):
+    # Was "empty until Bach publishes". Bach has published, so this now asserts
+    # the property it was always protecting: the profile reports what is really
+    # there, never crashing and never fabricating a key.
+    voltway = client.get("/voltway/.well-known/ucp").json()["signing_keys"]
+    assert voltway, "voltway signs records, so it must publish a key"
+    assert all(k.get("kid") or k.get("key_id") for k in voltway), (
+        "every published key needs an id -- detached signatures reference it"
+    )
+    # The control does not sign, so an empty list stays a real, valid state.
     assert client.get("/citycircuit/.well-known/ucp").json()["signing_keys"] == []
 
 
@@ -181,13 +187,17 @@ def test_hard_price_filter_applies_to_repaired_prices(client):
 # --- the records seam (Bach's branch feeds this) ---------------------------
 
 
-def test_records_seam_is_empty_but_present_until_bach_publishes(client):
+def test_records_seam_carries_signed_records(client):
     body = client.get(
         "/voltway/ucp/catalog/search?category=laptop&limit=1",
         headers={"UCP-Agent": AWARE},
     ).json()
     block = body["extensions"][BENEFIT_VALUE][0]
-    assert block["records"] == []
+    assert block["records"], "voltway publishes records; the seam is live"
+    for entry in block["records"]:
+        assert set(entry) >= {"record", "signature", "key_id", "signed"}
+        # `signed` is derived by the server, never authored by the merchant.
+        assert entry["signed"] is bool(entry["signature"] and entry["key_id"])
     # issuer is the domain, not the merchant id: it is what a record's own
     # issuer field carries and what signing_keys[] is published under.
     assert block["issuer"] == "voltway.example"
