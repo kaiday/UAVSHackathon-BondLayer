@@ -45,6 +45,16 @@ BENEFIT_VALUE = "org.bondlayer.benefit_value"
 #: is where the agent actually decides. (DECISIONS.md D3.)
 BENEFIT_VALUE_EXTENDS = (CATALOG_SEARCH, CATALOG_LOOKUP)
 
+#: Ours too. The merchant receives the shopper's sentence verbatim, decodes it
+#: on its own side, resolves it against its catalogue and its verified records,
+#: and returns proposals with a per-constraint justification. It extends
+#: ``catalog.search`` only: it *is* a search, answered from the same shelf by
+#: the same resolver, with the decoding moved to the party that knows the
+#: catalogue. Declared by exactly the merchants that publish the benefit
+#: extension, from the same manifest flag, so the control never serves it.
+INTENT_MATCH = "org.bondlayer.intent_match"
+INTENT_MATCH_EXTENDS = (CATALOG_SEARCH,)
+
 
 @dataclass(frozen=True)
 class Capability:
@@ -86,6 +96,9 @@ def merchant_capabilities(publishes_benefit_extension: bool) -> list[Capability]
     if publishes_benefit_extension:
         caps.append(
             Capability(BENEFIT_VALUE, ("draft",), extends=BENEFIT_VALUE_EXTENDS)
+        )
+        caps.append(
+            Capability(INTENT_MATCH, ("draft",), extends=INTENT_MATCH_EXTENDS)
         )
     return caps
 

@@ -18,6 +18,8 @@ from pathlib import Path
 from bondlayer.ucp.capabilities import (
     BENEFIT_VALUE,
     BENEFIT_VALUE_EXTENDS,
+    INTENT_MATCH,
+    INTENT_MATCH_EXTENDS,
     Capability,
     merchant_capabilities,
 )
@@ -31,6 +33,8 @@ KEYS = DATA.parent / "keys"
 PROTOCOL_VERSION = "2026-04-08"
 BENEFIT_SPEC_URL = "https://bondlayer.example/spec/benefit_value"
 BENEFIT_SCHEMA_URL = "https://bondlayer.example/schemas/benefit_value.json"
+INTENT_SPEC_URL = "https://bondlayer.example/spec/intent_match"
+INTENT_SCHEMA_URL = "https://bondlayer.example/schemas/intent_match.json"
 
 
 @dataclass(frozen=True)
@@ -101,6 +105,14 @@ def build_profile(merchant: Merchant, keys_dir: Path = KEYS) -> dict:
                 "extends": list(BENEFIT_VALUE_EXTENDS),
                 "spec": BENEFIT_SPEC_URL,
                 "schema": BENEFIT_SCHEMA_URL,
+            }
+        ]
+        extensions[INTENT_MATCH] = [
+            {
+                "version": "draft",
+                "extends": list(INTENT_MATCH_EXTENDS),
+                "spec": INTENT_SPEC_URL,
+                "schema": INTENT_SCHEMA_URL,
             }
         ]
 
