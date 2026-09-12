@@ -5,7 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { ArrowUp, Bell, ChevronDown, CircleHelp, ClipboardList, Gift, LayoutDashboard, Package, Settings, ShieldCheck } from "lucide-react";
+import { ArrowUp, Bell, ChevronDown, CircleHelp, ClipboardList, Gift, LayoutDashboard, Mic, Package, Settings, ShieldCheck } from "lucide-react";
 
 const workspaceLinks = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
@@ -58,7 +58,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <form className="prompt-bar" onSubmit={(event) => event.preventDefault()}>
           <span className="prompt-mark" aria-hidden="true">✦</span>
           <input aria-label="Ask BondLayer" placeholder="Ask BondLayer about your catalogue, agents or next fix..." />
-          <button type="submit" aria-label="Send prompt" title="Send prompt"><ArrowUp size={16} strokeWidth={2.4} /></button>
+          <button className="voice-button" type="button" aria-label="Use voice input" title="Use voice input"><Mic size={16} strokeWidth={2.2} /></button><button type="submit" aria-label="Send prompt" title="Send prompt"><ArrowUp size={16} strokeWidth={2.4} /></button>
         </form>
       </section>
     </main>
