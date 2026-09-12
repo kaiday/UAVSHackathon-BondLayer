@@ -22,34 +22,71 @@ class _Match:
     priority: int
 
 
-_MONEY = r"(?:\$\s*)?(\d[\d,]*(?:\.\d+)?)"
+# A money amount: an optional dollar sign, digits, optional decimals. The
+# negative lookahead keeps "under 1.3kg" from reading as a $1.30 ceiling --
+# a number followed by a unit is a spec, and the spec patterns own it.
+_MONEY = r"(?:\$\s*)?(\d[\d,]*(?:\.\d+)?)(?![\d.,]*\s*(?:kg|gb|tb|mb|inch))"
 
 # Ordered longest-first where alternatives overlap. These patterns describe
 # meaning, not product names; catalogue matching belongs in resolver.py.
 _SERVICE_PATTERNS = (
     r"\b(?:that\s+)?(?:i\s+)?can\s+(?:easily\s+)?return\s+(?:it\s+)?(?:easily)?",
+    r"\beasy\s+to\s+return\b[^,.;]*",
     r"\breturnable\b[^,.;]*",
+    r"\b(?:the\s+)?returns\s+(?:are|were|be)\b[^,.;]*",
+    r"\bpainless\s+returns\b",
     r"\bsend\s+back\b[^,.;]*",
     r"\b(?:decent\s+)?cover\s+(?:if|for|on)\b[^,.;]*",
     r"\b(?:long|extended)\s+warranty\b",
     r"\bwarranty\b[^,.;]*",
     r"\b(?:delivered|delivery)\b[^,.;]*",
     r"\btrade\s+in\b[^,.;]*",
-    r"\b(?:support|supported)\b[^,.;]*",
 )
 
 _VALUES_PATTERNS = (
     r"\bfrom\s+a\s+brand\s+that\s+actually\s+repairs\s+things\b",
-    r"\b(?:lets|can\s+let)\s+(?:me\s+)?fix\s+it\s+myself\b",
+    r"\b(?:lets|let|can\s+let)\s+(?:me|you)\s+fix\s+it\s+(?:myself|yourself)\b",
     r"\b(?:most\s+)?sustainable\b",
     r"\bcarbon\s+neutral\b",
     r"\b(?:i\s+)?(?:hate\s+)?throwing\s+things\s+away\b",
     r"\b(?:actually\s+)?repairs?\s+things?\b",
     r"\brepairability\b",
     r"\b(?:ethical|ethically)\b[^,.;]*",
-    r"\bwhere\s+(?:it|it\s+is)\s+made\b",
+    r"\bwhere\s+(?:it|it's|it\s+is|they|they're|they\s+are)\s+made\b",
     r"\b(?:i\s+)?(?:want\s+it\s+to\s+)?last\b",
     r"\bdurab(?:le|ility)\b",
+    # "still supported in five years" is a longevity commitment, not a
+    # priced service: no merchant has a column or a record for it, so it
+    # belongs with the values claims and is reported as unsatisfied.
+    r"\b(?:still\s+)?(?:support|supported)\b[^,.;]*",
+)
+
+# A warranty product bought as the thing itself ("two-year cover on a laptop
+# I already own"). Outranks the SERVICE "cover ..." pattern so the request
+# decodes as a HARD product-type clause, not a service on another product.
+_WARRANTY_PRODUCT_PATTERNS = (
+    r"\b(?:one|two|three|\d)[- ]year\s+(?:cover|warranty|protection)\b",
+    r"\bextended\s+cover\b",
+    r"\baccidental\s+damage\s+cover\b",
+)
+
+# Product-family mentions: a brand's model line, optionally followed by a size
+# and a generation. These are decoded here as HARD clauses and matched in the
+# resolver over the adapter's typed tokens (title, brand, model_key), never by
+# substring -- "ThinkBook 14  G3" and "ThinkBook 14 G3" must be one product.
+_MODEL_FAMILIES = (
+    "ThinkBook", "ThinkPad", "IdeaPad", "Legion", "Vivobook", "ZBook",
+    "EliteBook", "MacBook Air", "MacBook Pro", "MacBook", "XPS", "Swift",
+    "Surface Laptop", "gram", "Pixel", "Galaxy", "iPhone", "Fairphone",
+    "RODECaster", "Scarlett", "UltraSharp",
+)
+_MODEL_PATTERN = re.compile(
+    r"\b(?:" + "|".join(re.escape(f) for f in _MODEL_FAMILIES) + r")"
+    r"(?:\s+(?:Slim|Air|Pro|Go|Firefly|Ultra|Plus|Detect|Duo))*"
+    r"(?:\s+\(?\d{1,2}[a-z]?\)?)?"            # size or number: 14, 13, 9, 15
+    r"(?:\s+(?:G\d|Gen\s*\d|M\d|\d{4}))?"      # generation: G3, Gen 2, M3, 9340
+    r"\b",
+    re.IGNORECASE,
 )
 
 _SOFT_PATTERNS = (
@@ -83,7 +120,9 @@ _CATEGORY_PATTERNS = (
 )
 
 _SPEC_PATTERNS = (
-    r"\b\d+\s*(?:gb|gigs?|tb|inch(?:es)?|kg)\b",
+    # "under 1.3kg" is one clause: the bound and the unit together.
+    r"\b(?:under|below|less\s+than|no\s+more\s+than|up\s+to|max(?:imum)?)\s+\d+(?:\.\d+)?\s*kg\b",
+    r"\b\d+(?:\.\d+)?\s*(?:gb|gigs?|tb|inch(?:es)?|kg)\b",
     r"\b(?:rtx\s*\d*|i[357])\b",
 )
 
@@ -129,10 +168,13 @@ def parse(utterance: str) -> list[Constraint]:
         matches.append(_Match(match.start(), match.end(), _clean(match.group(0)), ConstraintKind.HARD, 100))
     for match in _SOFT_PRICE.finditer(utterance):
         matches.append(_Match(match.start(), match.end(), _clean(match.group(0)), ConstraintKind.SOFT, 100))
+    matches.extend(_span_matches(utterance, _WARRANTY_PRODUCT_PATTERNS, ConstraintKind.HARD, 90))
     matches.extend(_span_matches(utterance, _SERVICE_PATTERNS, ConstraintKind.SERVICE, 80))
     matches.extend(_span_matches(utterance, _VALUES_PATTERNS, ConstraintKind.VALUES, 80))
     matches.extend(_span_matches(utterance, _SOFT_PATTERNS, ConstraintKind.SOFT, 50))
 
+    for match in _MODEL_PATTERN.finditer(utterance):
+        matches.append(_Match(match.start(), match.end(), _clean(match.group(0)), ConstraintKind.HARD, 45))
     for category in _CATEGORY_PATTERNS:
         for match in re.finditer(rf"\b{re.escape(category)}\b", utterance, re.IGNORECASE):
             matches.append(_Match(match.start(), match.end(), _clean(match.group(0)), ConstraintKind.HARD, 40))
@@ -157,7 +199,8 @@ def parse(utterance: str) -> list[Constraint]:
         if budget and not utterance[category.end:budget.start].strip():
             selected.remove(category)
             selected[selected.index(budget)] = _Match(
-                category.start, budget.end, utterance[category.start:budget.end], budget.kind, budget.priority,
+                category.start, budget.end, _clean(utterance[category.start:budget.end]),
+                budget.kind, budget.priority,
             )
     return [Constraint(text=item.text, kind=item.kind) for item in selected]
 
