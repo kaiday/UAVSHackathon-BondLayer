@@ -26,26 +26,26 @@ the adapter's report, or quote nothing.
 
 ### Verified figures
 
-Measured against `CsvCatalogAdapter` at `3a05d6e`, run independently rather than
-taken on report.
+Measured against `CsvCatalogAdapter` at `65cf96d`, run independently rather than
+taken on report. Re-verify after any adapter change — these have moved four
+times today, and every move was caught by running it rather than transcribing.
 
-Whole file — 148 listings, **299 diagnostics**, readiness 81.7:
+Whole file — 148 listings, **302 diagnostics**, readiness 81.2:
 
 | Severity | Count | | Rule | Count |
 |---|---|---|---|---|
 | blocker | **56** | | price_format | 56 |
-| degrades_match | 22 | | gtin_shared | 129 |
+| degrades_match | 25 | | gtin_shared | 129 |
 | cosmetic | 7 | | legitimately_empty | 85 |
 | info | 214 | | ram_units | 13 |
 | | | | near_dup_title | 5 |
 | | | | brand_casing / screen_format / missing_weight | 5 / 3 / 3 |
 
-Per merchant: voltway 56 SKUs, 110 diagnostics, readiness **79.0** ·
-citycircuit 49, 104, **82.6** · northgear 43, 85, **84.1**.
+Per merchant: voltway 56 SKUs, 111 diagnostics, readiness **78.7** ·
+citycircuit 49, 105, **82.1** · northgear 43, 86, **83.6**.
 
-Per-merchant runs sum exactly to the whole-file run — 110 + 104 + 85 = 299,
-with every rule matching and `gtin_shared` splitting 42 + 49 + 38 = 129. A
-figure means the same thing whichever run produced it.
+Per-merchant runs sum exactly to the whole-file run — 111 + 105 + 86 = 302,
+with every rule matching. A figure means the same thing whichever run produced it.
 
 That was not always true. Until `3a05d6e`, `analyse()` filtered rows to the
 merchant *before* building its indexes, so a shared GTIN was invisible from
@@ -56,7 +56,7 @@ now hold the invariant. Recorded because it is the kind of bug that comes back.
 
 **The sentence for the pitch:**
 
-> 34 authored defect variants across 62 products expand to 299 diagnostics
+> 34 authored defect variants across 62 products expand to 302 diagnostics
 > across the emitted 148-row catalogue, 56 of them blockers that make a listing
 > invisible to a filter an agent will apply.
 
@@ -66,7 +66,10 @@ unreadable listings downstream. That is the adoption story in one number.
 Do **not** write "214 diagnostics, of which 56 are blockers" — 214 is the info
 count, and the blockers are a separate severity, not a subset of it.
 
-And say the quiet part out loud: 214 of the 299 are INFO. Two rules can only
+The `spec_in_title` rule added at `2808881` moved degrades_match 22 → 25 and
+the total 299 → 302. Blocker and info counts did not move.
+
+And say the quiet part out loud: 214 of the 302 are INFO. Two rules can only
 ever emit INFO — `legitimately_empty` and `gtin_shared` — so a merchant can tell
 "you didn't fill this in" apart from "this is empty because it should be". A
 retailer flagged for a rice cooker having no battery capacity stops reading the
