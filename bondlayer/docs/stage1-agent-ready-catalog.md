@@ -7,12 +7,12 @@ Who implements what:
 | Section | Owner | Branch |
 |---|---|---|
 | §4 Readiness audit · §5.1–5.3 ingest, identity, semantics | Nguyen | `feat/nguyen-ucp-head` |
-| §5.4 policy fact extraction + approval gate | Hieu | `feat/hieu-interpreter` |
-| §5.5–5.6 signing and publication | Bach | `feat/bach-records-signing` |
+| §5.4 policy import — envelope, records, conditions, provenance, promotions, membership + approval gate | Hieu | `feat/hieu-interpreter` |
+| §5.5–5.6 signing and publication · §5.7 verifiable optimisation | Bach | `feat/bach-records-signing` |
 | §4 audit rendering · §7 the onboarding screen | Minh | `feat/minh-console` |
 | Data, gold answers, acceptance | Nha | `feat/nha-eval-data` |
 
-Everything codes against `src/bondlayer/types.py`. §9 lists the two additions
+Everything codes against `src/bondlayer/types.py`. §9 lists the seven additions
 that module needs; **channel first, then `round2/dev`** — do not edit it on a
 feature branch.
 
@@ -183,18 +183,72 @@ model identifiers, named standards, and explicit use-case clauses. It is a
 heuristic and should be labelled one — but it is measurable, repeatable, and it
 moves a real score.
 
-### 5.4 Extract policy facts — where the value actually is
+### 5.4 Import the policy — four outputs, not one
 
-**Input:** the merchant's prose (`data/policies/*.md`).
-**Output:** draft `BenefitRecord`s awaiting approval.
+**Input:** the merchant's T&C, returns, delivery, warranty and loyalty prose
+(`data/policies/*.md`).
 
-Six service facts, plus the values claims:
+The T&C is where the merchant states what it will honour, what it will refuse,
+and under which conditions. It is tempting to read it only for the benefits.
+That misses three quarters of what UCP needs from it:
+
+| Output | What it is | Where it lands | Why UCP needs it |
+|---|---|---|---|
+| **A. Envelope** | The operational boundary — what an agent may do on the merchant's behalf | `/.well-known/ucp` (which capabilities to declare) + request-time filtering | Stops the agent proposing something the merchant will refuse at checkout — the exact failure the problem statement names |
+| **B. Records** | The typed facts — returns, delivery, warranty, loyalty, repairability | `BenefitRecord` | The value that wins the comparison |
+| **C. Conditions** | The predicates that gate each record — *when* it is true | `BenefitRecord.conditions` | A benefit that is false for this SKU or shopper is worse than none: it is a hallucinated claim carrying our signature |
+| **D. Provenance** | Issuer identity, effective dates, canonical policy URLs | `issuer`, `issued_at` / `expires_at`, UCP `policies[]` Links | Ties every claim to a legal entity and a signing key; feeds UCP's own `refund_policy` / `shipping_policy` links |
+
+"Boundary" is A and C. "Environment" is D. **Extract A first** — it decides
+which capabilities the profile declares, and nothing else can be published until
+that is known.
+
+#### 5.4.A The envelope
+
+What the T&C must answer before a single capability is declared:
+
+| Question | T&C section, typically | Consequence |
+|---|---|---|
+| **Transactability** — may an agent *buy*, or only browse and quote? | Terms of sale, "orders placed by third parties" | Whether to declare `cart` / `checkout` or stop at `catalog.*`. We stop at catalog in 16 hours regardless — but the *decision* comes from the T&C, not from us, and the profile must say so |
+| **Territory** — ship-to countries and states, currency, GST-inclusive pricing | Delivery, pricing | Filter before ranking, not reject at checkout. An NZ shopper against an AU-only merchant never sees the offer |
+| **Eligibility** — age-restricted goods, business-only pricing, membership gating | Eligibility, account terms | Filter per SKU per shopper context |
+| **Limits** — max quantity per order, max order value, one-per-customer promotions | Orders, promotions | Cap the `Bundle`; refuse over-limit proposals before they are made |
+| **Identity requirements** — does member pricing require `identity_linking`? Does enrolment require explicit consent? | Loyalty terms, **privacy policy** | Declares `dev.ucp.common.identity_linking`; the privacy clause is the authority for the consent gate |
+| **Payment and fulfilment methods** | Payment, delivery | What checkout will actually accept; out of scope to implement, in scope to declare |
+
+```python
+@dataclass(frozen=True)
+class MerchantEnvelope:
+    merchant_id: str
+    agents_may_transact: bool
+    ship_to_countries: list[str]        # ISO 3166-1 alpha-2
+    ship_to_regions: list[str] | None   # states / postcode zones, None = all
+    currency: str                       # ISO 4217
+    prices_include_tax: bool
+    age_restricted_categories: list[str]
+    business_only: bool
+    max_quantity_per_order: int | None
+    max_order_value_aud: Decimal | None
+    member_pricing_requires_identity: bool
+    enrolment_requires_consent: bool
+    payment_methods: list[str]
+    source_spans: dict[str, str]        # field -> quoted sentence
+```
+
+Every field carries its source span, same as a record. An envelope field the
+T&C does not answer is `None` and is reported as a gap in the Readiness Audit —
+it is not defaulted to permissive.
+
+#### 5.4.B The records
+
+**Output:** draft `BenefitRecord`s awaiting approval. Six service facts, plus the
+values claims:
 
 | Fact | `BenefitType` | `fact` shape | Priced? |
 |---|---|---|---|
 | Return window | `FREE_RETURNS` | `{"days": 30, "fee_aud": 0}` | yes |
 | Delivery threshold | `DELIVERY` | `{"free_over_aud": 100, "fee_aud": 12.95}` | yes |
-| Warranty | `WARRANTY` | `{"months": 24}` | yes |
+| Warranty | `WARRANTY` | `{"months": 24, "basis": "voluntary"}` | yes — voluntary excess only, see 5.4.E |
 | Member price | `MEMBER_PRICE` | `{"pct_off": 5, "tier": "gold"}` | yes |
 | Points | `POINTS_EARN` | `{"per_aud": 1, "unit": "points"}` | yes |
 | Trade-in | `TRADE_IN_CREDIT` | `{"max_aud": 300}` | yes |
@@ -219,6 +273,219 @@ justification, and contributes exactly zero to effective cost. Signing is what
 separates a verified repairability commitment from NorthGear's unsigned
 *"Australia's most sustainable electronics retailer"*. Do not special-case them
 anywhere in the signing or valuation path.
+
+#### 5.4.C The conditions — the underspecified part
+
+`BenefitRecord.conditions` is `list[str]` today. Free text is fine for display
+and useless for enforcement. Policy prose is dense with **negations**:
+
+> Free returns within 30 days, **except** clearance items, opened software and
+> personalised products. Warranty **excludes** accidental damage and liquid
+> ingress. Free delivery on orders over $100, **metro areas only**.
+
+Language models are unreliable on negations. If these are not converted to
+testable predicates, we sign a returns record that is false for a third of the
+catalogue — and an agent that cites it at checkout discovers the lie, which is
+worse for trust than never having published it.
+
+```python
+@dataclass(frozen=True)
+class Condition:
+    field: str        # "category" | "order_total_aud" | "postcode_zone"
+                      # | "member_tier" | "item_condition" | "sku_id"
+    op: str           # "eq" | "ne" | "in" | "not_in" | "gte" | "lte"
+    value: str | int | float | list[str]
+    source_span: str  # the sentence it came from
+```
+
+`conditions: list[Condition]`. The valuation library evaluates every condition
+against the SKU and the shopper context **before** crediting. A record whose
+conditions fail is displayed as *inapplicable* — never credited, never cited in
+the justification.
+
+**Extraction rule for Hieu:** run a separate negation pass. First ask the model
+for the benefit; then ask it, explicitly, for every exclusion, exception, and
+"only" clause attached to that benefit, as a list. Convert each to a `Condition`.
+A record with a plausible exclusion in the prose and no `Condition` for it should
+fail the approval queue's own check.
+
+#### 5.4.D Provenance
+
+Three things the T&C establishes that nothing else can:
+
+- **Issuer.** The legal entity making the claim — trading name, ABN. This is
+  `BenefitRecord.issuer` and it must be the same entity the signing key belongs
+  to. A record issued by "CityCircuit Pty Ltd" signed with a key published by a
+  different domain is a verification failure, not a formatting one.
+- **Validity window.** Policy effective date → `issued_at`. Promotional or
+  time-bound clauses → `expires_at`. A record with no expiry that describes a
+  promotion is an extraction error.
+- **Canonical URLs.** UCP's own `policies[]` array wants `Link` objects. The T&C
+  import emits them directly — `refund_policy`, `shipping_policy`,
+  `privacy_policy`, `terms_of_service` — so the prose stays reachable for an
+  agent that wants to read it, alongside the typed records for one that wants to
+  compute over it.
+
+#### 5.4.E Australian Consumer Law — the floor is not a differentiator
+
+In Australia the T&C sits **on top of** the Australian Consumer Law. Consumer
+guarantees — acceptable quality, fitness for purpose, remedies for major failure
+— cannot be excluded by any policy, and a merchant's "12-month warranty" is a
+*voluntary warranty against defects* in addition to them, with mandatory wording
+requirements.
+
+Two consequences for extraction:
+
+1. **The statutory floor is identical for every merchant and is not creditable.**
+   Crediting it inflates everyone equally and proves nothing. A `WARRANTY`
+   record carries `"basis": "voluntary"` and only the voluntary excess is valued.
+   If the T&C merely restates ACL rights, no warranty record is drafted.
+2. **A policy that purports to exclude ACL rights** ("no refunds on sale items")
+   is drafted as a record with a `Condition`, and flagged in the approval queue —
+   the merchant is publishing something it cannot lawfully enforce, and the
+   approval gate is the place a human sees that.
+
+This is what Round 2's *Deployability* criterion means by "legal compliance under
+current regulations". One honest paragraph here earns points most technical teams
+leave on the table. **Verify the specific regulation references before they are
+spoken** — the principle is settled; the citation is not to be quoted from
+memory.
+
+#### 5.4.F The promotion program — rules, not results
+
+Two more onboarding inputs sit beside the T&C: the merchant's live promotions,
+and its membership program. Both are governed by the same finding, so it is
+stated once.
+
+**Every incentive standard attaches to checkout and models the *result*, never
+the *rule*.** Verified 12/09/2026:
+
+| Standard | Extends | Carries | Does **not** carry |
+|---|---|---|---|
+| UCP loyalty extension (`dev.uip.shopping.loyalty`, uip.dev) | Checkout | balances, earnings, tier *name*, `units_to_next` | redemption, what a tier *grants*, any valuation |
+| UCP promotions extension (uip.dev, v2026-01-28) | Checkout | `codes`, `discounts` (read-only), `free_items` | **stacking rules, eligibility, validity windows, automatic-vs-code mechanics** |
+| UCP native `dev.ucp.shopping.discount` | Checkout | agent submits `codes` → merchant returns `applied` with `priority`, `automatic`, `allocations` | the rules that produced them |
+
+All three answer *"what discount did I get?"* after the merchant is chosen. None
+answers *"what could I get here, and does it beat the merchant next door?"* — the
+question an agent asks while deciding. This is §2's Finding 3 again, now
+confirmed for promotions and loyalty both.
+
+So the promotion import must yield **rules an agent can compute over before
+choosing**, which is precisely what the standards leave out:
+
+```python
+@dataclass(frozen=True)
+class PromotionRule:
+    promo_id: str
+    kind: str                 # "percent" | "fixed" | "bogo" | "threshold"
+                              # | "bundle" | "free_shipping"
+    scope: str                # "sku" | "category" | "cart" | "shipping"
+    scope_ids: list[str]      # SKUs or categories; [] = whole cart
+    value: Decimal            # pct or AUD depending on kind
+    threshold_aud: Decimal | None
+    eligibility: list[Condition]     # tier, new_customer, channel …
+    agent_channel_eligible: bool     # do agent-mediated orders qualify?
+    stacks_with: list[str]           # promo_ids; [] = exclusive
+    priority: int                    # application order when stacked
+    code: str | None                 # None = automatic
+    starts_at: datetime
+    expires_at: datetime             # REQUIRED. Promotions die fast.
+    per_customer_cap: int | None
+    budget_cap_aud: Decimal | None
+    source_span: str
+```
+
+Four rules specific to promotions:
+
+1. **`expires_at` is required, not optional.** A promotion record with no expiry
+   is an extraction error. An agent that cites a dead promo at checkout learns
+   not to trust the merchant.
+2. **`agent_channel_eligible` must be extracted, not assumed.** Many T&Cs exclude
+   affiliate or automated channels from promotions. If the T&C is silent, the
+   field is `None` and the audit reports it — a merchant needs to *decide*
+   whether agents qualify, and the onboarding is where that decision is made
+   visible.
+3. **Stacking is a graph, not a flag.** `stacks_with` and `priority` together let
+   the optimiser in §5.7 find the maximum *legitimate* discount. The standards'
+   `priority` field only records the order a merchant *happened* to apply; ours
+   records what the merchant *permits*.
+4. **Promotions are `BenefitRecord`s for signing purposes.** `benefit_type` of
+   `PROMOTION` (new enum member, §9), `fact` holding the rule, `conditions` from
+   `eligibility`. They sign, expire and verify through the same path. Do not
+   build a second signing pipeline.
+
+#### 5.4.G The membership program — what the loyalty extension omits
+
+The UCP loyalty extension models a member's *state* — a wallet, a balance, a tier
+name, a count to the next one. It does not model the *program* — and the program
+is where the value is. The membership import yields exactly the omitted parts:
+
+```python
+@dataclass(frozen=True)
+class LoyaltyProgram:
+    program_id: str
+    name: str
+    unit: str                            # "points" | "AUD" | …
+    # Earning — the standard carries balances; we carry the rates
+    earn_rates: list[EarnRate]           # per AUD, per category, multipliers
+    # Redemption — explicitly not modelled by the standard
+    redeem_rate_aud_per_unit: Decimal    # 100 points = $1 → 0.01
+    redeem_minimum_units: int | None
+    points_expire_months: int | None     # breakage
+    # Tiers — the standard names them; we say what they grant
+    tiers: list[TierRule]
+    # Enrolment
+    enrolment_requires_consent: bool
+    enrolment_eligibility: list[Condition]
+    identity_proof: str                  # "identity_linking" | "card" | "email"
+    source_spans: dict[str, str]
+
+@dataclass(frozen=True)
+class EarnRate:
+    units_per_aud: Decimal
+    scope: str                           # "all" | "category" | "sku"
+    scope_ids: list[str]
+    multiplier_tier: str | None          # applies only at this tier
+    source_span: str
+
+@dataclass(frozen=True)
+class TierRule:
+    tier_id: str
+    name: str
+    threshold_units: int                 # what it takes to reach it
+    grants: list[BenefitRecord]          # what it GIVES — typed, signable
+    source_span: str
+```
+
+Three rules specific to membership:
+
+1. **Tier grants are `BenefitRecord`s.** "Gold gets free express delivery" is a
+   `DELIVERY` record with a `Condition(field="member_tier", op="eq",
+   value="gold")`. It signs and values through the existing path. This is how
+   *"what a tier grants"* — the field the standard lacks — enters the comparison.
+2. **Redemption value is the shopper's, capped by the merchant's rate.** The
+   merchant publishes `redeem_rate_aud_per_unit`; the shopper's policy decides
+   how much of a balance they expect to realise (`points_confidence`). The
+   merchant's rate is a ceiling, never the credited figure — same rule as every
+   other declared value.
+3. **Tier progression is provisional.** *"Buying this gets you to Gold"* is a
+   forecast, not a fact. It is valued under `provisional_confidence`, displayed
+   as such, and never counted as earned.
+
+#### Where these sit in the build
+
+| Piece | Phase | Owner |
+|---|---|---|
+| `PromotionRule` and `LoyaltyProgram` **import** — extraction + approval gate | **Stage 1, today** | Hieu |
+| Signing them through the existing path | Stage 1, today | Bach |
+| The optimiser (§5.7) | Phase 2, with the valuation library | Bach |
+| Signed quote + parity test (§5.7) | Phase 3, stretch | Bach |
+
+Hieu's branch is already the heaviest. If extraction time is short, the
+promotion import ships first — it is the more visible gap and the cheaper
+extraction — and membership follows from the manifests already in
+`data/policies/manifests.json`.
 
 ### 5.5 Sign — the spec is prescriptive here, follow it exactly
 
@@ -279,6 +546,64 @@ active set in every response.
 simply does not declare `org.bondlayer.benefit_value`, so negotiation prunes it.
 We never switch code paths to make the baseline lose — the protocol does it.
 
+### 5.7 Verifiable optimisation — Phase 2 and 3, not today
+
+The four imports together — catalogue, T&C, promotions, membership — let an agent
+compute what a purchase *actually costs* at this merchant, for this shopper,
+before choosing. The standards give it a price and a barcode; the imports give it
+the arithmetic.
+
+> UCP tells the agent what you sell. The four imports let it compute what it
+> costs — and prove it.
+
+**The line this must not cross.** The optimiser works *within published, signed
+rules only*. Same inputs → same output, for every agent, every time. No bespoke
+offers, no counter-proposals, no "we'll match that." That keeps it clear of the
+negotiation engine dropped in decision-log item 2, and it preserves property 1:
+a merchant cannot game an optimiser whose rules are public and signed.
+
+**Two outputs, so the weights stay with the shopper.**
+
+1. **Publish the rules** — every `PromotionRule`, `LoyaltyProgram` and
+   `BenefitRecord`, signed. Any agent computes under its own policy. This is the
+   primary path and it needs nothing installed agent-side.
+2. **Publish a signed quote** — a deterministic function of
+   `(published rules × basket × member context)`, with the arithmetic shown line
+   by line, that any agent can re-run:
+
+```python
+@dataclass(frozen=True)
+class SignedQuote:
+    quote_id: str
+    merchant_id: str
+    basket: list[tuple[str, int]]          # (sku_id, qty)
+    member_context: str | None             # tier, or None
+    shelf_total_aud: Decimal
+    applied: list[AppliedRule]             # promo/loyalty rule → amount, in order
+    effective_total_aud: Decimal
+    points_earned: int
+    valid_until: datetime
+    rule_ids: list[str]                    # every rule the arithmetic used
+    signature: str
+    key_id: str
+```
+
+A lazy agent takes the quote. A sceptical agent re-runs the arithmetic from the
+published `rule_ids` and catches any discrepancy. This is what *verifiable*
+means here, and it is the concrete difference from a standard that hands back
+`applied` after the choice is already made.
+
+**What "the agent comes back" means when the customer is a machine.** Not
+affection — reliability. An agent returns to merchants whose published data was
+creditable and whose checkout matched the quote. So the loop-closing test is
+**quote–checkout parity**: the `dev.ucp.shopping.discount` `applied` array at
+checkout must equal the `SignedQuote.applied` to the cent, and `points_earned`
+must match the loyalty extension's `earnings`. Any drift is bait-and-switch, and
+it is the single fastest way to be ranked down by every agent that saw it.
+
+This is the natural home for Bach's Phase 3 "close the API loop" — the same
+checkout call settles *and* proves the quote was honest.
+
 ## 6. Also emit the legacy surface
 
 UCP is the thesis, but most agents today read Google Merchant Center and
@@ -326,8 +651,23 @@ approval queue matter more than the bars looking good.
    never credited or cited.
 7. A values claim satisfies a VALUES constraint while contributing exactly
    `$0.00` to effective cost.
+8. The `MerchantEnvelope` is extracted **before** the profile is published, and
+   the profile declares only the capabilities the envelope permits. An envelope
+   field the T&C does not answer is reported as a gap, never defaulted.
+9. Every negation in the policy prose has a matching `Condition`; a record whose
+   conditions fail for a given SKU is shown as inapplicable and contributes
+   nothing.
+10. A `WARRANTY` record is drafted only for the voluntary excess over the
+    statutory floor.
+11. Every `PromotionRule` has an `expires_at`; a promotion with no expiry in the
+    prose is flagged in the approval queue, not defaulted.
+12. Tier grants are `BenefitRecord`s gated by a `member_tier` `Condition`, and
+    verify through the same signing path as every other record.
+13. *(Phase 3)* For a seeded basket and member, the checkout `applied` array
+    equals the `SignedQuote.applied` to the cent, and an agent re-running the
+    arithmetic from `rule_ids` reproduces `effective_total_aud`.
 
-## 9. Two additions `types.py` needs — channel first
+## 9. Seven additions `types.py` needs — channel first
 
 `Sku` currently carries `sku_id`, `title`, `category`, `shelf_price`,
 `attributes`. Stage 1 needs identity to be first-class, not buried in the
@@ -340,8 +680,20 @@ variant_parent: str | None
 availability: bool
 ```
 
-And `ReadinessReport` from §4. **Neither is mine to commit** — post to the
-channel, land it on `round2/dev` as its own commit, everyone rebases.
+Plus six new types and one enum member:
+
+- `ReadinessReport` from §4.
+- `MerchantEnvelope` from §5.4.A.
+- `Condition` from §5.4.C — and `BenefitRecord.conditions` changes from
+  `list[str]` to `list[Condition]`. **This is the one breaking change**; Bach's
+  serialiser and Hieu's converter both touch it, so it lands before either
+  writes against the field.
+- `PromotionRule` from §5.4.F, and `BenefitType.PROMOTION`.
+- `LoyaltyProgram`, `EarnRate`, `TierRule` from §5.4.G.
+- `SignedQuote` from §5.7 — Phase 3, can land later.
+
+**None of these are mine to commit** — post to the channel, land them on
+`round2/dev` as their own commit, everyone rebases.
 
 ## 10. Sources and their standing
 
