@@ -8,8 +8,8 @@
 
 ### ✅ Fully Implemented
 1. **LLM Client** (100%)
-   - Live Anthropic API integration
-   - Claude 3.5 Sonnet model
+   - Live OpenAI API integration
+   - GPT-4o-mini model
    - Temperature 0 for consistent ranking
    - Non-blocking async calls
 
@@ -91,7 +91,7 @@ BondLayer OFF: None
 
 ## Dependencies
 
-- `anthropic==0.7.8` - LLM client
+- `openai==1.3.0` - LLM client
 - `fastapi==0.104.1` - Services
 - `httpx==0.25.0` - Async HTTP
 - React + TypeScript - UI
@@ -160,7 +160,7 @@ BondLayer OFF: None
 cd round2/chat-app && python -m src.merchant.main
 
 # Terminal 2
-export ANTHROPIC_API_KEY=sk-... && python -m src.agent.main
+export OPENAI_API_KEY=sk-... && python -m src.agent.main
 
 # Terminal 3
 cd src/ui && npm run dev

@@ -18,7 +18,7 @@ This implements the P3 milestone: a full shopping agent pipeline with LLM-powere
 
 - Python 3.10+
 - Node.js 18+
-- `ANTHROPIC_API_KEY` environment variable set
+- `OPENAI_API_KEY` environment variable set
 
 ## Quick Start (3 Terminals)
 
@@ -33,7 +33,7 @@ python -m src.merchant.main
 **Terminal 2: Agent Service**
 ```bash
 cd round2/chat-app
-export ANTHROPIC_API_KEY=sk-...  # Set your Anthropic API key
+export OPENAI_API_KEY=sk-...  # Set your OpenAI API key
 python -m src.agent.main
 # Runs on http://localhost:8001
 ```
@@ -133,9 +133,9 @@ curl http://localhost:8001/health
 ```
 
 **LLM calls failing?**
-- Verify `ANTHROPIC_API_KEY` is set
+- Verify `OPENAI_API_KEY` is set
 - Check API key has quota
-- Monitor Claude API usage in console
+- Monitor OpenAI API usage at https://platform.openai.com/usage
 
 **Products not showing?**
 - Verify merchant service is running

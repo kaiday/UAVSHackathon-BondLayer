@@ -6,7 +6,7 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import httpx
-import anthropic
+from openai import OpenAI
 
 # Import BondLayer signing and valuation
 try:
@@ -36,8 +36,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Anthropic client
-anthropic_client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+# Initialize OpenAI client
+openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 # Merchants to query
 MERCHANTS = ["voltway", "citycircuit", "northgear"]
@@ -107,9 +107,10 @@ Be neutral and objective. Always consider price, quality, and availability in yo
 
 async def parse_intent(query: str) -> str:
     """Parse user query to extract shopping intent using LLM"""
-    message = anthropic_client.messages.create(
-        model="claude-3-5-sonnet-20241022",
+    response = openai_client.chat.completions.create(
+        model="gpt-4o-mini",
         max_tokens=200,
+        temperature=0,
         messages=[
             {
                 "role": "user",
@@ -117,7 +118,7 @@ async def parse_intent(query: str) -> str:
             }
         ]
     )
-    return message.content[0].text
+    return response.choices[0].message.content
 
 
 async def fetch_products_from_merchant(merchant: str, query: str) -> list:
@@ -174,9 +175,10 @@ For each product, provide:
 
 Format as JSON array with fields: [rank, product_id, merchant, reasoning]"""
 
-    message = anthropic_client.messages.create(
-        model="claude-3-5-sonnet-20241022",
+    response = openai_client.chat.completions.create(
+        model="gpt-4o-mini",
         max_tokens=1000,
+        temperature=0,
         messages=[
             {
                 "role": "user",
@@ -186,7 +188,7 @@ Format as JSON array with fields: [rank, product_id, merchant, reasoning]"""
     )
 
     # Parse LLM response
-    response_text = message.content[0].text
+    response_text = response.choices[0].message.content
 
     # Extract JSON from response
     try:

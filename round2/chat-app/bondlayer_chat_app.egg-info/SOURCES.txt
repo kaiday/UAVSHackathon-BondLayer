@@ -1,0 +1,8 @@
+README.md
+pyproject.toml
+bondlayer_chat_app.egg-info/PKG-INFO
+bondlayer_chat_app.egg-info/SOURCES.txt
+bondlayer_chat_app.egg-info/dependency_links.txt
+bondlayer_chat_app.egg-info/requires.txt
+bondlayer_chat_app.egg-info/top_level.txt
+src/__init__.py
