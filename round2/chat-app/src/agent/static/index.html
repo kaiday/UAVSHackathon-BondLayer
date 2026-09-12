@@ -136,6 +136,60 @@
   .constraints .why{color:#4b5563}
   .unanswered{color:var(--bad);font-style:italic;font-weight:600}
 
+  /* The merchant's own reading: what each merchant understood and proposed
+     when handed the sentence itself (POST /ucp/intent/propose). Deliberately
+     NOT the .offer card and NOT the .bundle frame -- a dashed border and a
+     flat ground, so it cannot be mistaken for a second ranking. This block is
+     "what the merchant understood and proposed"; the ranking below is "what
+     the agent verified and decided", and the second never reads the first. */
+  .mdec{
+    border:1px dashed #b9c4d6;border-radius:11px;background:#fafbfe;
+    padding:10px 13px;margin:0 0 12px;
+  }
+  .mdec h4{
+    margin:0 0 6px;font-size:12px;font-weight:700;color:var(--accent);
+    display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;
+  }
+  .mdec h4 span{font-size:10.5px;font-weight:500;color:var(--muted);font-style:italic}
+  .mdec-sum{margin:0 0 8px;font-size:11.5px;color:#374151}
+  .mdec-note{margin:4px 0 0;font-size:11.5px;color:var(--muted);font-style:italic}
+  .mdec-m{border-top:1px dashed var(--line);padding:8px 0 4px}
+  .mdec-hd{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;text-transform:capitalize}
+  .badge{
+    font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
+    border-radius:999px;padding:1px 8px;text-transform:none;
+  }
+  .badge.ok{background:#e9f9ee;color:#166534;border:1px solid #bbf7d0}
+  .badge.no{background:#f4f5f7;color:#6b7280;border:1px solid var(--line)}
+  .mdec-agree{margin:4px 0 6px;font-size:11.5px;color:#374151}
+  .mdec-rows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
+  .mdec-rows li{
+    font-size:11.5px;padding:4px 7px;border-radius:6px;background:#f1f4f9;
+    display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;
+  }
+  .mdec-rows li.differ{background:#fff6f6}
+  .mdec-rows .mark{flex:none;font-weight:700;color:var(--ok)}
+  .mdec-rows li.differ .mark{color:var(--bad)}
+  .mdec-rows .kind{
+    display:inline-block;font-size:9.5px;font-weight:700;text-transform:uppercase;color:#fff;
+    background:var(--accent);border-radius:999px;padding:1px 7px;vertical-align:1px;
+  }
+  .mdec-rows li.differ .kind{background:var(--bad)}
+  .mdec-rows .clause{font-weight:600;color:#1f2937}
+  .mdec-rows .interp{color:var(--muted);font:10.5px/1.5 ui-monospace,Consolas,monospace;flex-basis:100%;padding-left:22px}
+  .mdec-assume{margin:6px 0 0;padding:0 0 0 16px;font-size:11px;color:#4b5563}
+  .mdec-assume li{margin:0 0 2px}
+  .mdec-q{margin:6px 0 0;font-size:11.5px;color:#9a3412;font-weight:600}
+  .mdec-prop{margin-top:8px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff}
+  .mdec-prop-hd{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:12px}
+  .mdec-prop-hd .tag{
+    font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
+    background:#eef2f7;color:var(--accent);border-radius:999px;padding:1px 7px;flex:none;
+  }
+  .mdec-prop-hd .t{font-weight:600}
+  .mdec-prop-hd .p{margin-left:auto;color:var(--muted);flex:none}
+  .mdec-unsat{margin:6px 0 0;font-size:11px;color:var(--bad)}
+
   .flip{
     margin-top:6px;padding:9px 11px;border-radius:9px;font-size:12px;font-weight:600;
     background:#fff3ec;color:#9a3412;border:1px solid #fed7aa;
@@ -227,8 +281,8 @@
   <div class="chips" id="chips"></div>
   <p class="switchline">
     One query, one switch: the <b>only</b> difference between the two panes is whether this agent
-    declares <code>org.bondlayer.benefit_value</code> in <code>UCP-Agent</code>. Same merchants, same
-    fetcher, same ranking arithmetic.
+    declares <code>org.bondlayer.benefit_value</code> and <code>org.bondlayer.intent_match</code> in
+    <code>UCP-Agent</code>. Same merchants, same fetcher, same ranking arithmetic.
   </p>
 
   <div class="panes">
@@ -402,10 +456,100 @@ function bundleHtml(bundles, ranked) {
   '</div>';
 }
 
+/* The merchant's own reading. `merchant_decodes` is the detail of the one
+   trace step bondlayer.agent.merchant_decode appends: for each merchant, the
+   decoded_intent block the merchant returned from POST /ucp/intent/propose,
+   VERBATIM, its first proposal with the resolver's per-clause notes, and a
+   clause-by-clause agreement check against the agent's own decode. This page
+   renders that and derives nothing: the ✓/✗ marks come from
+   `agreement.clauses`, the interpretation text from the merchant's own
+   `interpretation` dict, the resolver lines from the same constraintsHtml the
+   ranked offers use, so the two seats look identical on screen. The ranking
+   below never reads this block. */
+function interpretationText(interp) {
+  return Object.entries(interp || {})
+    .map(([k, v]) => k + '=' + (Array.isArray(v) ? v.join(',') : String(v)))
+    .join(' \u00b7 ');
+}
+
+function merchantDecodeEntryHtml(d) {
+  const head = '<div class="mdec-hd"><b>' + esc(d.merchant) + '</b>' +
+    (d.negotiated
+      ? '<span class="badge ok">negotiated org.bondlayer.intent_match</span>'
+      : '<span class="badge no">did not negotiate intent_match</span>') +
+    '</div>';
+  if (d.error) {
+    return '<div class="mdec-m">' + head +
+      '<p class="mdec-note">could not be asked \u2014 ' + esc(d.error) + '</p></div>';
+  }
+  if (!d.negotiated) {
+    return '<div class="mdec-m">' + head +
+      '<p class="mdec-note">decoded nothing \u2014 the route answered 406, so only the agent\u2019s reading applies to this shelf.</p></div>';
+  }
+  const di = d.decoded_intent || {};
+  const ag = d.agreement || {clauses: [], agreed: 0, total: 0};
+  const paired = new Set((ag.clauses || [])
+    .filter(c => c.agree && c.merchant)
+    .map(c => c.merchant.kind + '|' + c.merchant.text));
+  const rows = (di.constraints || []).map(c => {
+    const ok = paired.has(c.kind + '|' + c.text);
+    return '<li class="' + (ok ? 'agree' : 'differ') + '">' +
+      '<span class="mark">' + (ok ? '\u2713' : '\u2717') + '</span>' +
+      '<span class="kind">' + esc(c.kind) + '</span>' +
+      '<span class="clause">' + esc(c.text) + '</span>' +
+      '<span class="interp">' + esc(interpretationText(c.interpretation)) + '</span>' +
+    '</li>';
+  });
+  // A clause the agent decoded that the merchant did not read at all.
+  (ag.clauses || []).filter(c => !c.agree).forEach(c => rows.push(
+    '<li class="differ"><span class="mark">\u2717</span>' +
+    '<span class="kind">' + esc(c.agent.kind) + '</span>' +
+    '<span class="clause">' + esc(c.agent.text) + '</span>' +
+    '<span class="interp">the agent read this clause; the merchant did not</span></li>'));
+  const agree = '<p class="mdec-agree">agrees with the agent\u2019s decode on <b>' +
+    ag.agreed + '/' + ag.total + '</b> clauses</p>';
+  const assumptions = (di.assumptions || []).length
+    ? '<ul class="mdec-assume">' + di.assumptions.map(a => '<li>' + esc(a) + '</li>').join('') + '</ul>'
+    : '';
+  const question = di.clarifying_question
+    ? '<p class="mdec-q">asks: ' + esc(di.clarifying_question) + '</p>' : '';
+  const top = (d.proposals || [])[0];
+  const proposal = top
+    ? '<div class="mdec-prop"><div class="mdec-prop-hd">' +
+        '<span class="tag">merchant\u2019s first proposal</span>' +
+        '<span class="t">' + esc(top.title) + '</span>' +
+        '<span class="p">' + esc(top.sku_id) + ' \u00b7 ' + money(top.price) + '</span>' +
+      '</div>' +
+      constraintsHtml(top.resolved) +
+      ((top.unsatisfied || []).length
+        ? '<p class="mdec-unsat">unsatisfied: ' + top.unsatisfied.map(u => esc(u.text)).join('; ') + '</p>'
+        : '') +
+      '</div>'
+    : '<p class="mdec-note">no proposal \u2014 nothing on its shelf passes the HARD clauses</p>';
+  return '<div class="mdec-m">' + head + agree +
+    '<ul class="mdec-rows">' + rows.join('') + '</ul>' +
+    assumptions + question + proposal + '</div>';
+}
+
+function merchantDecodeHtml(md) {
+  if (!md) return '';
+  const list = md.merchant_decodes || [];
+  return '<section class="mdec">' +
+    '<h4>Merchant\u2019s own reading' +
+      '<span>what each merchant understood and proposed when handed the sentence \u2014 not the ranking</span></h4>' +
+    '<p class="mdec-sum">' + esc(md.summary) + '</p>' +
+    (list.length ? list.map(merchantDecodeEntryHtml).join('') : '') +
+  '</section>';
+}
+
 function paneHtml(d, header) {
   if (d.error) return '<p class="err">' + esc(d.error) + '</p>';
   let html = '<div class="hdrline">UCP-Agent: ' + esc(header) + '</div>';
   html += traceHtml(d.steps);
+  // The merchant's own reading sits between the trace (where the agent's
+  // decode step is) and the ranking, and renders whether or not anything was
+  // ranked: "nobody could decode it" is a finding too.
+  html += merchantDecodeHtml(d.merchant_decodes);
   if (!d.ranked || !d.ranked.length) {
     html += '<p class="empty">No merchant returned a matching, priced listing.</p>';
     return html;
