@@ -4,6 +4,10 @@
 competition window. Nothing is copied from `bach-demo/` or `demo/`. The design
 source of truth is the submitted Round 1 proposal (§5.2 component table).
 
+**Team name: BondLayer.** Settled 12/09 — pitch title and team-info block.
+
+**Gap coverage:** `GAPS.md` maps every gap in the Round 2 alignment analysis to an owner.
+
 **Shared contract:** `src/bondlayer/types.py`. Everyone imports it. Changing a
 field means telling the team in the channel first — five people depend on it.
 
