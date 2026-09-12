@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BondLayer Shopping Agent</title>
+<style>
+  :root{
+    --bg:#eef1f6; --panel:#fff; --ink:#14161a; --muted:#6b7280; --line:#e3e7ee;
+    --brand:#ff6b35; --accent:#004e89; --ok:#16a34a; --bad:#dc2626;
+    --user:#004e89; --shadow:0 1px 2px rgba(16,24,40,.06),0 6px 18px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    display:flex;flex-direction:column;
+  }
+  header{
+    background:var(--panel);border-bottom:1px solid var(--line);padding:12px 18px;
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+  .logo{
+    width:32px;height:32px;border-radius:9px;flex:none;
+    background:linear-gradient(135deg,var(--brand),var(--accent));
+    color:#fff;font-weight:800;font-size:15px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .brand h1{margin:0;font-size:15px;font-weight:700}
+  .brand p{margin:0;font-size:12px;color:var(--muted)}
+  .toggles{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .tg{
+    display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;
+    background:#f6f8fb;border:1px solid var(--line);border-radius:999px;padding:6px 13px;cursor:pointer;
+  }
+  /* The label owns the click. Without this, a click landing on the input is
+     handled by the input AND forwarded by the label, toggling twice. */
+  .tg input{width:16px;height:16px;accent-color:var(--brand);margin:0;pointer-events:none}
+  .tg .on{color:var(--ok)} .tg .off{color:var(--bad)}
+  .health{display:flex;gap:12px;font-size:12px;color:var(--muted);align-items:center}
+  .dot{width:8px;height:8px;border-radius:50%;background:#cbd5e1;display:inline-block;margin-right:5px}
+  .dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)}
+
+  #thread{flex:1;overflow-y:auto;padding:22px 18px 8px}
+  .wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+
+  .msg{display:flex;gap:11px;align-items:flex-start}
+  .msg.me{flex-direction:row-reverse}
+  .av{
+    width:30px;height:30px;border-radius:50%;flex:none;font-size:12px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;color:#fff;
+  }
+  .av.bot{background:linear-gradient(135deg,var(--brand),var(--accent))}
+  .av.me{background:#475569}
+  .bub{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:13px 15px;box-shadow:var(--shadow);max-width:calc(100% - 50px);
+  }
+  .msg.me .bub{background:var(--user);color:#fff;border-color:var(--user)}
+  .bub p{margin:0 0 8px}
+  .bub p:last-child{margin-bottom:0}
+
+  .sys{
+    text-align:center;font-size:12px;color:var(--muted);
+    border-top:1px dashed var(--line);padding-top:10px;
+  }
+  .sys b{color:var(--accent)}
+
+  .intent{font-size:13px;color:var(--muted);margin:0 0 11px;padding-bottom:9px;border-bottom:1px solid var(--line)}
+  .intent b{color:var(--accent)}
+
+  .offer{display:flex;gap:11px;padding:11px 0;border-top:1px solid var(--line)}
+  .offer:first-of-type{border-top:0;padding-top:2px}
+  .rk{
+    flex:none;width:26px;height:26px;border-radius:50%;background:#eef2f7;color:var(--accent);
+    font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;
+  }
+  .offer.win .rk{background:var(--brand);color:#fff}
+  .oi{flex:1;min-width:0}
+  .oi h4{margin:0 0 2px;font-size:14px}
+  .oi .mt{margin:0 0 5px;font-size:12px;color:var(--muted);text-transform:capitalize}
+  .prices{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap;margin-bottom:5px}
+  .net{font-weight:700;color:var(--brand);font-size:15px}
+  .shelf{font-size:12px;color:var(--muted)}
+  .shelf.struck{text-decoration:line-through}
+  .save{font-size:11px;font-weight:700;color:var(--ok);background:#e9f9ee;border-radius:999px;padding:2px 8px}
+  .why{margin:0;font-size:13px;color:#374151}
+  .claims{margin:7px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px}
+  .claims li{font-size:12px;display:flex;gap:6px;align-items:flex-start}
+  .tick{flex:none;font-weight:700}
+  .s-signed_priced .tick{color:var(--ok)}
+  .s-signed_unpriced .tick{color:var(--accent)}
+  .s-unsigned{color:var(--muted)}
+  .s-unsigned .tick{color:#9ca3af}
+
+  details{margin-top:11px;border-top:1px solid var(--line);padding-top:9px}
+  summary{cursor:pointer;font-size:12px;color:var(--accent);font-weight:600;list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"\25B8  ";}
+  details[open] summary::before{content:"\25BE  ";}
+  .tbl{width:100%;border-collapse:collapse;margin-top:9px;font-size:12px}
+  .tbl th,.tbl td{text-align:left;padding:5px 7px;border-bottom:1px solid var(--line)}
+  .tbl th{color:var(--muted);font-weight:600}
+  .yes{color:var(--ok);font-weight:700} .no{color:var(--muted)}
+  pre{
+    background:#14161a;color:#a7f3d0;padding:11px;border-radius:9px;margin:9px 0 0;
+    overflow-x:auto;font:11px/1.5 ui-monospace,Consolas,monospace;max-height:280px;
+  }
+  .hdrline{font:11px/1.5 ui-monospace,Consolas,monospace;background:#f6f8fb;border:1px solid var(--line);
+    border-radius:7px;padding:7px 9px;margin:9px 0 0;word-break:break-all;color:var(--accent)}
+
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .chip{
+    background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:7px 14px;
+    font-size:13px;cursor:pointer;box-shadow:var(--shadow);
+  }
+  .chip:hover{border-color:var(--brand);color:var(--brand)}
+
+  .dots span{
+    display:inline-block;width:6px;height:6px;margin-right:3px;border-radius:50%;background:#9ca3af;
+    animation:b 1.3s infinite;
+  }
+  .dots span:nth-child(2){animation-delay:.18s}
+  .dots span:nth-child(3){animation-delay:.36s}
+  @keyframes b{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+
+  .err{color:var(--bad)}
+
+  footer{
+    border-top:1px solid var(--line);background:var(--panel);padding:12px 18px;
+  }
+  .composer{max-width:860px;margin:0 auto;display:flex;gap:9px}
+  .composer input{
+    flex:1;padding:12px 15px;font:inherit;border:1px solid var(--line);
+    border-radius:999px;background:#f6f8fb;
+  }
+  .composer input:focus{outline:none;border-color:var(--brand);background:#fff}
+  .composer button{
+    padding:12px 24px;border:0;border-radius:999px;background:var(--brand);color:#fff;
+    font-weight:600;font-size:15px;cursor:pointer;
+  }
+  .composer button:disabled{opacity:.5;cursor:not-allowed}
+  .hint{max-width:860px;margin:7px auto 0;font-size:11px;color:var(--muted);text-align:center}
+
+  @media(max-width:620px){
+    .bub{max-width:calc(100% - 42px)}
+    header{gap:10px}
+    .health{width:100%}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">BL</div>
+    <div>
+      <h1>Shopping Agent</h1>
+      <p>Compares merchants over UCP</p>
+    </div>
+  </div>
+  <div class="toggles">
+    <label class="tg"><input type="checkbox" id="bl" checked><span id="bl-l" class="on">BondLayer on</span></label>
+    <label class="tg"><input type="checkbox" id="cs" checked><span id="cs-l" class="on">Consent</span></label>
+  </div>
+  <div class="health">
+    <span><i class="dot" id="d-m"></i><span id="t-m">merchant...</span></span>
+    <span><i class="dot" id="d-a"></i><span id="t-a">agent...</span></span>
+    <span><i class="dot" id="d-l"></i><span id="t-l">model...</span></span>
+  </div>
+</header>
+
+<div id="thread"><div class="wrap" id="wrap"></div></div>
+
+<footer>
+  <div class="composer">
+    <input id="q" type="text" placeholder="Ask for something - e.g. a USB-C charger under $40" autocomplete="off">
+    <button id="go">Send</button>
+  </div>
+  <div class="hint">Flip <b>BondLayer</b> mid-conversation and ask the same thing again to see the switch change the answer.</div>
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const wrap = $('wrap'), thread = $('thread');
+let busy = false;
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const money = n => '$' + Number(n || 0).toFixed(2);
+const scroll = () => { thread.scrollTop = thread.scrollHeight; };
+
+function node(html) {
+  const d = document.createElement('div');
+  d.innerHTML = html.trim();
+  return d.firstElementChild;
+}
+
+function addUser(text) {
+  wrap.appendChild(node(
+    '<div class="msg me">' +
+      '<div class="av me">You</div>' +
+      '<div class="bub"><p>' + esc(text) + '</p></div>' +
+    '</div>'));
+  scroll();
+}
+
+function addBot(inner) {
+  const el = node(
+    '<div class="msg">' +
+      '<div class="av bot">BL</div>' +
+      '<div class="bub">' + inner + '</div>' +
+    '</div>');
+  wrap.appendChild(el);
+  scroll();
+  return el;
+}
+
+function addSys(html) {
+  wrap.appendChild(node('<div class="sys">' + html + '</div>'));
+  scroll();
+}
+
+function thinking() {
+  return addBot('<p class="dots"><span></span><span></span><span></span></p>');
+}
+
+/* ---------- rendering one agent turn ---------- */
+
+/* Turn a terms object into one short human phrase. Falls back to the policy
+   sentence the merchant actually published, which is always safe to show. */
+function termsText(r) {
+  const t = r.terms;
+  if (t && typeof t === 'object') {
+    if (t.warranty_months) {
+      const base = t.warranty_months + '-month warranty';
+      return t.statutory_minimum_months
+        ? base + ' vs ' + t.statutory_minimum_months + ' statutory'
+        : base;
+    }
+    if (t.free_over_aud != null) {
+      return 'free over ' + money(t.free_over_aud) +
+        (t.otherwise_flat_rate_aud != null ? ', else ' + money(t.otherwise_flat_rate_aud) : '');
+    }
+    const pairs = Object.keys(t).slice(0, 2).map(k =>
+      k.replace(/_/g, ' ') + ': ' + t[k]);
+    if (pairs.length) return pairs.join(', ');
+  }
+  return String(r.source_span || '').slice(0, 110);
+}
+
+function claimLi(r) {
+  const label = esc(String(r.benefit_type || 'claim').replace(/_/g, ' '));
+  const detail = esc(termsText(r));
+  const tip = esc(r.source_span || '');
+
+  if (r.state === 'verified_monetary') {
+    return '<li class="s-signed_priced" title="' + tip + '"><span class="tick">&#10003;</span>' +
+      '<span>' + label + ' &mdash; <b>' + money(r.cash_value_aud) + '</b> you do not pay' +
+      (detail ? ' (' + detail + ')' : '') + '</span></li>';
+  }
+  if (r.state === 'verified_fact') {
+    return '<li class="s-signed_unpriced" title="' + tip + '"><span class="tick">&#10003;</span>' +
+      '<span>' + label + ' &mdash; ' + (detail || 'verified') + '</span></li>';
+  }
+  return '<li class="s-unsigned" title="' + tip + '"><span class="tick">&#9675;</span>' +
+    '<span>' + label + ' &mdash; ' + esc(r.reason || 'not verified, not counted') + '</span></li>';
+}
+
+function decisiveHtml(terms) {
+  if (!terms) return '';
+  const list = Array.isArray(terms) ? terms : [terms];
+  const items = list.filter(Boolean).map(t =>
+    '<li class="s-signed_unpriced"><span class="tick">&#8226;</span><span>' + esc(t) + '</span></li>'
+  ).join('');
+  return items ? '<ul class="claims">' + items + '</ul>' : '';
+}
+
+function offerHtml(r, i, auditBySku) {
+  const shelf = Number(r.shelf_price_aud || 0);
+  const a = (auditBySku || {})[r.sku_id] || {};
+
+  // Newer backends report fees waived rather than a net price; older ones sent
+  // agent_net_cost_aud. Support whichever arrives.
+  const waived = a.verified_fees_waived_aud != null
+    ? Number(a.verified_fees_waived_aud)
+    : (r.agent_net_cost_aud != null ? shelf - Number(r.agent_net_cost_aud) : 0);
+
+  const facts = a.verified_fact_count || 0;
+  const badges = [];
+  if (waived > 0.004) badges.push('<span class="save">' + money(waived) + ' fees waived</span>');
+  if (facts > 0) badges.push('<span class="save">' + facts + ' verified term' + (facts > 1 ? 's' : '') + '</span>');
+
+  const claims = (r.records || []).map(claimLi).join('');
+  const decisive = decisiveHtml(r.agent_decisive_terms);
+
+  return '<div class="offer' + (i === 0 ? ' win' : '') + '">' +
+      '<div class="rk">' + esc(r.rank == null ? i + 1 : r.rank) + '</div>' +
+      '<div class="oi">' +
+        '<h4>' + esc(r.title) + '</h4>' +
+        '<p class="mt">' + esc(r.merchant) + ' &middot; ' + esc(r.sku_id) + '</p>' +
+        '<div class="prices"><span class="net">' + money(shelf) + '</span>' + badges.join('') + '</div>' +
+        '<p class="why">' + esc(r.reasoning) + '</p>' +
+        decisive +
+        (claims ? '<ul class="claims">' + claims + '</ul>' : '') +
+      '</div>' +
+    '</div>';
+}
+
+function exchangesTable(log) {
+  const fan = (log || []).find(s => s.step === 'fan_out');
+  if (!fan || !fan.exchanges) return '';
+  const rows = fan.exchanges.map(e =>
+    '<tr>' +
+      '<td>' + esc(e.merchant) + '</td>' +
+      '<td>' + esc(e.status_code) + '</td>' +
+      '<td>' + esc(e.product_count) + '</td>' +
+      '<td class="' + (e.extension_served ? 'yes' : 'no') + '">' +
+        (e.extension_served ? 'served' : 'pruned') + '</td>' +
+      '<td>' + esc(e.record_count) + '</td>' +
+    '</tr>').join('');
+  return '<table class="tbl">' +
+      '<tr><th>merchant</th><th>HTTP</th><th>listings</th><th>benefit ext.</th><th>records</th></tr>' +
+      rows +
+    '</table>';
+}
+
+function auditTable(audit) {
+  if (!audit || !audit.length) return '';
+  const rows = audit.map(a =>
+    '<tr>' +
+      '<td>' + esc(a.merchant) + '</td>' +
+      '<td>' + esc(a.title) + '</td>' +
+      '<td>' + money(a.shelf_price_aud) + '</td>' +
+      '<td>' + money(a.verified_fees_waived_aud != null
+                      ? a.verified_fees_waived_aud : a.total_credited_aud) + '</td>' +
+      '<td>' + esc(a.verified_fact_count != null ? a.verified_fact_count : '-') + '</td>' +
+      '<td class="' + (a.ignored_count ? 'no' : 'yes') + '">' +
+        esc(a.ignored_count != null ? a.ignored_count : 0) + '</td>' +
+    '</tr>').join('');
+  return '<table class="tbl">' +
+      '<tr><th>merchant</th><th>listing</th><th>shelf</th><th>fees waived</th>' +
+      '<th>verified terms</th><th>ignored</th></tr>' +
+      rows +
+    '</table>';
+}
+
+function turnHtml(d) {
+  const intent = d.intent || {};
+  const results = d.results || [];
+  const bits = [];
+  if (intent.category) bits.push(esc(intent.category));
+  if (intent.max_price_aud) bits.push('under ' + money(intent.max_price_aud));
+  (intent.must_have || []).forEach(m => bits.push(esc(m)));
+
+  const head = '<p class="intent"><b>Understood:</b> ' +
+    esc(intent.summary || d.user_query) +
+    (bits.length ? ' &middot; ' + bits.join(' &middot; ') : '') + '</p>';
+
+  if (!results.length) {
+    return head + '<p>' + esc(d.final_recommendation ||
+      'No merchant returned a matching listing.') + '</p>';
+  }
+
+  const fan = (d.evidence_log || []).find(s => s.step === 'fan_out');
+  const served = fan && fan.exchanges
+    ? fan.exchanges.filter(e => e.extension_served).length : 0;
+
+  const auditBySku = {};
+  (d.audit || []).forEach(a => { auditBySku[a.sku_id] = a; });
+
+  const lead = d.bondlayer_enabled
+    ? 'I checked three merchants and ranked ' + results.length + ' listing' +
+      (results.length > 1 ? 's' : '') + '. ' + served + ' served signed benefit records.'
+    : 'I checked three merchants and ranked ' + results.length + ' listing' +
+      (results.length > 1 ? 's' : '') + '. BondLayer is off, so no benefit records were requested.';
+
+  return head +
+    '<p>' + lead + '</p>' +
+    results.map((r, i) => offerHtml(r, i, auditBySku)).join('') +
+    '<p style="margin-top:11px">' + esc(d.final_recommendation) + '</p>' +
+    '<details>' +
+      '<summary>How I got here</summary>' +
+      '<div class="hdrline">UCP-Agent: ' + esc(d.ucp_agent_header) + '</div>' +
+      exchangesTable(d.evidence_log) +
+      '<p class="intent" style="border:0;margin:11px 0 0;padding:0">' +
+        'Independent audit &mdash; computed by the client, never shown to the model:</p>' +
+      auditTable(d.audit) +
+    '</details>' +
+    '<details>' +
+      '<summary>Raw evidence log</summary>' +
+      '<pre>' + esc(JSON.stringify(d.evidence_log, null, 2)) + '</pre>' +
+    '</details>';
+}
+
+/* ---------- conversation ---------- */
+
+async function ask(text) {
+  if (busy || !text.trim()) return;
+  busy = true;
+  $('go').disabled = true;
+  $('q').value = '';
+  addUser(text);
+  const ph = thinking();
+
+  try {
+    const r = await fetch('/query', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        query: text,
+        bondlayer_enabled: $('bl').checked,
+        consent: $('cs').checked,
+        shopper_id: 'demo_shopper'
+      })
+    });
+    if (!r.ok) {
+      const body = await r.text();
+      throw new Error('HTTP ' + r.status + ' - ' + body.slice(0, 400));
+    }
+    ph.querySelector('.bub').innerHTML = turnHtml(await r.json());
+  } catch (e) {
+    ph.querySelector('.bub').innerHTML = '<p class="err">' + esc(e.message) + '</p>';
+  } finally {
+    busy = false;
+    $('go').disabled = false;
+    $('q').focus();
+    scroll();
+  }
+}
+
+/* ---------- toggles ---------- */
+
+function wireToggle(id, labelId, onWord, offWord, note) {
+  $(id).addEventListener('change', e => {
+    const on = e.target.checked;
+    $(labelId).textContent = on ? onWord : offWord;
+    $(labelId).className = on ? 'on' : 'off';
+    if (wrap.children.length > 1) addSys(note(on));
+  });
+}
+
+wireToggle('bl', 'bl-l', 'BondLayer on', 'BondLayer off', on => on
+  ? 'BondLayer <b>on</b> &mdash; the agent now declares <b>org.bondlayer.benefit_value</b>. Ask again to compare.'
+  : 'BondLayer <b>off</b> &mdash; the capability is no longer declared, so merchants prune the extension. Ask again to compare.');
+
+wireToggle('cs', 'cs-l', 'Consent', 'No consent', on => on
+  ? 'Consent <b>granted</b> &mdash; merchants may return shopper-linked benefits.'
+  : 'Consent <b>withdrawn</b> &mdash; identity linking returns nothing about the shopper.');
+
+/* ---------- boot ---------- */
+
+async function health() {
+  try {
+    const j = await (await fetch('/merchant-health')).json();
+    const ok = j.status === 'ok';
+    $('d-m').className = 'dot ' + (ok ? 'ok' : 'bad');
+    $('t-m').textContent = ok ? 'merchants up' : 'merchant down';
+  } catch (e) {
+    $('d-m').className = 'dot bad';
+    $('t-m').textContent = 'merchant down';
+  }
+
+  try {
+    const j = await (await fetch('/health')).json();
+    $('d-a').className = 'dot ok';
+    $('t-a').textContent = 'agent up';
+    const live = j.llm_available !== false;
+    $('d-l').className = 'dot ' + (live ? 'ok' : 'bad');
+    $('t-l').textContent = live ? (j.model || 'model ready') : 'no API key';
+  } catch (e) {
+    $('d-a').className = 'dot bad';
+    $('t-a').textContent = 'agent down';
+  }
+}
+
+const STARTERS = [
+  'I need a USB-C charger under $40',
+  'Best power bank for travel',
+  'Cheapest 65W charger you can find'
+];
+
+function greet() {
+  addBot(
+    '<p>Hi &mdash; I compare listings across <b>Voltway</b>, <b>CityCircuit</b> and ' +
+    '<b>NorthGear</b>, then tell you which one actually leaves you better off.</p>' +
+    '<p>What are you shopping for?</p>' +
+    '<div class="chips">' +
+      STARTERS.map(s => '<span class="chip">' + esc(s) + '</span>').join('') +
+    '</div>'
+  );
+  wrap.querySelectorAll('.chip').forEach(c =>
+    c.addEventListener('click', () => ask(c.textContent)));
+}
+
+$('go').addEventListener('click', () => ask($('q').value));
+$('q').addEventListener('keydown', e => { if (e.key === 'Enter') ask($('q').value); });
+
+greet();
+health();
+$('q').focus();
+</script>
+</body>
+</html>
