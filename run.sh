@@ -118,6 +118,7 @@ cleanup() {
     printf '\n== stopping %s\n' "${PIDS[*]}"
     kill "${PIDS[@]}" 2>/dev/null || true
     wait "${PIDS[@]}" 2>/dev/null || true
+    PIDS=()
   fi
 }
 trap cleanup EXIT INT TERM
@@ -143,13 +144,16 @@ fi
 # Only the agent. round2/chat-app/src/merchant is being removed: the merchant
 # is bondlayer/'s server, and nothing else is started on :8000.
 if [ "$START_AGENT" = 1 ] && [ -f "$CHAT_APP/src/agent/main.py" ]; then
-  say "buyer-agent stand-in (round2/chat-app: python -m src.agent.main) on :$AGENT_PORT"
+  say "buyer-agent stand-in (round2/chat-app: src.agent.main) on :$AGENT_PORT"
   if port_busy "$AGENT_PORT"; then
     echo "   :$AGENT_PORT already serving -- leaving it alone"
   else
+    # `python -m src.agent.main` hardcodes :8001 and --reload; running the same
+    # app through uvicorn honours AGENT_PORT and leaves one process to stop.
     ( cd "$CHAT_APP" && \
       BONDLAYER_MERCHANT_URL="http://127.0.0.1:$MERCHANT_PORT" \
-      exec "$VPY" -m src.agent.main ) >"$LOG_DIR/agent.log" 2>&1 &
+      exec "$VPY" -m uvicorn src.agent.main:app --host 127.0.0.1 --port "$AGENT_PORT" ) \
+      >"$LOG_DIR/agent.log" 2>&1 &
     PIDS+=("$!")
     if wait_for "http://127.0.0.1:$AGENT_PORT/" 60; then
       echo "   up (log: .run/agent.log)"

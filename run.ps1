@@ -127,12 +127,15 @@ if (Port-Busy $MerchantPort) {
 # is bondlayer's server, and nothing else is started on :8000.
 $AgentMain = Join-Path $ChatApp "src\agent\main.py"
 if ($StartAgent -and (Test-Path $AgentMain)) {
-  Say "buyer-agent stand-in (round2\chat-app: python -m src.agent.main) on :$AgentPort"
+  Say "buyer-agent stand-in (round2\chat-app: src.agent.main) on :$AgentPort"
   if (Port-Busy $AgentPort) {
     Write-Host "   :$AgentPort already serving -- leaving it alone"
   } else {
+    # `python -m src.agent.main` hardcodes :8001 and --reload; running the same
+    # app through uvicorn honours AGENT_PORT and leaves one process to stop.
     $env:BONDLAYER_MERCHANT_URL = "http://127.0.0.1:$MerchantPort"
-    $Procs += Start-Process -FilePath $VPy -ArgumentList @("-m", "src.agent.main") `
+    $Procs += Start-Process -FilePath $VPy `
+      -ArgumentList @("-m", "uvicorn", "src.agent.main:app", "--host", "127.0.0.1", "--port", "$AgentPort") `
       -WorkingDirectory $ChatApp -PassThru -NoNewWindow `
       -RedirectStandardOutput (Join-Path $LogDir "agent.log") `
       -RedirectStandardError (Join-Path $LogDir "agent.err.log")
