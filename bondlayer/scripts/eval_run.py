@@ -46,6 +46,18 @@ precision counts every eligible listing as a miss while the gold set sits at the
 top of the list. Both numbers are printed because only reporting the flattering
 one would be the kind of thing this project exists to argue against.
 
+**Decode accuracy**, reported separately from the five. FPT's top-weighted
+criterion is how well the system *decodes* the shopper's need, and none of the
+five measures the decode itself. So each request's ``parse(utterance)`` is also
+scored against the ``constraints`` a human labelled in ``requests.json``: parsed
+clauses are matched one-to-one to gold clauses of the same kind by token
+overlap (lowercase alphanumeric tokens, a stated stopword set, a two-rule
+stemmer), giving *decode precision* (matched / parsed) and *decode recall*
+(matched / gold); a second text-only matching reports *kind confusions* -- the
+clause was found and labelled the wrong kind. It is written to the same
+document, the same reports, and stdout. It is a measure of the deterministic
+rules parser against human labels, not of resolution. See ``decode_score``.
+
 Outputs: ``docs/eval-results.md`` (commit hash, command, table) and one
 ``data/eval/reports/<id>.json`` per request, carrying a ``RequestReport``-shaped
 row per merchant for the console to render.
@@ -54,6 +66,7 @@ row per merchant for the console to render.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -217,6 +230,359 @@ def score(request: dict, proposals: list[Proposal], valid_ids: set[str]) -> Outc
         reports_unsatisfied=any(p.unsatisfied for p in proposals),
         unsatisfied_texts=sorted({c.text for p in proposals for c in p.unsatisfied}),
     )
+
+
+# --- decode accuracy: the parser against the human labels -------------------
+#
+# Everything in this section is additive and self-contained. It reads the gold
+# ``constraints`` already frozen in ``requests.json`` and the parser's output,
+# and it touches neither. If the parser is wrong, the number says so.
+
+#: Dropped before matching. Deliberately tiny and stated in full: function
+#: words that appear on one side of a clause boundary and not the other
+#: ("I can return it easily" vs "can return easily").
+DECODE_STOPWORDS = frozenset({
+    "a", "an", "the", "i", "it", "to", "my", "that", "if", "from", "and", "is", "of",
+})
+
+#: Two clauses of the same kind match when their token sets overlap and either
+#: the Jaccard similarity reaches this floor or one set is a subset of the other.
+DECODE_JACCARD_FLOOR = 0.34
+
+
+def _decode_stem(token: str) -> str:
+    """The whole stemmer: strip one trailing ``ing``, else one trailing ``s``.
+
+    Only when at least three characters remain, so "thing" keeps its "ing"
+    and "gigs" becomes "gig". "suits my work" and "not to suit my work" have to
+    meet; anything cleverer than this is a second parser, and the point is to
+    measure the one we have.
+    """
+    if token.endswith("ing") and len(token) - 3 >= 3:
+        return token[:-3]
+    if token.endswith("s") and len(token) - 1 >= 3:
+        return token[:-1]
+    return token
+
+
+def _decode_tokens(text: str) -> frozenset[str]:
+    """Lowercase alphanumeric runs, minus the stopwords, stemmed."""
+    raw = re.findall(r"[a-z0-9]+", text.lower())
+    return frozenset(_decode_stem(t) for t in raw if t not in DECODE_STOPWORDS)
+
+
+def _jaccard(left: frozenset[str], right: frozenset[str]) -> float:
+    union = left | right
+    return len(left & right) / len(union) if union else 0.0
+
+
+def _clause_kind(clause) -> str:
+    """The kind as a lowercase string, whatever the source spelled it as.
+
+    Gold clauses are dicts with ``"kind": "HARD"``; parsed clauses are
+    ``Constraint`` objects with a ``ConstraintKind`` whose value is ``"hard"``.
+    """
+    kind = clause["kind"] if isinstance(clause, dict) else clause.kind
+    return str(getattr(kind, "value", kind)).lower()
+
+
+def _clause_text(clause) -> str:
+    return clause["text"] if isinstance(clause, dict) else clause.text
+
+
+def _decode_pairs(gold: list, parsed: list, *, by_kind: bool) -> list[tuple[int, int]]:
+    """Greedy one-to-one matching, highest Jaccard first, then index order.
+
+    A candidate pair needs a non-empty token intersection and either Jaccard
+    at or above ``DECODE_JACCARD_FLOOR`` or a subset relation in either
+    direction. With ``by_kind`` the kinds must also agree; without it the
+    match is on text alone, which is the pass that exposes a clause the parser
+    found but labelled the wrong kind.
+    """
+    g_tokens = [_decode_tokens(_clause_text(c)) for c in gold]
+    p_tokens = [_decode_tokens(_clause_text(c)) for c in parsed]
+    candidates: list[tuple[float, int, int]] = []
+    for gi, gt in enumerate(g_tokens):
+        for pi, pt in enumerate(p_tokens):
+            if by_kind and _clause_kind(gold[gi]) != _clause_kind(parsed[pi]):
+                continue
+            if not (gt & pt):
+                continue
+            j = _jaccard(gt, pt)
+            if j >= DECODE_JACCARD_FLOOR or gt <= pt or pt <= gt:
+                candidates.append((j, gi, pi))
+    candidates.sort(key=lambda c: (-c[0], c[1], c[2]))
+    used_g: set[int] = set()
+    used_p: set[int] = set()
+    pairs: list[tuple[int, int]] = []
+    for _, gi, pi in candidates:
+        if gi in used_g or pi in used_p:
+            continue
+        used_g.add(gi)
+        used_p.add(pi)
+        pairs.append((gi, pi))
+    return sorted(pairs)
+
+
+@dataclass
+class Decode:
+    """One request's parse, scored against the human-labelled constraints.
+
+    ``precision`` and ``recall`` come from the kind-aware matching: a parsed
+    clause counts only if a gold clause of the same kind says the same thing.
+    ``kind_confusions`` come from a second, text-only matching: pairs that say
+    the same thing but disagree on kind. ``kind_accuracy`` is the share of
+    text-matched pairs whose kinds agree -- under the kind-aware matching it
+    would be 1.0 by construction, so it is computed over the text-only pairs,
+    where it can actually be wrong.
+    """
+
+    gold: list[dict]
+    parsed: list[dict]
+    pairs: list[dict]
+    precision: float
+    recall: float
+    kind_accuracy: float
+    kind_confusions: list[dict]
+    misses: list[dict]
+    extras: list[dict]
+
+    @property
+    def matched(self) -> int:
+        return len(self.pairs)
+
+    @property
+    def perfect(self) -> bool:
+        return self.precision == 1.0 and self.recall == 1.0 and not self.kind_confusions
+
+    def as_json(self) -> dict:
+        return {
+            "precision": round(self.precision, 4),
+            "recall": round(self.recall, 4),
+            "kind_accuracy": round(self.kind_accuracy, 4),
+            "matched": self.matched,
+            "gold_total": len(self.gold),
+            "parsed_total": len(self.parsed),
+            "perfect": self.perfect,
+            "pairs": self.pairs,
+            "misses": self.misses,
+            "extras": self.extras,
+            "kind_confusions": self.kind_confusions,
+        }
+
+
+def decode_score(gold: list, parsed: list) -> Decode:
+    """Score ``parse(utterance)`` against the request's gold ``constraints``.
+
+    Deterministic: no clock, no randomness, no model. The only inputs are the
+    two clause lists.
+    """
+    gold_out = [{"text": _clause_text(c), "kind": _clause_kind(c).upper()} for c in gold]
+    parsed_out = [{"text": _clause_text(c), "kind": _clause_kind(c)} for c in parsed]
+
+    kind_pairs = _decode_pairs(gold, parsed, by_kind=True)
+    matched = len(kind_pairs)
+    # Emitting nothing produces no false positive: precision is 1.0 (vacuously)
+    # and recall, not precision, scores what was missed. Emitting clauses the
+    # labeller never wrote scores 0 / n = 0.0.
+    precision = (matched / len(parsed)) if parsed else 1.0
+    # Nothing labelled means nothing to miss: recall is 1.0 and precision, not
+    # recall, scores whatever the parser invented.
+    recall = (matched / len(gold)) if gold else 1.0
+
+    text_pairs = _decode_pairs(gold, parsed, by_kind=False)
+    confusions = [
+        {
+            "gold": gold_out[gi]["text"], "gold_kind": gold_out[gi]["kind"],
+            "parsed": parsed_out[pi]["text"], "parsed_kind": parsed_out[pi]["kind"],
+        }
+        for gi, pi in text_pairs
+        if gold_out[gi]["kind"].lower() != parsed_out[pi]["kind"]
+    ]
+    kind_accuracy = (
+        (len(text_pairs) - len(confusions)) / len(text_pairs) if text_pairs else 1.0
+    )
+
+    matched_g = {gi for gi, _ in kind_pairs}
+    matched_p = {pi for _, pi in kind_pairs}
+    return Decode(
+        gold=gold_out,
+        parsed=parsed_out,
+        pairs=[
+            {
+                "gold": gold_out[gi]["text"], "gold_kind": gold_out[gi]["kind"],
+                "parsed": parsed_out[pi]["text"], "parsed_kind": parsed_out[pi]["kind"],
+            }
+            for gi, pi in kind_pairs
+        ],
+        precision=precision,
+        recall=recall,
+        kind_accuracy=kind_accuracy,
+        kind_confusions=confusions,
+        misses=[gold_out[i] for i in range(len(gold_out)) if i not in matched_g],
+        extras=[parsed_out[i] for i in range(len(parsed_out)) if i not in matched_p],
+    )
+
+
+def decode_totals(decodes: dict[str, Decode]) -> dict:
+    values = [decodes[k] for k in sorted(decodes)]
+    return {
+        "precision": _mean([d.precision for d in values]),
+        "recall": _mean([d.recall for d in values]),
+        "kind_accuracy": _mean([d.kind_accuracy for d in values]),
+        "confusions": sum(len(d.kind_confusions) for d in values),
+        "perfect": (sum(1 for d in values if d.perfect), len(values)),
+        "gold_total": sum(len(d.gold) for d in values),
+        "parsed_total": sum(len(d.parsed) for d in values),
+        "matched": sum(d.matched for d in values),
+    }
+
+
+def _decode_cell(items: list[dict]) -> str:
+    return "; ".join(f"{i['text']} ({i['kind']})" for i in items) if items else "—"
+
+
+def _confusion_cell(items: list[dict]) -> str:
+    if not items:
+        return "—"
+    return "; ".join(
+        f"{i['gold']} ({i['gold_kind']}) → {i['parsed']} ({i['parsed_kind']})" for i in items
+    )
+
+
+def render_decode(rows: list[tuple[dict, Outcome, Outcome]],
+                  decodes: dict[str, Decode]) -> str:
+    """The per-request decode table, all 30 rows, with the aggregate last."""
+    head = ("| id | gold | parsed | matched | decode prec | decode recall "
+            "| kind confusions | misses (gold, unmatched) | extras (parsed, unmatched) |")
+    rule = "|---|---:|---:|---:|---:|---:|---|---|---|"
+    lines = [head, rule]
+    for request, _bond, _ctrl in rows:
+        d = decodes[request["id"]]
+        lines.append(
+            f"| {request['id']} | {len(d.gold)} | {len(d.parsed)} | {d.matched} "
+            f"| {d.precision:.2f} | {d.recall:.2f} "
+            f"| {_confusion_cell(d.kind_confusions)} "
+            f"| {_decode_cell(d.misses)} | {_decode_cell(d.extras)} |"
+        )
+    t = decode_totals(decodes)
+    lines.append(
+        f"| **all {len(decodes)}** | **{t['gold_total']}** | **{t['parsed_total']}** "
+        f"| **{t['matched']}** | **{t['precision']:.3f}** | **{t['recall']:.3f}** "
+        f"| **{t['confusions']}** | | perfect decodes: **{t['perfect'][0]}/{t['perfect'][1]}** |"
+    )
+    return "\n".join(lines)
+
+
+#: Why each request that does not decode perfectly does not, written once. A
+#: note is rendered only while its request is still imperfect, so a parser fix
+#: retires the note with the miss. None of these is fixed here: the parser is
+#: another owner's file, and the gold is frozen.
+DECODE_NOTES: dict[str, str] = {
+    "R02": (
+        "the parser emits `laptop` as a HARD clause and the labeller did not list it. "
+        "The labels are not consistent on this: R16 and R28 do label the bare category "
+        "noun. The gold is frozen, so this reads as an extra."
+    ),
+    "R03": (
+        "the same category-noun extra as R02: `laptop` is decoded and not labelled."
+    ),
+    "R04": (
+        "`light` is decoded as its own SOFT clause; the labeller folded it into "
+        "\"carry every day\". One extra, nothing missed."
+    ),
+    "R10": (
+        "two extras: the unlabelled category noun `laptop`, and \"money is not really "
+        "the issue\", which the parser reads as a SOFT budget hedge and the labeller "
+        "treated as no constraint at all. Nothing missed."
+    ),
+    "R14": (
+        "a kind confusion: the labeller wrote \"headset for calls\" as one SOFT "
+        "use-case clause; the parser decodes `headset` as a HARD category and drops "
+        "\"for calls\" entirely. Kind-aware matching therefore scores it as one miss "
+        "and one extra; the text-only pass names the confusion (SOFT → hard)."
+    ),
+    "R24": (
+        "a kind confusion of the same shape as R14: \"work laptop\" is labelled SOFT "
+        "(the *work* is the use-case) and decoded as the HARD category `laptop`, with "
+        "\"work\" lost. The bundle's combined-price clause and `dock` both match."
+    ),
+    "R25": (
+        "the unlabelled category noun `laptop` again; the four labelled clauses, "
+        "including `gaming` as SOFT, all match."
+    ),
+    "R29": (
+        "the unlabelled category noun `laptop`; \"I care where it's made\" matches "
+        "the parser's \"where it's made\" as a subset."
+    ),
+}
+
+
+def decode_section(rows: list[tuple[dict, Outcome, Outcome]],
+                   decodes: dict[str, Decode]) -> str:
+    """The ``## Decode accuracy`` section of the results document."""
+    t = decode_totals(decodes)
+    imperfect = [(r["id"], decodes[r["id"]]) for r, _, _ in rows if not decodes[r["id"]].perfect]
+    perfect_ids = [r["id"] for r, _, _ in rows if decodes[r["id"]].perfect]
+    notes = "\n".join(
+        f"- **{rid}** — precision {d.precision:.2f}, recall {d.recall:.2f} — "
+        f"{DECODE_NOTES.get(rid, 'no note written for this miss yet; read the misses and extras columns above.')}"
+        for rid, d in imperfect
+    ) or "- Every request decodes perfectly."
+    return f"""## Decode accuracy
+
+FPT's top-weighted criterion is how well the merchant's system *decodes* the
+shopper's nuanced need. The tables above score *resolution* — what came back
+from the catalogue and the records. This one scores the decode on its own:
+`interpreter.parse(utterance)` against the `constraints` a human labelled in
+`data/eval/requests.json` (text and kind), for all 30 frozen requests.
+
+**What it does.** Each parsed clause is matched one-to-one to a gold clause,
+highest Jaccard first, when the kinds agree (compared lowercase) *and* the
+token sets overlap with Jaccard ≥ {DECODE_JACCARD_FLOOR} or one set is a subset of
+the other. Tokens are lowercase alphanumeric runs, minus the stopwords
+`{', '.join(sorted(DECODE_STOPWORDS))}`, then stemmed by stripping one trailing
+`ing`, else one trailing `s`, only when three or more characters remain — so
+"suits my work" meets the parser's "not to suit my work", "repairs things"
+becomes `repair thing`, "16 gigs" becomes `16 gig`, and "thing" keeps its `ing`. *Decode precision* is matched ÷ parsed,
+*decode recall* is matched ÷ gold. A second, text-only matching ignores kind;
+a pair it finds whose kinds differ is a **kind confusion** — the parser found the
+clause and labelled it wrong — and *kind accuracy* is the share of text-matched
+pairs whose kinds agree. A request is a **perfect decode** when precision and
+recall are both 1.00 and there is no confusion.
+
+**What it does not show.** It measures a deterministic rules parser against
+30 human labels; it is not a resolution metric, and a clause that matches on
+tokens can still resolve to the wrong attribute. An *extra* is a clause the
+parser emitted that the labeller did not write down, and on this set that is
+almost always the bare category noun (`laptop`), which the labels list on some
+requests and not others — the gold is frozen, so the inconsistency is reported,
+not corrected. A *miss* is a labelled clause the parser did not emit at all,
+or emitted under a different kind. Nothing here is tuned to the gold: the
+stopword list and the stemmer are stated in full above and pinned by
+`tests/test_decode_metric.py`.
+
+| decode metric | value |
+|---|---:|
+| decode precision (mean over {len(decodes)}) | {t['precision']:.3f} |
+| decode recall (mean over {len(decodes)}) | {t['recall']:.3f} |
+| kind accuracy (mean over {len(decodes)}, text-matched pairs) | {t['kind_accuracy']:.3f} |
+| kind confusions (total) | {t['confusions']} |
+| perfect decodes | {t['perfect'][0]}/{t['perfect'][1]} |
+| clauses: gold / parsed / matched | {t['gold_total']} / {t['parsed_total']} / {t['matched']} |
+
+{render_decode(rows, decodes)}
+
+### Known parser misses, reported not fixed
+
+{notes}
+
+Perfect decodes ({len(perfect_ids)}): {', '.join(perfect_ids) if perfect_ids else 'none'}.
+
+"""
+
+
+# --- end of decode accuracy --------------------------------------------------
 
 
 # --- bundling: scoring a set against a gold set -----------------------------
@@ -429,6 +795,7 @@ def run() -> int:
 
     rows: list[tuple[dict, Outcome, Outcome]] = []
     bundle_scores: dict[str, BundleScore | None] = {}
+    decodes: dict[str, Decode] = {}
     REPORTS.mkdir(parents=True, exist_ok=True)
 
     for request in requests:
@@ -442,6 +809,10 @@ def run() -> int:
         # any metric above.
         bundle = score_bundle(request, bond.proposals)
         bundle_scores[request["id"]] = bundle
+
+        # The decode, scored against the human labels. Reads the parse and the
+        # gold and nothing else; it cannot move any resolution metric above.
+        decodes[request["id"]] = decode_score(request["constraints"], constraints)
 
         payload = {
             "request_id": request["id"],
@@ -471,6 +842,7 @@ def run() -> int:
             },
             "merchants": merchant_rows(request, bond, published, verifiers, with_records=True),
             "control": merchant_rows(request, ctrl, published, verifiers, with_records=False),
+            "decode": decodes[request["id"]].as_json(),
         }
         (REPORTS / f"{request['id']}.json").write_text(
             json.dumps(payload, indent=2, sort_keys=False) + "\n", encoding="utf-8",
@@ -478,9 +850,12 @@ def run() -> int:
 
     table = render(rows, dropped, bundle_scores)
     print(table)
+    print()
+    print(render_decode(rows, decodes))
 
     RESULTS.parent.mkdir(parents=True, exist_ok=True)
-    RESULTS.write_text(document(rows, dropped, at_commit, bundle_scores),
+    RESULTS.write_text(document(rows, dropped, at_commit, bundle_scores,
+                                decodes=decodes),
                        encoding="utf-8")
     print(f"\nWrote {RESULTS.relative_to(ROOT)} and "
           f"{len(requests)} reports to {REPORTS.relative_to(ROOT)}/")
@@ -650,8 +1025,19 @@ def bundle_section(rows: list[tuple[dict, Outcome, Outcome]],
 
 def document(rows: list[tuple[dict, Outcome, Outcome]], dropped: list[str],
              at_commit: str,
-             bundles: dict[str, BundleScore | None] | None = None) -> str:
+             bundles: dict[str, BundleScore | None] | None = None,
+             decodes: dict[str, Decode] | None = None) -> str:
     bundles = bundles or {}
+    decode_t = decode_totals(decodes) if decodes else None
+    decode_rows = (
+        f"| decode precision (mean over {len(decodes)}) | {decode_t['precision']:.3f} | — |\n"
+        f"| decode recall (mean over {len(decodes)}) | {decode_t['recall']:.3f} | — |\n"
+        f"| kind confusions (total) | {decode_t['confusions']} | — |\n"
+        f"| perfect decodes (precision = recall = 1.00, no confusion) | "
+        f"{decode_t['perfect'][0]}/{decode_t['perfect'][1]} | — |\n"
+        if decode_t else ""
+    )
+    decode_doc = decode_section(rows, decodes) if decodes else ""
     t = totals(rows)
     answered_share = t["answerable"][0] / t["answerable"][1] if t["answerable"][1] else 0.0
     control_share = t["answerable_control"][0] / t["answerable_control"][1] if t["answerable_control"][1] else 0.0
@@ -690,7 +1076,7 @@ against the same frozen catalogue (`data/catalog/electronics.csv`):
 | hard precision (mean over 30) | {t['hard_precision']:.3f} | — |
 | gold recall (mean over 30) | {t['gold_recall']:.3f} | — |
 | precision@\\|gold\\| (mean over 30) | {t['precision_at_gold']:.3f} | — |
-| citation precision | {t['citation_precision']:.2f} ({t['citations'][0]}/{t['citations'][1]}) | n/a — nothing to cite |
+{decode_rows}| citation precision | {t['citation_precision']:.2f} ({t['citations'][0]}/{t['citations'][1]}) | n/a — nothing to cite |
 | SERVICE + VALUES clauses answered | {t['answerable'][0]}/{t['answerable'][1]} ({answered_share:.0%}) | {t['answerable_control'][0]}/{t['answerable_control'][1]} ({control_share:.0%}) |
 | requests expecting an unsatisfied clause that reported one | {t['unsatisfied_honesty'][0]}/{t['unsatisfied_honesty'][1]} | {t['unsatisfied_honesty'][1]}/{t['unsatisfied_honesty'][1]} |
 
@@ -711,7 +1097,7 @@ verify would be a bug.
 
 {render(rows, dropped, bundles)}
 
-## Dynamic bundling
+{decode_doc}## Dynamic bundling
 
 Three of the thirty requests have a **set** for a gold answer, and they are the
 three flat precision reads worst — not because the matching is wrong but
