@@ -1,0 +1,116 @@
+{
+  "merchant": "kmart",
+  "document": "Kmart Australia Terms and Conditions",
+  "source_url": "https://www.kmart.com.au/terms-and-conditions/",
+  "retrieved_at": "2026-09-13",
+  "verification_status": "public_source_only",
+  "merchant_signed": false,
+  "terms": [
+    {
+      "id": "website-use",
+      "type": "website",
+      "facts": {
+        "content_owned_or_licensed_by_kmart": true,
+        "accuracy_guaranteed": false,
+        "currency_guaranteed": false,
+        "virus_free_guaranteed": false,
+        "third_party_links_endorsed": false
+      },
+      "conditions": [
+        "Continued website use accepts revised terms.",
+        "Australian Consumer Law rights cannot be excluded."
+      ]
+    },
+    {
+      "id": "online-orders",
+      "type": "ordering",
+      "facts": {
+        "order_agreement_exists_after_kmart_accepts_order": true,
+        "online_rainchecks_available": false,
+        "household_quantity_limits_may_apply": true,
+        "payment_required_at_order_time": true,
+        "prices_can_change_before_full_payment": true
+      }
+    },
+    {
+      "id": "title-and-risk",
+      "type": "ownership",
+      "facts": {
+        "title_passes": "after full payment",
+        "risk_passes": "upon delivery"
+      }
+    },
+    {
+      "id": "delivery",
+      "type": "delivery",
+      "facts": {
+        "delivery_address_must_be_within_kmart_delivery_area": true,
+        "delivery_terms_are_defined_in_separate_delivery_policy": true
+      },
+      "source_url": "https://www.kmart.com.au/faq/delivery/"
+    },
+    {
+      "id": "returns",
+      "type": "returns",
+      "facts": {
+        "change_of_mind_period_days": 60,
+        "marketplace_change_of_mind_period_days": 30,
+        "proof_of_purchase_required": true,
+        "product_must_be_resalable": true,
+        "unused_and_original_packaging_required": true,
+        "consumer_guarantee_remedies_preserved": true
+      },
+      "source_url": "https://www.kmart.com.au/change-of-mind-returns-policy/"
+    },
+    {
+      "id": "marketplace",
+      "type": "third_party_seller",
+      "facts": {
+        "marketplace_sellers_exist": true,
+        "seller_return_policies_may_vary": true,
+        "seller_policy_should_be_checked_before_purchase": true
+      }
+    },
+    {
+      "id": "account-security",
+      "type": "account",
+      "facts": {
+        "customer_application_required_before_order": true,
+        "registration_information_must_be_accurate": true,
+        "customer_responsible_for_password_security": true
+      }
+    },
+    {
+      "id": "shopping-assistant",
+      "type": "ai_assistant",
+      "facts": {
+        "assistant_name": "Kmart AI Shopping Assistant",
+        "powered_by": "Google",
+        "available_to_guest_users": true,
+        "available_to_logged_in_users": true,
+        "responses_generated_by_software": true,
+        "prices_are_not_offers_or_quotes": true,
+        "website_is_authoritative_for_current_prices": true,
+        "product_information_may_be_incomplete": true,
+        "important_decisions_should_not_rely_on_assistant": true,
+        "access_may_be_suspended": true
+      }
+    },
+    {
+      "id": "privacy",
+      "type": "privacy",
+      "facts": {
+        "cookies_used": true,
+        "third_party_content_present": true,
+        "assistant_inputs_may_be_processed_by_google": true
+      }
+    },
+    {
+      "id": "governing-law",
+      "type": "legal",
+      "facts": {
+        "jurisdiction": "Victoria, Australia"
+      }
+    }
+  ]
+}
