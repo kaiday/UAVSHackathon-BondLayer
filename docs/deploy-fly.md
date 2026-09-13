@@ -4,7 +4,7 @@ Two Fly apps from one repo, both built from the repo root:
 
 | App | Config | Dockerfile | What it serves |
 |---|---|---|---|
-| Merchant server | `fly.merchant.toml` | `Dockerfile.merchant` | UCP routes, `/console/`, `/dashboard/`, `/onboard/*`, `/docs` |
+| Merchant server | `fly.merchant.toml` | `Dockerfile.merchant` | UCP routes, `/console/` (including onboarding), `/onboard/*`, `/health`, `/docs` |
 | Buyer agent | `fly.agent.toml` | `Dockerfile.agent` | the two-pane chat page at `/`, `/query` |
 
 Deploy the merchant first: the agent needs the merchant's URL.
