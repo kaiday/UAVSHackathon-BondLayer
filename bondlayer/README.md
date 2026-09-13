@@ -140,6 +140,12 @@ The Dashboard's backend. Same process, its own router.
 | `POST /onboard/catalog?merchant=…` | a retailer's own export, UTF-8, fails loudly |
 | `GET /onboard/requests` | the 30 frozen requests: id, utterance, per-merchant won/lost summary |
 | `GET /onboard/requests/{id}[?merchant=…]` | the `RequestReport` JSON for one request — every merchant row three-way, or just one with `merchant=` |
+| `GET /console/` | Minh's merchant console: static Next.js export from `app/out`, every figure fetched from the routes above |
+
+The console is committed pre-built, so the server needs no Node at the venue.
+After changing anything under `app/src`, rebuild and commit `app/out`:
+`cd bondlayer/app && npm install && npm run build`. The older no-build
+dashboard stays at `/dashboard/`.
 
 ## Intent route
 
