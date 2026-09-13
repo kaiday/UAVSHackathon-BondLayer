@@ -88,6 +88,28 @@ Sources:
 - https://support.jbhifi.com.au/hc/en-au/articles/360055276373-How-do-I-track-my-order
 - https://support.jbhifi.com.au/hc/en-au/articles/360053069434-Can-I-change-my-delivery-choice-after-placing-my-order
 
+## JB Perks membership
+
+JB Perks is JB Hi-Fi's free membership program. Joining requires a JB Hi-Fi
+account and an Australian mobile phone number. Registration also includes
+agreement to the JB Perks terms, privacy policy, and JB Hi-Fi marketing and
+Perks communications.
+
+New members receive a AUD 10 welcome coupon that is valid for 28 days from
+issue. Other published benefits include member-only discounts and offers, early
+access to or notification of sales, a birthday perk when the member supplies
+their birth month, member-only competitions, and automatic storage of eligible
+in-store digital receipts in the member's account.
+
+The public pages do not publish a points-earning rate or a guaranteed dollar
+value for birthday perks, discounts, or competitions. Agents should treat those
+benefits as conditional and unpriced until a current offer supplies exact terms.
+
+Sources:
+- https://www.jbhifi.com.au/pages/perks
+- https://support.jbhifi.com.au/hc/en-au/articles/5824932866447-What-is-JB-Hi-Fi-Perks
+- https://www.jbhifi.com.au/pages/perks-deals
+
 ## Price enquiries and price matching
 
 JB Hi-Fi offers a product-and-price enquiry flow through live chat, an online
