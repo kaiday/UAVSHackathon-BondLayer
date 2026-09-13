@@ -181,6 +181,24 @@ and the order id is a content hash any party can recompute.
 |---|---|
 | `POST /{merchant}/ucp/checkout` | body `{"items": [{"sku_id", "quantity"}], "cited_record_ids": […], "agent_ref": null}`; header `UCP-Agent` must negotiate `dev.ucp.shopping.checkout` (base UCP — declared by all three merchants, the control included) or the call is **406**; unknown sku **404**; quantity over a listing's published `stock` **409**. Returns `order` with `order_id` (SHA-256 over `{merchant_id, items, honoured record ids}` — deterministic, stateless, no clock), `status: confirmed_awaiting_payment`, `line_items`, `subtotal`, and `payment: {status: out_of_scope}` — **payment is out of scope and the response declares it; no funds move.** Iff `org.bondlayer.benefit_value` also negotiated: `honoured_benefits` (one verdict per cited record id — honoured only if published by this merchant, signed, unexpired, verifying against the merchant's own key in `keys/`, and applying to a line item by `sku_id` and `fact.scope`; otherwise the failing test in plain words) and `extensions` carrying the full signed envelope of every honoured record, re-verifiable against `signing_keys[]`. Absent otherwise — the control's checkout is a plain UCP order. Nothing the agent did not cite is added. **The merchant receives sku ids, quantities and cited record ids; it still never receives the shopper's valuation policy, benefit weights, or the cross-merchant comparison — an extra body field such as `shopper_policy` is a 422.** |
 
+The agent side calls it: `agent/close_loop.py`. After the ranking,
+`close_loop(run, checkout=...)` checks out `run.winner` — one unit of the
+winning SKU at the winning merchant, citing exactly the record ids the agent
+relied on: verified records that moved the effective cost (credited above $0)
+or answered a clause as the resolver's evidence. A record that did not verify
+is never sent; one the valuation scoped out of this category was not relied
+on and is not sent either. The confirmation lands as one more `Step`
+(`detail.kind == "close_loop"`, reusing `Phase.RANKING`) carrying the request,
+the merchant's `order` verbatim and its `honoured_benefits` verdicts; a 406 is
+a DEGRADED step, a refused verdict is DEGRADED with the merchant's reason in
+the summary, and nothing above it on the run changes.
+`scripts/trace_run.py` prints it as the `close the loop (POST /ucp/checkout)`
+section, the last thing in the trace: with the extension, R01's six cited
+records are all honoured and bound into Voltway's order; in `--control`,
+CityCircuit's order is a plain UCP order that binds none.
+`tests/test_close_loop.py` pins all of it, including that the same run twice
+yields the same order id and the two runs' ids differ.
+
 ## Records
 
 `data/records/{merchant}.signed.json`, served in the benefit block on the

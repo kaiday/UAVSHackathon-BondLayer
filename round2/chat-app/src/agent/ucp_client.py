@@ -41,7 +41,7 @@ from bondlayer.interpreter.parser import parse as parse_utterance
 from bondlayer.records.serialise import record_from_json
 from bondlayer.records.signing import ES256Signer
 from bondlayer.types import ConstraintKind, SignedRecord
-from bondlayer.ucp.capabilities import INTENT_MATCH
+from bondlayer.ucp.capabilities import CHECKOUT, INTENT_MATCH
 from bondlayer.valuation.reference_policy import REFERENCE_SHOPPER_POLICY
 
 #: Overridable so the demo, a test, or a judge's laptop can point this agent at
@@ -85,7 +85,9 @@ def agent_header(bondlayer_enabled: bool) -> str:
     ``catalog.search`` is declared in *both* states -- the toggle only ever
     adds or removes the two BondLayer extensions (the benefit extension and
     ``intent_match``), never the base capability the search route requires to
-    answer at all.
+    answer at all. ``make_checkout`` appends ``dev.ucp.shopping.checkout`` --
+    base UCP too, declared in both states -- to this same header for the one
+    route that needs it.
     """
     declared = [CATALOG_SEARCH, CATALOG_LOOKUP]
     if bondlayer_enabled:
@@ -194,6 +196,37 @@ def make_proposer(client: httpx.Client | None = None) -> Callable[..., dict | No
 
     propose.client = http  # type: ignore[attr-defined]
     return propose
+
+
+def make_checkout(client: httpx.Client | None = None) -> Callable[..., dict | None]:
+    """A ``bondlayer.agent.close_loop.Checkout`` over real HTTP.
+
+    ``POST /{merchant}/ucp/checkout`` with the body ``close_loop`` built --
+    the winning sku, quantity one, and exactly the record ids the agent cited
+    -- under the ``UCP-Agent`` header ``make_fetcher`` sends for that toggle
+    state plus ``dev.ucp.shopping.checkout``. ``checkout`` is base UCP and is
+    declared in both states, so the control run places a plain order on the
+    same route; only whether the confirmation carries ``honoured_benefits``
+    depends on the extension. 406 (the merchant did not negotiate checkout) is
+    ``None``; any other HTTP failure raises.
+
+    Same ``client`` convention as ``make_fetcher``.
+    """
+    http = client or httpx.Client(base_url=MERCHANT_BASE_URL, timeout=10)
+
+    def checkout(merchant: str, body: dict, *, extension: bool) -> dict | None:
+        response = http.post(
+            f"/{merchant}/ucp/checkout",
+            json=body,
+            headers={"UCP-Agent": agent_header(extension) + ";" + CHECKOUT},
+        )
+        if response.status_code == 406:
+            return None
+        response.raise_for_status()
+        return response.json()
+
+    checkout.client = http  # type: ignore[attr-defined]
+    return checkout
 
 
 def make_verifier(client: httpx.Client | None = None) -> Callable[[dict], bool]:

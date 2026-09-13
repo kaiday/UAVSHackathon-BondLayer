@@ -255,6 +255,48 @@
   }
   .bundle-foot .warn{color:var(--bad)}
   .bundle-alt{font-size:11px;color:var(--muted);padding:0 13px 9px}
+
+  /* Closing the loop: the winning offer as the merchant confirmed it. This is
+     a RECEIPT, not another ranking and not another offer card -- a solid
+     ground, a monospace order id, one line per cited record with the
+     merchant's own verdict -- and it is the LAST thing in the pane, because
+     it is the outcome of everything above it. Compact on purpose. */
+  .receipt{
+    margin:14px 0 0;border:1px solid var(--line);border-radius:11px;
+    background:#fbfbf9;overflow:hidden;
+  }
+  .receipt-hd{
+    display:flex;gap:9px;align-items:baseline;flex-wrap:wrap;
+    padding:9px 13px;border-bottom:1px dashed var(--line);
+  }
+  .receipt-hd .tag{
+    font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+    background:var(--ink);color:#fff;border-radius:999px;padding:2px 9px;flex:none;
+  }
+  .receipt-hd .step{font-size:10.5px;color:var(--muted);font-style:italic}
+  .receipt-hd .who{margin-left:auto;font-size:11.5px;color:var(--muted);text-transform:capitalize}
+  .receipt-row{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:7px 13px 0;font-size:12px}
+  .receipt-row .t{font-weight:600}
+  .receipt-row .oid{font:11px/1.5 ui-monospace,Consolas,monospace;color:var(--accent);background:#eef2ff;border-radius:5px;padding:1px 6px}
+  .receipt-row .sub{margin-left:auto;font-weight:700;color:var(--ink);flex:none}
+  .receipt-status{padding:3px 13px 8px;font-size:11px;color:#4b5563;font-style:italic;border-bottom:1px dashed var(--line)}
+  .receipt-status b{color:var(--ok);font-style:normal}
+  .receipt-degraded .receipt-status b{color:#b45309}
+  .honoured{list-style:none;margin:0;padding:6px 13px 8px;display:flex;flex-direction:column;gap:3px}
+  .honoured .chd{
+    font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--muted);padding:0 0 3px;
+  }
+  .honoured li{font-size:11.5px;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;padding:3px 6px;border-radius:6px;background:#eef8f0}
+  .honoured li.no{background:#fff1f1}
+  .honoured .mark{flex:none;font-weight:700;color:var(--ok)}
+  .honoured li.no .mark{color:var(--bad)}
+  .honoured .rid{font:10.5px/1.5 ui-monospace,Consolas,monospace;color:#1f2937}
+  .honoured .bt{font-size:9.5px;font-weight:700;text-transform:uppercase;background:#e9f9ee;color:#166534;border:1px solid #bbf7d0;border-radius:4px;padding:0 5px}
+  .honoured li.no .bt{background:#f4f5f7;color:#6b7280;border-color:var(--line)}
+  .honoured .why{flex-basis:100%;color:#4b5563;padding-left:18px}
+  .receipt-plain{padding:7px 13px 9px;font-size:11.5px;color:var(--muted);font-style:italic}
+  .receipt-note{padding:8px 13px 9px;font-size:11.5px;color:#9a3412}
 </style>
 </head>
 <body>
@@ -542,6 +584,67 @@ function merchantDecodeHtml(md) {
   '</section>';
 }
 
+/* Closing the loop. `order` is the detail of the one trace step
+   bondlayer.agent.close_loop appends after the ranking: the body the agent
+   POSTed to /ucp/checkout (the winning sku, quantity one, exactly the record
+   ids it relied on), the merchant's `order` object VERBATIM, and the
+   merchant's verdict on every cited record. This page renders that and
+   derives nothing: the tick or cross is `v.honoured` as the merchant judged
+   it, the reason is the merchant's sentence, the benefit type is read off
+   the agent's own citation for that id. `honoured_benefits` is null when the
+   extension did not survive negotiation -- the control pane -- and the order
+   is then a plain UCP order, which is said in one line rather than hidden. */
+const PAYMENT_LINE = 'confirmed — awaiting payment; payment is out of scope for this prototype, no funds move';
+
+function closeLoopHtml(o, winner) {
+  if (!o || o.kind !== 'close_loop') return '';
+  const head = '<div class="receipt-hd"><span class="tag">closing the loop</span>' +
+    '<span class="step">step 5 · POST /ucp/checkout · the winning offer becomes an order</span>' +
+    '<span class="who">' + esc(o.merchant || (winner && winner.merchant) || '') + '</span></div>';
+  if (!o.order) {
+    return '<section class="receipt receipt-degraded">' + head +
+      '<p class="receipt-note">' + esc(o.summary) + '</p></section>';
+  }
+  const ord = o.order;
+  const line = (ord.line_items || [])[0] || {};
+  const sku = line.sku_id || (o.request && o.request.items && o.request.items[0] || {}).sku_id || '';
+  const title = line.title || (winner && winner.title) || '';
+  const paid = ord.payment || {};
+  const status = ord.status === 'confirmed_awaiting_payment' && paid.status === 'out_of_scope'
+    ? PAYMENT_LINE
+    : esc(ord.status || '') + (paid.note ? ' — ' + esc(paid.note) : '');
+  let html = '<section class="receipt' + (o.outcome === 'degraded' ? ' receipt-degraded' : '') + '">' + head +
+    '<div class="receipt-row">' +
+      '<span class="t">' + esc(title) + '</span>' +
+      '<span class="mt">' + esc(sku) + '</span>' +
+      '<span class="oid">order ' + esc(ord.order_id) + '</span>' +
+      '<span class="sub">subtotal ' + money((ord.subtotal || {}).amount) + '</span>' +
+    '</div>' +
+    '<div class="receipt-status"><b>' + status.split(' — ')[0] + '</b>' +
+      (status.indexOf(' — ') >= 0 ? ' — ' + status.split(' — ').slice(1).join(' — ') : '') + '</div>';
+
+  const verdicts = o.honoured_benefits;
+  if (verdicts === null || verdicts === undefined) {
+    html += '<p class="receipt-plain">Plain UCP order: no benefit records were cited, so the order binds none.</p>';
+    return html + '</section>';
+  }
+  const byId = {};
+  ((winner && winner.citations) || []).forEach(c => { byId[c.record_id] = c.benefit_type; });
+  const counts = o.summary_counts || {cited: verdicts.length, honoured: verdicts.filter(v => v.honoured).length};
+  const rows = verdicts.map(v => {
+    const bt = byId[v.record_id];
+    return '<li' + (v.honoured ? '' : ' class="no"') + '>' +
+      '<span class="mark">' + (v.honoured ? '✓' : '✗') + '</span>' +
+      '<span class="rid">' + esc(v.record_id) + '</span>' +
+      (bt ? '<span class="bt">' + esc(String(bt).replace(/_/g, ' ')) + '</span>' : '') +
+      '<span class="why">' + esc(v.reason) + '</span>' +
+    '</li>';
+  }).join('');
+  html += '<ul class="honoured"><li class="chd">honoured benefits bound into the order · ' +
+    counts.honoured + '/' + counts.cited + ' cited</li>' + rows + '</ul>';
+  return html + '</section>';
+}
+
 function paneHtml(d, header) {
   if (d.error) return '<p class="err">' + esc(d.error) + '</p>';
   let html = '<div class="hdrline">UCP-Agent: ' + esc(header) + '</div>';
@@ -565,6 +668,9 @@ function paneHtml(d, header) {
     : '<div class="flip noflip">No flip: the effective-cost winner is also the cheapest shelf price.</div>';
   html += '<div class="prose">' + esc(d.recommendation) + '<span class="src">' +
     (d.steps.find(s => s.phase === 'prose') || {}).summary + '</span></div>';
+  // Last, because it is the outcome of the ranking: the winning offer as the
+  // merchant confirmed it, with the verdict on every record the agent cited.
+  html += closeLoopHtml(d.order, d.winner);
   return html;
 }
 
