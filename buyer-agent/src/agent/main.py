@@ -428,10 +428,18 @@ of thing they want, and any budget or requirement that matters -- choose "search
 and write the single sentence you would send to the merchants. Fold in everything \
 the customer has said across the whole conversation, not just their last message.
 
-If you genuinely cannot search yet, choose "reply" and ask one short question -- the \
-one that unblocks you. Do not interrogate the customer; one good question beats \
-three. If they are making small talk or asking something that is not a shopping \
-request, choose "reply" and just answer them.
+A product type on its own is enough to search. "The cheapest laptop you have" is a \
+complete request: "cheapest" already says how to rank, so never ask for a budget or \
+specifications on top of it. A missing budget is never a reason to ask. Write the \
+sentence in the customer's own terms; do not invent a budget, category or \
+specification they did not give, and keep limits as limits ("at least 2GB RAM", \
+"under $3000").
+
+Only when the customer has not named any kind of product may you choose "reply" and \
+ask one short question -- the one that unblocks you. Ask at most one question in the \
+whole conversation: once the customer has answered a question, choose "search" with \
+what you have. If they are making small talk or asking something that is not a \
+shopping request, choose "reply" and just answer them.
 
 Reply as JSON: {"action": "search" or "reply", "utterance": "the sentence to send \
 to merchants, when action is search", "reply": "what to say to the customer, when \
@@ -446,6 +454,17 @@ class ChatTurn(BaseModel):
 class ChatRequest(BaseModel):
     messages: list[ChatTurn]
     bondlayer_enabled: bool = True
+
+
+def _answered_a_question(thread: list[dict[str, str]]) -> bool:
+    """True when the agent asked a question, the shopper replied, and a product is named."""
+    from bondlayer.interpreter.resolver import interpret_hard
+
+    if len(thread) < 3 or thread[-1]["role"] != "user":
+        return False
+    asked = thread[-2]["role"] == "assistant" and thread[-2]["content"].rstrip().endswith("?")
+    said = " ".join(t["content"] for t in thread if t["role"] == "user")
+    return asked and any(s.kind == "category" for s in interpret_hard(said))
 
 
 @app.post("/chat")
@@ -484,6 +503,11 @@ def handle_chat(request: ChatRequest) -> dict:
             decision = {}
 
         utterance = str(decision.get("utterance") or "").strip()
+        if decision.get("action") != "search" and _answered_a_question(thread):
+            # The shopper already answered one question and named a product:
+            # a second question is interrogation, not help. Shop with what we have.
+            utterance = utterance or " ".join(t["content"] for t in thread if t["role"] == "user").strip()
+            decision["action"] = "search"
         if decision.get("action") == "search" and utterance:
             return {"action": "search", "reply": "", "utterance": utterance,
                     "transcript": llm.transcript_payload()}

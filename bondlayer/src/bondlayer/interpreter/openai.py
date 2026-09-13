@@ -24,8 +24,10 @@ def decode(utterance: str) -> tuple[list[Constraint], dict]:
         "and values preferences. Quote a verbatim source_span for every clause. Normalize synonyms "
         "and units in normalized_text so a deterministic electronics resolver can interpret them "
         "(e.g. notebook computer -> laptop, below fifteen hundred -> under $1500, "
+        "within a budget of 3000 -> under $3000, "
         "sixteen gigs -> at least 16GB RAM, 24 month warranty -> warranty at least 24 months). "
-        "Separate category and budget clauses. Preserve negation and all explicit requirements. "
+        "Separate category and budget clauses. Ordering words such as cheapest, best value or "
+        "beginner-friendly are soft preferences, never hard requirements.Preserve negation and all explicit requirements. "
         "Never add a budget, product category or specification that the shopper did not request. "
         "Keep service and values requirements even when a catalogue cannot answer them. "
         "Return at most 20 clauses; use an empty list if there is no shopping intent.",
