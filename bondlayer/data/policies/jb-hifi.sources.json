@@ -140,6 +140,39 @@
         "No universal match formula is asserted by this fixture; request a current quote."
       ],
       "source_url": "https://support.jbhifi.com.au/hc/en-au/articles/360057328914-How-can-I-contact-JB"
+    },
+    {
+      "id": "jb-perks-membership",
+      "type": "membership",
+      "scope": ["jb_perks_members"],
+      "facts": {
+        "program_name": "JB Perks",
+        "membership_fee_aud": 0,
+        "welcome_coupon_aud": 10,
+        "welcome_coupon_valid_days": 28,
+        "member_exclusive_offers": true,
+        "early_sales_access_or_notification": true,
+        "birthday_perk": true,
+        "member_exclusive_competitions": true,
+        "in_store_digital_receipts_saved_to_account": true,
+        "published_points_earning_rate": null
+      },
+      "eligibility": {
+        "jb_hifi_account_required": true,
+        "australian_mobile_number_required": true,
+        "birth_month_required_for_birthday_perk": true
+      },
+      "conditions": [
+        "Joining includes agreement to the JB Perks terms, privacy policy, and JB Hi-Fi marketing and Perks communications.",
+        "The welcome coupon expires 28 days after issue.",
+        "Values and availability of birthday perks, member offers, and competitions are not guaranteed by the summary pages and should be checked against the current offer.",
+        "No points-earning rate is published on the cited program pages."
+      ],
+      "source_urls": [
+        "https://www.jbhifi.com.au/pages/perks",
+        "https://support.jbhifi.com.au/hc/en-au/articles/5824932866447-What-is-JB-Hi-Fi-Perks",
+        "https://www.jbhifi.com.au/pages/perks-deals"
+      ]
     }
   ]
 }
