@@ -15,7 +15,8 @@ from bondlayer.ucp.server import CONSOLE, app
 pytestmark = pytest.mark.skipif(not CONSOLE.is_dir(), reason="bondlayer/app/out not built")
 
 PAGES = ["/console/", "/console/requests/", "/console/catalogue/", "/console/quality/",
-         "/console/benefits/", "/console/settings/", "/console/onboarding/"]
+         "/console/benefits/", "/console/settings/", "/console/onboarding/",
+         "/console/analytics/"]
 MOCK_FIGURES = ["unsplash", "REQ-0017", "257.03", "46.66", "74.50", "Surface Laptop Go 3"]
 
 client = TestClient(app)

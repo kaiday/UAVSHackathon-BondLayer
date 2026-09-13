@@ -6,11 +6,13 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { ArrowUp, Bell, ChevronDown, CircleHelp, ClipboardList, Gift, LayoutDashboard, Mic, Package, Settings, ShieldCheck } from "lucide-react";
+import { Activity } from "lucide-react";
 
 const workspaceLinks = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/catalogue", label: "Catalogue", icon: Package },
   { href: "/requests", label: "Request console", icon: ClipboardList },
+  { href: "/analytics", label: "Analytics", icon: Activity },
   { href: "/quality", label: "Data quality", icon: ShieldCheck },
 ];
 
