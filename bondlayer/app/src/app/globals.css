@@ -74,6 +74,12 @@ h1, h2, h3, .brand, .metric strong { font-family: var(--font-display), sans-seri
 .actions { display: flex; gap: 10px; }
 .actions button { min-height: 38px; padding: 8px 14px; border: 1px solid var(--border); border-radius: 9px; color: var(--text); background: var(--paper); font-size: 13px; font-weight: 650; }
 .actions button.primary { color: #fff; border-color: var(--accent); background: var(--accent-gradient); }
+.upload-button { display: inline-flex; align-items: center; min-height: 38px; padding: 8px 14px; border: 1px solid var(--accent); border-radius: 9px; color: #fff; background: var(--accent-gradient); font-size: 13px; font-weight: 650; cursor: pointer; }
+.upload-button input { display: none; }
+.upload-button:has(input:disabled) { cursor: wait; opacity: .7; }
+.upload-success, .upload-error { margin: -8px 0 18px; padding: 11px 13px; border-radius: 8px; font-size: 12px; }
+.upload-success { color: var(--green); background: var(--green-soft); }
+.upload-error { color: #a33c49; background: #fff0f1; }
 .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
 .metric { padding: 19px 18px; border: 1px solid var(--border); border-radius: 13px; background: var(--paper); }
 .metrics .metric:nth-child(2) { position: relative; overflow: hidden; border-color: #cbe7e2; box-shadow: 0 8px 22px rgba(15,118,110,.06); }

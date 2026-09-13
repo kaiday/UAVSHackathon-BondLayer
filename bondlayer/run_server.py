@@ -48,7 +48,7 @@ def main() -> None:
         print(f"  ! port {preferred} was busy -- using {port} instead")
         print()
     base = f"http://{HOST}:{port}"
-    print(f"  dashboard {base}/dashboard/")
+    print(f"  console   {base}/console/")
     print(f"  profile   {base}/voltway/.well-known/ucp")
     print(f"  search    {base}/voltway/ucp/catalog/search?category=laptop")
     print(f"  onboard   {base}/onboard/report/voltway")

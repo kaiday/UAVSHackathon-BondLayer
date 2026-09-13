@@ -10,9 +10,12 @@
 #   ./run.sh --no-agent   merchant server only
 #   ./run.sh --no-ui      skip the Vite dev server (the agent serves its own
 #                         static page on :8001 regardless)
+#   ./run.sh --restart    stop the BondLayer servers already on :8000/:8001
+#                         (run_server.py, src.agent.main only), then start fresh
 #
 # Idempotent: re-running reuses .venv, re-installs are no-ops, and a port that
-# is already serving is reported and left alone rather than started twice.
+# is already serving is reported and left alone rather than started twice --
+# it keeps the code it was started with, so use --restart after pulling.
 # No network is needed at runtime; pip/npm installs are the only downloads.
 #
 # Env: PYTHON (default python3), BONDLAYER_PORT (8000), AGENT_PORT (8001),
@@ -33,8 +36,10 @@ LOG_DIR="$ROOT/.run"
 MODE=run
 START_AGENT=1
 START_UI=1
+RESTART=0
 for arg in "$@"; do
   case "$arg" in
+    --restart) RESTART=1 ;;
     --check) MODE=check ;;
     --setup) MODE=setup ;;
     --no-agent) START_AGENT=0 ;;
@@ -123,10 +128,37 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+# Stops only a BondLayer server on a port: the listening process must be
+# running the given marker; anything else holding the port is left alone.
+stop_listener() { # port, marker
+  local port="$1" marker="$2" pid cmd
+  if ! command -v lsof >/dev/null 2>&1; then
+    echo "   lsof not found -- stop the process on :$port yourself"
+    return 0
+  fi
+  for pid in $(lsof -ti "tcp:$port" -sTCP:LISTEN 2>/dev/null || true); do
+    cmd="$(ps -o command= -p "$pid" 2>/dev/null || true)"
+    case "$cmd" in
+      *"$marker"*) kill "$pid" 2>/dev/null || true; echo "   stopped pid $pid on :$port" ;;
+      *) echo "   :$port is held by another program (pid $pid) -- not stopping it" ;;
+    esac
+  done
+  for _ in $(seq 1 40); do
+    port_busy "$port" || return 0
+    sleep 0.25
+  done
+}
+
+if [ "$RESTART" = 1 ]; then
+  say "restart: stopping BondLayer servers on :$MERCHANT_PORT and :$AGENT_PORT"
+  stop_listener "$MERCHANT_PORT" run_server.py
+  if [ "$START_AGENT" = 1 ]; then stop_listener "$AGENT_PORT" src.agent.main; fi
+fi
+
 # ------------------------------------------------------- merchant server ----
 say "merchant server (bondlayer/run_server.py) on :$MERCHANT_PORT"
 if port_busy "$MERCHANT_PORT"; then
-  echo "   :$MERCHANT_PORT already serving -- leaving it alone (run once, safe to re-run)"
+  echo "   :$MERCHANT_PORT already serving -- leaving it alone (./run.sh --restart loads new code)"
 else
   ( cd "$ROOT/bondlayer" && exec "$VPY" run_server.py "$MERCHANT_PORT" ) \
     >"$LOG_DIR/merchant.log" 2>&1 &
@@ -146,7 +178,7 @@ fi
 if [ "$START_AGENT" = 1 ] && [ -f "$CHAT_APP/src/agent/main.py" ]; then
   say "buyer-agent stand-in (buyer-agent: src.agent.main) on :$AGENT_PORT"
   if port_busy "$AGENT_PORT"; then
-    echo "   :$AGENT_PORT already serving -- leaving it alone"
+    echo "   :$AGENT_PORT already serving -- leaving it alone (./run.sh --restart loads new code)"
   else
     # `python -m src.agent.main` hardcodes :8001 and --reload; running the same
     # app through uvicorn honours AGENT_PORT and leaves one process to stop.
@@ -198,7 +230,7 @@ fi
 say "ready"
 echo "   merchant profile   http://127.0.0.1:$MERCHANT_PORT/voltway/.well-known/ucp"
 echo "   plain UCP search   http://127.0.0.1:$MERCHANT_PORT/voltway/ucp/catalog/search?category=laptop&max_price=1500"
-echo "   merchant dashboard http://127.0.0.1:$MERCHANT_PORT/dashboard/"
+echo "   merchant console   http://127.0.0.1:$MERCHANT_PORT/console/"
 echo "   onboarding API     http://127.0.0.1:$MERCHANT_PORT/onboard/merchants"
 echo "   API docs           http://127.0.0.1:$MERCHANT_PORT/docs"
 if [ "$START_AGENT" = 1 ] && [ -f "$CHAT_APP/src/agent/main.py" ]; then

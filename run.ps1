@@ -9,9 +9,12 @@ BondLayer -- one command from a clean clone to the running demo (Windows).
   .\run.ps1 -Setup       set up only (venv + installs), start nothing
   .\run.ps1 -NoAgent     merchant server only
   .\run.ps1 -NoUi        skip the Vite dev server
+  .\run.ps1 -Restart     stop the BondLayer servers already on :8000/:8001
+                         (run_server.py, src.agent.main only), then start fresh
 
 Idempotent: re-running reuses .venv, re-installs are no-ops, and a port that
-is already serving is reported and left alone. No network at runtime.
+is already serving is reported and left alone -- it keeps the code it was
+started with, so use -Restart after pulling. No network at runtime.
 
 Env: PYTHON (default: python), BONDLAYER_PORT (8000), AGENT_PORT (8001), UI_PORT (5173).
 If scripts are blocked: powershell -ExecutionPolicy Bypass -File .\run.ps1
@@ -20,7 +23,8 @@ param(
   [switch]$Check,
   [switch]$Setup,
   [switch]$NoAgent,
-  [switch]$NoUi
+  [switch]$NoUi,
+  [switch]$Restart
 )
 $ErrorActionPreference = "Stop"
 
@@ -100,14 +104,41 @@ function Wait-For([string]$url, [int]$tries = 40) {
   }
   return $false
 }
+# Stops only a BondLayer server on $port: the listening process must be running
+# $marker. A venv python.exe on Windows relaunches the base interpreter, so the
+# launcher parent is stopped too when it runs the same thing.
+function Stop-Listener([int]$port, [string]$marker) {
+  $conns = @(Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue)
+  foreach ($c in $conns) {
+    $p = Get-CimInstance Win32_Process -Filter "ProcessId=$($c.OwningProcess)" -ErrorAction SilentlyContinue
+    if (-not $p) { continue }
+    if ($p.CommandLine -notlike "*$marker*") {
+      Write-Host "   :$port is held by another program (pid $($p.ProcessId)) -- not stopping it"
+      continue
+    }
+    $parent = Get-CimInstance Win32_Process -Filter "ProcessId=$($p.ParentProcessId)" -ErrorAction SilentlyContinue
+    Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
+    if ($parent -and $parent.CommandLine -like "*$marker*") {
+      Stop-Process -Id $parent.ProcessId -Force -ErrorAction SilentlyContinue
+    }
+    Write-Host "   stopped pid $($p.ProcessId) on :$port"
+  }
+  for ($i = 0; $i -lt 40 -and (Port-Busy $port); $i++) { Start-Sleep -Milliseconds 250 }
+}
 
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 $Procs = @()
 
+if ($Restart) {
+  Say "restart: stopping BondLayer servers on :$MerchantPort and :$AgentPort"
+  Stop-Listener $MerchantPort "run_server.py"
+  if ($StartAgent) { Stop-Listener $AgentPort "src.agent.main" }
+}
+
 # ------------------------------------------------------- merchant server ----
 Say "merchant server (bondlayer\run_server.py) on :$MerchantPort"
 if (Port-Busy $MerchantPort) {
-  Write-Host "   :$MerchantPort already serving -- leaving it alone"
+  Write-Host "   :$MerchantPort already serving -- leaving it alone (.\run.ps1 -Restart loads new code)"
 } else {
   $Procs += Start-Process -FilePath $VPy -ArgumentList @("run_server.py", "$MerchantPort") `
     -WorkingDirectory (Join-Path $Root "bondlayer") -PassThru -NoNewWindow `
@@ -129,7 +160,7 @@ $AgentMain = Join-Path $ChatApp "src\agent\main.py"
 if ($StartAgent -and (Test-Path $AgentMain)) {
   Say "buyer-agent stand-in (buyer-agent: src.agent.main) on :$AgentPort"
   if (Port-Busy $AgentPort) {
-    Write-Host "   :$AgentPort already serving -- leaving it alone"
+    Write-Host "   :$AgentPort already serving -- leaving it alone (.\run.ps1 -Restart loads new code)"
   } else {
     # `python -m src.agent.main` hardcodes :8001 and --reload; running the same
     # app through uvicorn honours AGENT_PORT and leaves one process to stop.
@@ -176,11 +207,21 @@ if ($StartAgent -and $StartUi -and (Test-Path (Join-Path $UiDir "package.json"))
 Say "ready"
 Write-Host "   merchant profile   http://127.0.0.1:$MerchantPort/voltway/.well-known/ucp"
 Write-Host "   plain UCP search   http://127.0.0.1:$MerchantPort/voltway/ucp/catalog/search?category=laptop&max_price=1500"
-Write-Host "   merchant dashboard http://127.0.0.1:$MerchantPort/dashboard/"
+Write-Host "   merchant console   http://127.0.0.1:$MerchantPort/console/"
 Write-Host "   onboarding API     http://127.0.0.1:$MerchantPort/onboard/merchants"
 Write-Host "   API docs           http://127.0.0.1:$MerchantPort/docs"
 if ($StartAgent -and (Test-Path $AgentMain)) { Write-Host "   buyer agent        http://127.0.0.1:$AgentPort/" }
 if ($UiStarted) { Write-Host "   chat UI            http://127.0.0.1:$UiPort/" }
+if (Port-Busy $MerchantPort) {
+  try {
+    $console = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:$MerchantPort/console/" -TimeoutSec 2
+    if ($console.StatusCode -ne 200) {
+      Write-Host "   WARNING: /console/ did not return HTTP 200; run .\run.ps1 -Restart"
+    }
+  } catch {
+    Write-Host "   WARNING: the process on :$MerchantPort does not serve /console/ -- it may be an older build; run .\run.ps1 -Restart"
+  }
+}
 Write-Host ""
 Write-Host "   Ctrl-C stops what this script started."
 
