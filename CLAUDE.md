@@ -11,4 +11,6 @@ The product is `bondlayer/` (merchant-side UCP server, adapter, signed records,
 dashboard). `buyer-agent/` is the buyer-agent stand-in used in the demo.
 Round 1 spike code was removed from the tree on 13/09 (git history, commit
 `074e51c`); nothing submitted imported from it. Never edit `bondlayer/src/bondlayer/types.py`
-on a feature branch. No network calls at runtime.
+on a feature branch. Live AI features use the server-side OpenAI integration in
+`bondlayer/src/bondlayer/ai.py`. Use `BONDLAYER_AI_MODE=rules` for explicit offline operation;
+tests must stub provider transport or select rules mode, never make paid API calls.

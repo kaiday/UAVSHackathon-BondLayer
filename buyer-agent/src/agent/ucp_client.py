@@ -62,6 +62,10 @@ POLICY = {bt.value: v for bt, v in REFERENCE_SHOPPER_POLICY.values_aud.items()}
 CATALOG_SEARCH = "dev.ucp.shopping.catalog.search"
 CATALOG_LOOKUP = "dev.ucp.shopping.catalog.lookup"
 BENEFIT_VALUE = "org.bondlayer.benefit_value"
+#: Base UCP, and declared only when this agent actually has an id to offer --
+#: see ``make_fetcher``. Declaring it while sending nobody would ask every
+#: merchant to open an identity conversation the shopper did not consent to.
+IDENTITY_LINKING = "dev.ucp.common.identity_linking"
 
 #: Same vocabulary the interpreter's parser matches categories on, so the
 #: search query built from decoded HARD constraints lands on the category the
@@ -132,22 +136,35 @@ def _search_params(utterance: str) -> dict:
     return params
 
 
-def make_fetcher(client: httpx.Client | None = None) -> Callable[..., dict]:
+def make_fetcher(client: httpx.Client | None = None,
+                 shopper_id: str | None = None) -> Callable[..., dict]:
     """A ``bondlayer.agent.composition.Fetcher`` over real HTTP.
 
     ``client`` is accepted so a caller (a test, or a script) can hand in one
     already pointed at an in-process app; the default opens a real connection
     to ``MERCHANT_BASE_URL`` -- the one place this agent touches the network,
     and only ever localhost.
+
+    ``shopper_id`` is **the consent decision, taken once, here.** A shopper who
+    has not said who they are leaves it ``None``, and then the id is not on the
+    query string, ``identity_linking`` is not declared in the header, and no
+    merchant is ever in a position to withhold it from a log. Consent is not a
+    flag the merchant is trusted to honour and not a filter applied to the
+    answer -- it is the absence of the field on the request.
     """
     owns_client = client is None
     http = client or httpx.Client(base_url=MERCHANT_BASE_URL, timeout=10)
+    snapshots: dict[str, dict] = {}
 
     def fetch(merchant: str, query: str, *, extension: bool, plan: dict | None = None) -> dict:
         header = CATALOG_SEARCH + ";" + CATALOG_LOOKUP
         if extension:
             header += ";" + BENEFIT_VALUE
+        if shopper_id:
+            header += ";" + IDENTITY_LINKING
         params = {"limit": 100, **(_params_from_plan(plan) if plan else _search_params(query))}
+        if shopper_id:
+            params["shopper_id"] = shopper_id
         combined = None
         while True:
             response = http.get(f"/{merchant}/ucp/catalog/search", params=params,
@@ -165,11 +182,13 @@ def make_fetcher(client: httpx.Client | None = None) -> Callable[..., dict]:
             offset = body.get("next_offset")
             if offset is None or offset <= params.get("offset", -1):
                 combined["next_offset"] = None
+                snapshots[merchant] = combined
                 return combined
             params["offset"] = offset
 
     fetch.client = http  # type: ignore[attr-defined]
     fetch.owns_client = owns_client  # type: ignore[attr-defined]
+    fetch.snapshots = snapshots
     return fetch
 
 
@@ -264,6 +283,7 @@ def make_verifier(client: httpx.Client | None = None,
             return make_verifier(http, merchants=merchants)
     http = client
     keys_by_issuer: dict[str, dict[str, dict]] = {}
+    merchant_domains: dict[str, str] = {}
     for merchant in merchants if merchants is not None else discover_merchants(http):
         try:
             response = http.get(f"/{merchant}/.well-known/ucp")
@@ -275,6 +295,7 @@ def make_verifier(client: httpx.Client | None = None,
         domain = body.get("business", {}).get("domain")
         if not domain:
             continue
+        merchant_domains[merchant] = domain
         keys_by_issuer[domain] = {
             jwk["kid"]: jwk for jwk in body.get("signing_keys", []) if jwk.get("kid")
         }
@@ -297,7 +318,20 @@ def make_verifier(client: httpx.Client | None = None,
             return False
         return verifier.verify(signed)
 
+    verify.merchant_domains = merchant_domains
     return verify
+
+
+def submit_report(report: dict, client: httpx.Client) -> str:
+    """The merchant owns storage; no shared filesystem is required by the buyer agent."""
+    token = os.environ.get("BONDLAYER_SERVICE_TOKEN", "")
+    headers = {"X-BondLayer-Service-Token": token} if token else {}
+    response = client.post("/internal/requests", json=report, headers=headers)
+    response.raise_for_status()
+    body = response.json()
+    if body.get("saved") is not True or body.get("request_id") != report["request_id"]:
+        raise ValueError("merchant did not acknowledge the request report")
+    return body["request_id"]
 
 
 def merchant_health() -> dict:

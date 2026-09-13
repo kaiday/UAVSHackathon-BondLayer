@@ -62,8 +62,8 @@ const STEPS: Step[] = [
   {
     target: "nav-requests",
     placement: "right",
-    title: "Request console",
-    body: "Request reports appear here when available. A new workspace has no saved request history; use the buyer agent to inspect a live comparison of your uploaded catalogues.",
+    title: "Shopping insights",
+    body: "See what shoppers asked for, where your offers left needs unanswered, and what to improve next. Choose a period, inspect supporting requests, and act on your catalogue or policies. Outcomes are shown only when reported by the agent.",
   },
   {
     target: "nav-quality",
@@ -87,7 +87,7 @@ const STEPS: Step[] = [
     target: "prompt",
     placement: "top",
     title: "Ask BondLayer",
-    body: "Ask about this merchant’s catalogue in plain language, for example “What should I fix first?” or “Which listings are blockers?”. Answers come straight from your readiness report, not from an AI model.",
+    body: "Ask about this merchant’s catalogue in plain language, for example “What should I fix first?”. OpenAI answers using your current report, with diagnostic citations and a response ID. Connection status is in Settings.",
   },
   {
     target: "help",

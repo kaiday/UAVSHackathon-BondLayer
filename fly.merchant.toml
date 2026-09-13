@@ -9,8 +9,13 @@ primary_region = "syd"
   dockerfile = "Dockerfile.merchant"
 
 [env]
-  # The server starts empty; onboarded merchants are saved here, on the volume.
+  # Test data on: serves the bundled electronics.csv merchants and signed records.
+  # Uploads are still saved on the volume, but are not loaded while this is "1".
   BONDLAYER_UPLOADS_DIR = "/data/uploads"
+  BONDLAYER_AI_MODE = "openai"
+  BONDLAYER_TEST_DATA = "1"
+  BONDLAYER_REQUIRE_SERVICE_TOKEN = "1"
+  # Set OPENAI_API_KEY and BONDLAYER_SERVICE_TOKEN with fly secrets.
 
 # Persistent disk for onboarded merchants, so a restart or redeploy keeps them.
 # Create it once before the first deploy:
@@ -23,7 +28,7 @@ primary_region = "syd"
   internal_port = 8080
   force_https = true
   # Always on: never stopped for being idle. The buyer agent calls this server
-  # with a 10 s timeout, and judges may open it at any time. To pause it
+  # over HTTP, and judges may open it at any time. To pause it
   # (no running cost): fly scale count 0 --config fly.merchant.toml
   auto_stop_machines = "off"
   auto_start_machines = true
@@ -41,4 +46,4 @@ primary_region = "syd"
 [[vm]]
   cpu_kind = "shared"
   cpus = 1
-  memory = "256mb"
+  memory = "512mb"

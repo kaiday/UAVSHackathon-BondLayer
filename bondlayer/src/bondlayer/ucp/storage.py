@@ -9,6 +9,7 @@ import re
 from pathlib import Path
 from uuid import uuid4
 
+from bondlayer import ai as _ai  # load shared .env configuration before resolving storage
 from bondlayer.adapters import CatalogReport, CsvCatalogAdapter
 from bondlayer.ucp.profile import DATA, Merchant
 

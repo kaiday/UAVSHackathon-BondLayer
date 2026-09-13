@@ -10,15 +10,15 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONUTF8=1 \
-    PYTHONPATH=/app/bondlayer/src
+    PYTHONPATH=/app/bondlayer/src \
+    BONDLAYER_AI_MODE=openai \
+    BONDLAYER_TEST_DATA=1
 
 WORKDIR /app
 
-COPY bondlayer/requirements.txt bondlayer/requirements.txt
 COPY buyer-agent/requirements.txt buyer-agent/requirements.txt
-RUN pip install --no-cache-dir -r bondlayer/requirements.txt -r buyer-agent/requirements.txt
-
 COPY bondlayer bondlayer
+RUN pip install --no-cache-dir -e ./bondlayer -r buyer-agent/requirements.txt
 COPY buyer-agent buyer-agent
 
 RUN useradd --create-home app

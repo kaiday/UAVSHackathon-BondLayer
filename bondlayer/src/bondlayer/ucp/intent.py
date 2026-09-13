@@ -38,8 +38,8 @@ own ordering of its own shelf, from catalogue attributes and its own verified
 records; ranking against the shopper's policy, across merchants, by effective
 cost, stays agent-side, exactly as it does for ``catalog.search``.
 
-No network call, no model call. The decoder is the rules parser; the response
-says so (``"decoder": "rules"``) so nobody mistakes it for a model.
+Live mode decodes through OpenAI; explicit rules mode uses the reference parser.
+The response identifies the decoder and includes real model call metadata.
 
 The server module includes this router, and this module needs the server's
 helpers, so the two would be circular at import time. This module fetches the
@@ -56,6 +56,7 @@ from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from bondlayer.interpreter import parse, resolve
+from bondlayer.interpreter.openai import decode
 from bondlayer.interpreter.describe import (
     assumptions,
     clarifying_question,
@@ -65,7 +66,7 @@ from bondlayer.interpreter.describe import (
 from bondlayer.records import ES256Signer, load_signed
 from bondlayer.types import Constraint, Proposal, ResolvedConstraint, SignedRecord
 from bondlayer.ucp.capabilities import BENEFIT_VALUE, INTENT_MATCH
-from bondlayer.ucp.profile import KEYS, Merchant
+from bondlayer.ucp.profile import KEYS, Merchant, signing_keys
 from bondlayer.ucp.records import RECORDS
 
 router = APIRouter(tags=["ucp"])
@@ -104,12 +105,7 @@ def verifiers_for(merchant: Merchant, keys_dir: Path = KEYS) -> list[ES256Signer
     """
     if not merchant.signs_records:
         return []
-    path = keys_dir / f"{merchant.id}.pub.json"
-    if not path.exists():
-        return []
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    jwks = payload if isinstance(payload, list) else [payload]
-    return [ES256Signer.from_jwk(jwk, issuer=merchant.domain) for jwk in jwks]
+    return [ES256Signer.from_jwk(jwk, issuer=merchant.domain or merchant.id) for jwk in signing_keys(merchant, keys_dir)]
 
 
 def verified_records(
@@ -123,7 +119,11 @@ def verified_records(
     """
     if not merchant.signs_records:
         return []
-    published = load_signed(records_dir / f"{merchant.id}.signed.json")
+    if records_dir == RECORDS:
+        from bondlayer.records.serialise import signed_from_json
+        published = [signed_from_json(entry) for entry in _server()._records.get(merchant.id, [])]
+    else:
+        published = load_signed(records_dir / f"{merchant.id}.signed.json")
     verifiers = verifiers_for(merchant, keys_dir)
     if not verifiers:
         return []
@@ -190,10 +190,10 @@ def intent_propose(
     if not utterance:
         raise HTTPException(422, "utterance must not be blank")
 
-    constraints = parse(utterance)
+    constraints, decode_meta = decode(utterance)
     skus = srv._catalog[merchant.id]
     verified = verified_records(merchant)
-    proposals = resolve(constraints, skus, verified)[: body.limit]
+    proposals = resolve(constraints, skus, verified, merchant_domains={merchant.id: merchant.domain or merchant.id})[: body.limit]
 
     response: dict = {
         "business": {"id": merchant.id, "name": merchant.display_name},
@@ -203,6 +203,8 @@ def intent_propose(
         "decoded_intent": decoded_intent(utterance, constraints),
         "proposals": [_proposal(p, srv._product(p.sku)) for p in proposals],
     }
+    response["decoded_intent"]["decoder"] = decode_meta["provider"]
+    response["decoded_intent"]["ai"] = decode_meta
     if BENEFIT_VALUE in negotiated:
         # Same block, same builder, same gate as catalog.search. Present iff the
         # benefit extension survived negotiation; absent otherwise, never empty.

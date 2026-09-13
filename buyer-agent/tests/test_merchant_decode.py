@@ -77,11 +77,13 @@ def _patch(monkeypatch, proposer):
     monkeypatch.setattr(ucp_client, "make_proposer", lambda *a, **k: proposer)
 
 
-def test_toggle_on_returns_three_merchant_decodes_next_to_the_ranking(monkeypatch):
+def test_toggle_on_returns_three_merchant_decodes_next_to_the_ranking(monkeypatch, stub_model):
+    stub_model()
     fake = FakeProposer()
     _patch(monkeypatch, fake)
     body = TestClient(main.app).post("/query", json={
         "query": "a laptop I can return easily", "bondlayer_enabled": True,
+        "values_aud": {"free_returns": "40"},
     }).json()
 
     assert PRE_EXISTING_KEYS <= set(body)
@@ -123,7 +125,8 @@ def test_toggle_on_returns_three_merchant_decodes_next_to_the_ranking(monkeypatc
     assert len(steps) == 1 and steps[0]["phase"] == "intent" and steps[0]["outcome"] == "ok"
 
 
-def test_toggle_off_sends_nothing_and_returns_the_degraded_shape(monkeypatch):
+def test_toggle_off_sends_nothing_and_returns_the_degraded_shape(monkeypatch, stub_model):
+    stub_model()
     fake = FakeProposer()
     _patch(monkeypatch, fake)
     body = TestClient(main.app).post("/query", json={

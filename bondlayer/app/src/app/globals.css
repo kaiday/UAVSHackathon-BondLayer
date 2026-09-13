@@ -236,7 +236,7 @@ tr.winner { background: #f7f9ff; }
   .nav-item { min-height: 42px; padding: 10px; }
   .content { padding: 22px 22px 98px; }
   .prompt-bar { width: calc(100vw - 112px); }
-  .topbar { padding-inline: 22px; }
+  .topbar { padding-inline: 22px; flex-wrap: wrap; }
   .topbar-greeting, .account-copy, .account > strong { display: none; }
 }
 

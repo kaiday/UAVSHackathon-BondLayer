@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import datetime
 from decimal import Decimal
@@ -88,8 +89,14 @@ class PolicyStore:
         self.database = root / "policy_onboarding.sqlite3"
         self._initialise()
 
-    def _connect(self) -> sqlite3.Connection:
-        return sqlite3.connect(self.database)
+    @contextmanager
+    def _connect(self):
+        connection = sqlite3.connect(self.database)
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     def _initialise(self) -> None:
         with self._connect() as connection:

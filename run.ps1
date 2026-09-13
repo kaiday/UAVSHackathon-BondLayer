@@ -158,7 +158,18 @@ if (Port-Busy $MerchantPort) {
 # is bondlayer's server, and nothing else is started on :8000.
 $AgentMain = Join-Path $ChatApp "src\agent\main.py"
 if ($StartAgent -and (Test-Path $AgentMain)) {
-  Say "buyer-agent stand-in (buyer-agent: src.agent.main) on :$AgentPort"
+  Say "shopping agent (buyer-agent: src.agent.main) on :$AgentPort"
+  # Use the services' root-first configuration and explicit offline mode.
+  $AiStatus = & $VPy -c "import json,sys; sys.path.insert(0, sys.argv[1]); from bondlayer.ai import status; print(json.dumps(status()))" (Join-Path $Root "bondlayer\src")
+  if ($LASTEXITCODE -eq 0) {
+    $AiConfig = $AiStatus | ConvertFrom-Json
+    if ($AiConfig.mode -eq "rules") {
+      Write-Host "   explicit rules mode: reference ranking, no model calls."
+    } elseif (-not $AiConfig.configured) {
+      Write-Host "   WARNING: no usable OPENAI_API_KEY in the environment, root .env or buyer-agent\.env."
+      Write-Host "            Live ranking and chat require OpenAI; configure the key and restart."
+    }
+  }
   if (Port-Busy $AgentPort) {
     Write-Host "   :$AgentPort already serving -- leaving it alone (.\run.ps1 -Restart loads new code)"
   } else {

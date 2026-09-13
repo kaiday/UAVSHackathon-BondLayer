@@ -7,7 +7,7 @@
 **/.env.*
 !**/.env.example
 
-# Local environments, caches and build inputs
+# Local environments and caches
 .git
 .venv
 venv
@@ -19,8 +19,15 @@ venv
 **/.pytest_cache
 *.log
 
-# Not needed at runtime. The console ships pre-built in bondlayer/app/out.
+# Merchant Dockerfile builds the console from source; exclude stale build output.
 docs
 **/tests
-bondlayer/app/src
+bondlayer/app/out
 bondlayer/data/uploads
+**/*.sqlite3
+**/transcript.jsonl
+graphify-out
+bach-demo
+demo
+.claude
+.idea

@@ -13,6 +13,8 @@ dependencies = [
     "httpx>=0.27",
     "python-multipart>=0.0.9",   # FastAPI UploadFile in ucp/onboard.py
     "pypdf>=4.0",                # policy.py reads merchant policy PDFs
+    "openai>=2.0",              # structured live intent, policy and merchant assistance
+    "python-dotenv>=1.0",       # shared server-side configuration
     # WS-A: similarity dependency goes here
 ]
 

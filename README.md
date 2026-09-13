@@ -28,6 +28,9 @@ The shopping agent decides how much that benefit matters to its shopper.
 **Learn more:** [Policies and benefits](#policies-and-benefits) · [What is UCP?](#what-is-ucp) ·
 [Troubleshooting](#troubleshooting) · [Architecture](#architecture) · [Evaluation](#evaluation).
 
+See the [integration audit](docs/INTEGRATION-AUDIT.md) for the live OpenAI check, verified
+connections, regression results and remaining product boundaries.
+
 ### What works in this prototype
 
 | Feature | Current behaviour |
@@ -36,9 +39,10 @@ The shopping agent decides how much that benefit matters to its shopper.
 | Catalogue checks and publishing | Accepted products are searchable; diagnostics explain repairs and remaining issues. |
 | Saved merchant data | Published profiles and catalogues load again after a server restart. A fresh installation starts empty. |
 | Buyer-agent demonstration | Discovers merchants on the local server and compares their uploaded products. |
-| Policy extraction and approval | An offline library uses prepared extraction fixtures. A complete policy-upload and approval workflow is not connected to the console. |
-| Signed benefits | Implemented in the protocol and historical demo. Newly uploaded merchants are catalogue-only and have no benefit records. |
-| Request history | Empty in normal operation. The historical evaluation mode serves 30 precomputed scenarios; chat requests are not saved here. |
+| OpenAI assistance | Live intent decoding, report-grounded merchant answers and comparison explanations; response IDs identify actual calls. |
+| Policy extraction and approval | Upload your document, extract drafts with OpenAI, edit/approve/reject, then publish signed benefits. |
+| Signed benefits | Approved records and merchant signing keys persist and are used by catalogue search, agent verification and checkout. |
+| Shopping insights | Saved buyer-agent comparisons become merchant-specific demand, outcomes and evidence-backed improvements. Historical demo reports are excluded. |
 | Checkout | Returns an order confirmation; payment and order management are outside this prototype. |
 
 The `buyer-agent/` app demonstrates what a shopping agent can do with the merchant service.
@@ -46,8 +50,29 @@ The product is the merchant-side service in `bondlayer/`.
 
 ## Run it
 
+**Two ways to run the same `round2/dev` code:**
+
+| Run mode | Start here |
+|---|---|
+| Local development | Use `run.ps1` / `run.sh` below; settings come from your environment or root `.env`. |
+| Your own Fly.io deployment | Follow [the Fly guide](docs/deploy-fly.md): two apps, one merchant data volume, OpenAI secrets on both apps. |
+
+The buyer agent submits request reports to the merchant over HTTP in both modes. The agent
+does not need access to the merchant's disk. Keep application fixes and deployment config
+together on `round2/dev`, and deploy both services from the same reviewed revision.
+
 If the team has already started BondLayer for you, open the **merchant console** link below.
-Otherwise, install **Python 3.12 or newer**, open a terminal in this repository and run:
+Otherwise, install **Python 3.12 or newer** and configure OpenAI before starting:
+
+1. Copy `.env.example` to `.env` in the repository root.
+2. Set `OPENAI_API_KEY` to your real OpenAI API key. Keep the file server-side.
+3. Keep `BONDLAYER_AI_MODE=openai`; `BONDLAYER_MODEL` defaults to `gpt-4o-mini`.
+4. Open a terminal in the repository and run the launcher below.
+
+An existing `buyer-agent/.env` is also supported. Environment variables take precedence,
+followed by the root `.env`, then `buyer-agent/.env`. Both services use the same configuration.
+In the console, **Settings → Test OpenAI connection** makes a real request and shows its
+completion ID. Configuration alone is not reported as a verified connection.
 
 **Windows — PowerShell**
 
@@ -63,8 +88,10 @@ $env:PYTHONUTF8 = "1"
 ```
 
 The launcher creates a Python environment, installs dependencies and starts both local
-services. First-time setup needs internet access for downloads. The catalogue workflow runs
-locally; the optional model-generated explanation is described under [external resources](#technologies-apis-and-every-external-resource-rulebook-c5b).
+services. First-time setup needs internet access for downloads. OpenAI-backed features also
+require internet access and API quota; catalogue validation, signing and price arithmetic run
+locally. Missing credentials, API failures and exhausted quota produce visible errors rather
+than substitute model answers. See [external resources](#technologies-apis-and-every-external-resource-rulebook-c5b).
 Node.js is only needed to rebuild the merchant console, not to serve its existing static export.
 
 | Open in your browser | What to do there |
@@ -171,7 +198,7 @@ Unpublished form entries and selected files are not saved as a resumable draft.
 
 **Success means your catalogue is published and searchable on this BondLayer server.**
 Connecting that server to external shopping platforms is a separate deployment/integration
-step. Catalogue publication does not create benefit records.
+step. Next, open **Benefit records** to upload your policies and publish reviewed benefits.
 
 ### Updating an existing catalogue
 
@@ -186,7 +213,8 @@ SHOP-001,myshop,Example laptop,laptop,999.00
 
 The selected merchant determines the destination. If the file has a `merchant` column,
 only matching rows are imported. This path **replaces the catalogue after successful
-validation**; include all products you want to keep. It publishes catalogue-only data.
+validation**; include all products you want to keep. Previously published benefit records
+are preserved; check that their scopes and SKU references still apply to the updated catalogue.
 Use **Add merchant** for a new store and the guided preview; that flow refuses to overwrite
 an existing ID.
 
@@ -207,20 +235,34 @@ Start with **Worst first**, use **Catalogue** for individual rows, and **Data qu
 group issues by rule. Update your source spreadsheet and upload it again when you fix facts.
 BondLayer's repair does not rewrite the spreadsheet on your computer.
 
-**Ask BondLayer** helps interpret the selected merchant's report. Try **"What should I fix
-first?"** or **"What's wrong with my prices?"** Answers are selected from the report using
-deterministic matching; this bar does not call an AI model.
+**Ask BondLayer** sends your question and the selected merchant's current report to OpenAI.
+Try **"What should I fix first?"** or **"What's wrong with my prices?"** The answer includes
+actual report diagnostics as citations and the OpenAI model/completion ID. Counts and
+readiness scores come from the importer, not the model. The report context includes at most
+100 detailed diagnostics, alongside server-calculated totals.
 
 ## Try a shopping request
 
 1. Publish at least one catalogue, then open <http://127.0.0.1:8001/>.
 2. Ask about products you actually uploaded, for example **"a laptop under $1,500"**.
+   Under **Your benefit values (AUD)**, enter what each benefit is worth to you if you want
+   monetary benefits included in comparison. Live defaults are zero. Membership and trade-in
+   eligibility are not assumed; conditional benefits can remain uncredited.
 3. Inspect the matching products, their prices and the explanation of the comparison.
 4. Try a specification present in your file, or add another merchant to compare stores.
+5. Open **Shopping insights → Refresh insights** to see your store's observed demand and opportunities.
+
+Choose the merchant, reporting period and comparison view. Start with **Your next improvements**,
+then open **View evidence** to inspect the requests behind a suggestion. Checkout confirmations
+are labelled separately from paid sales; missing selection outcomes stay unknown. See
+[Shopping insights](bondlayer/docs/shopping-insights.md) for metric definitions and coverage.
 
 The buyer-agent demo discovers merchants from the running server. An empty installation
-asks you to onboard first. Newly uploaded merchants have no signed benefits, so enabling
-BondLayer benefits will not invent returns, warranty or loyalty information for them.
+asks you to onboard first. OpenAI decodes the request; hard requirements are then checked
+against actual products. Signature verification, eligibility checks and reference effective
+costs use deterministic code. A second OpenAI call ranks the eligible offers from their prices
+and verified terms, and checkout follows that model's choice. Newly uploaded
+merchants receive benefit information only after you review and publish their policy records.
 
 **Price versus effective cost:** the shelf price is the product's stated price. Effective
 cost is a comparison figure after the agent credits eligible, verified benefits under its
@@ -229,8 +271,12 @@ $920 effective cost. **That is not a promise of a $920 checkout price.**
 
 The demo can return a checkout confirmation for the selected offer. Its status is
 `confirmed_awaiting_payment`; **no money moves**, no stock is reserved, and no persistent
-order-management record is created. The Request console is not live analytics: chat requests
-do not populate it, and its historical evaluation reports are described [below](#evaluation).
+order-management system is provided. The actual comparison and its confirmation are saved
+on the merchant: under `bondlayer/data/uploads/requests/` locally or `/data/uploads/requests/`
+on Fly's persistent volume. This is diagnostic history, not payment or fulfilment. The
+console shows the latest 500 saved reports per merchant. Each executed comparison is recorded
+separately; a control result is not invented for a run that did not execute it. The historical
+evaluation reports are described [below](#evaluation).
 
 ## Policies and benefits
 
@@ -245,19 +291,26 @@ receives when buying from you**.
 | Loyalty/member terms | Membership cost, discounts, points and eligibility |
 | Repair or sustainability commitments | Specific, supportable statements and their scope |
 
-**Current limitation:** the console does not provide an end-to-end policy upload, review
-and publishing flow. The policy library accepts text-readable PDF, UTF-8 TXT and Markdown,
-but its converter uses prepared extraction fixtures; it does not extract arbitrary new
-merchant policies. The policy router is not mounted in the main application, and the
-Benefit records page does not yet list or manage records.
+Open **Benefit records** and follow this connected workflow:
 
-The implemented offline policy-service sequence is:
+1. **Upload a combined policy document:** text-readable PDF, UTF-8 TXT or Markdown, up to
+   10 MB and 60,000 extracted characters. Include all the terms you want to publish.
+2. **OpenAI extracts drafts:** the actual document text is sent to the API. Each draft must
+   carry an exact supporting quote; invalid or unsupported model output is refused.
+3. **Review the source, facts and conditions:** correct the extracted fields where necessary.
+   No draft is published automatically. Replacing a document replaces its draft set; existing
+   published records stay live until you publish a replacement.
+4. **Choose monetary ceilings where appropriate:** the model does not invent a dollar value.
+   Leave it blank for a factual, unpriced benefit. Values claims such as repairability always
+   remain unpriced.
+5. **Approve and sign, or reject:** approval signs the reviewed record with a locally generated
+   merchant key. Only public verification keys appear in the merchant's UCP profile.
+6. **Publish approved benefits:** the reviewed set becomes live in catalogue responses,
+   intent proposals and checkout verification. Pending and rejected drafts are excluded.
 
-1. Read the document and store its source text.
-2. Produce matching draft records from the prepared fixtures.
-3. Keep the source passage, scope and conditions available for review.
-4. Edit, approve or reject each draft; approval signs the record.
-5. Return the approved signed records for publishing integration.
+Drafts, published records and signing keys are stored in the gitignored uploads directory
+and restored after restart. An OpenAI failure does not replace existing drafts with fixtures.
+The old fixture converter remains available only for historical tests, not this upload path.
 
 A **signed record** lets an agent check the issuer and detect changes to the record. It
 does not independently establish that the underlying business claim is true. Eligible
@@ -304,7 +357,9 @@ the roadmap.
 | No usable products | Review prices, required fields and the merchant ID. At least one accepted product is needed. |
 | File too large / wrong format | Export UTF-8 CSV under 10 MB; prices must use AUD. |
 | No matches in the buyer-agent demo | Confirm publication, then ask for a category, price range or product actually in the upload. |
-| No benefits or request history | Catalogue uploads do not generate benefit records, and chat does not save request reports. |
+| No benefits | Upload a policy, approve its drafts and publish the reviewed records. |
+| No request history | Run a comparison, then refresh reports. Check service connectivity and matching `BONDLAYER_SERVICE_TOKEN` values; Fly stores history on the merchant volume. |
+| OpenAI request fails | Check **Settings → Test OpenAI connection**, the configured key/model, connectivity and API quota. |
 | "Already serving — leaving it alone" | A server is already running. Use the launcher's restart option after updating code. |
 | PowerShell blocks the launcher | Run `powershell -ExecutionPolicy Bypass -File .\run.ps1`. |
 | An older setup wizard still appears | The console is a static build. Rebuild it after frontend source changes, restart, and refresh the browser (developer steps below). |
@@ -324,8 +379,8 @@ running trace commands or tests so diagnostic symbols can be printed.
 
 ## Architecture
 
-The default upload path publishes catalogue-only merchants. The benefit and intent paths
-also support prepared signed records, as exercised by the historical demo.
+Catalogue onboarding, live OpenAI features and benefit publication share the same merchant
+registry. Historical synthetic data is an explicit test mode.
 
 ```mermaid
 flowchart TD
@@ -337,8 +392,8 @@ flowchart TD
     Comp["Agent-side comparison + trace\nagent/composition.py"]
     Bundle["Bundler\nbundle/compose.py"]
     Adapter["Catalogue adapter\nadapters/catalog.py"]
-    Records["Prepared benefit records + public keys\ndata/records/, keys/"]
-    Policy["Offline policy library\nfixture-based drafts, review, signing"]
+    Records["Published benefit records + keys\ndata/uploads/benefits/"]
+    Policy["Live policy service\nOpenAI extraction, review, signing"]
     Data["Saved merchant profiles + catalogues\ndata/uploads/"]
     Dash["Merchant console /console/\nNext.js static export"]
     Onboard["Onboarding API\nvalidate, preview, publish"]
@@ -358,7 +413,8 @@ flowchart TD
     Dash --> Onboard
     Onboard --> Adapter
     Onboard -- "save on publish" --> Data
-    Policy -. "publishing integration required" .-> Records
+    Onboard --> Policy
+    Policy -- "approved records" --> Records
 ```
 
 | Component | What it does | Path |
@@ -367,7 +423,8 @@ flowchart TD
 | Onboarding and storage | Template, preview, merchant registration, publication and restart persistence | `bondlayer/src/bondlayer/ucp/onboard.py`, `bondlayer/src/bondlayer/ucp/storage.py` |
 | UCP surface | Merchant profiles, capability negotiation, catalogue search and lookup | `bondlayer/src/bondlayer/ucp/` |
 | Benefit records | ES256 signatures over canonical JSON, serialization and verification | `bondlayer/src/bondlayer/records/`, `bondlayer/keys/` |
-| Offline policy service | Fixture-based drafts, human editing/approval and signing; console integration incomplete | `bondlayer/src/bondlayer/policy.py` |
+| Policy service | OpenAI extraction, source validation, review, signing and persistent publication | `bondlayer/src/bondlayer/policy.py`, `bondlayer/src/bondlayer/policy_ai.py`, `bondlayer/src/bondlayer/ucp/policy_onboard.py` |
+| OpenAI client | Shared server-side configuration, structured output and explicit provider errors | `bondlayer/src/bondlayer/ai.py` |
 | Interpreter | Decodes requirements and justifies matches against catalogue attributes or verified records | `bondlayer/src/bondlayer/interpreter/` |
 | Valuation | Caps eligible monetary credit by the merchant ceiling and shopper policy | `bondlayer/src/bondlayer/valuation/` |
 | Agent composition | Connects matching, valuation and trace output; adds merchant readings and checkout | `bondlayer/src/bondlayer/agent/` |
@@ -401,9 +458,9 @@ Declared in full, as the rules require, so nothing here is an undisclosed depend
 - **Python 3.12+** — the only runtime. `run.sh` refuses to start on an older interpreter.
 - **FastAPI + uvicorn + pydantic** — the merchant server (`bondlayer/`) and the buyer-agent
   stand-in (`buyer-agent/`) are both FastAPI apps.
-- **`cryptography`** — ES256 (P-256/SHA-256) detached signatures over canonical JSON for
-  every benefit record. No key generation happens at runtime; keys ship from `bondlayer/keys/`
-  and `bondlayer/keys/*.pem` is gitignored (private keys never enter the repository).
+- **`cryptography`** — ES256 (P-256/SHA-256) signatures. New merchants' private keys stay in
+  `data/uploads/benefits/` (gitignored); public keys are served in UCP profiles. Historical
+  demo records use the prepared public keys under `bondlayer/keys/`.
 - **`httpx`**, **`python-multipart`**, **`pypdf`** — HTTP client for the agent-side fetcher,
   multipart uploads for the onboarding CSV route, and PDF reading for merchant policy
   documents respectively.
@@ -424,23 +481,23 @@ Declared in full, as the rules require, so nothing here is an undisclosed depend
   namespaced under `org.bondlayer.*` rather than `dev.ucp.*` because `dev.ucp.*` is reserved
   for capabilities governed by the UCP Tech Council itself (`bondlayer/docs/stage1-agent-ready-catalog.md`
   §5.6) — a third party may extend UCP only inside its own namespace.
-- **OpenAI, optional, prose-only** — if `OPENAI_API_KEY` is set, the buyer-agent stand-in asks
-  a model for one paragraph of rationale generated from the already-computed trace; if it is
-  not set, a template sentence is rendered instead and the trace records
-  `"prose: template (no model key)"`. No code path on the ranking or valuation side ever calls
-  a model, and `buyer-agent/src/agent/llm.py` never raises for a missing key or a failed
-  model call — both fall back to the template sentence. To opt in, copy
-  `buyer-agent/.env.example` to `buyer-agent/.env` (gitignored), set the key and restart the
-  agent. This makes an external API call containing the request and computed comparison;
-  leave the key unset for offline operation. Rankings do not depend on a model.
+- **OpenAI SDK + python-dotenv** — real API calls for structured intent decoding, policy
+  extraction, merchant assistance, buyer conversation and ranking. In live buyer mode the model
+  **chooses the winner** from shelf prices and verified terms; calculated effective costs are
+  reference figures and are not supplied to the ranking model. Checkout follows the model's
+  order (`buyer-agent/src/agent/rank.py`). The model defaults to `gpt-4o-mini` and
+  is configurable with `BONDLAYER_MODEL`. Each successful call returns its model, completion
+  ID and usage metadata. Relevant shopper requests, policy text or catalogue reports are sent
+  to OpenAI. Prices, eligibility checks and signature verification are computed locally.
 - **Historical test data is synthetic.** The electronics catalogue (`bondlayer/data/catalog/electronics.csv`),
   the three merchant manifests, the policy documents and the 30-request evaluation set are all
   synthetic, authored inside the competition window on 12/09/2026 from public product-page
   conventions, per assumption A1 in the submitted Round 1 proposal. Normal operation loads
   merchant uploads instead of this bundled dataset.
-- **Offline-capable runtime.** The merchant service reads local data; the buyer-agent demo
-  makes local HTTP requests to it. External downloads are needed during setup, and external
-  runtime calls occur only if optional model narration is enabled.
+- **Explicit offline mode.** `BONDLAYER_AI_MODE=rules` disables model calls. It uses the
+  deterministic reference parser and a labelled explanation; AI policy extraction and
+  merchant assistance report that OpenAI mode is required. Live mode never silently switches
+  to this path. Historical tests select their offline mode explicitly.
 
 ## Historical benefit demo
 
@@ -457,6 +514,7 @@ of your saved uploads. The launchers do not enable it automatically.
 
 ```powershell
 $env:BONDLAYER_TEST_DATA = "1"
+$env:BONDLAYER_AI_MODE = "rules"
 $env:PYTHONUTF8 = "1"
 .\run.ps1 -Restart
 ```
@@ -464,13 +522,15 @@ $env:PYTHONUTF8 = "1"
 **macOS / Linux:**
 
 ```bash
-BONDLAYER_TEST_DATA=1 ./run.sh --restart
+BONDLAYER_AI_MODE=rules BONDLAYER_TEST_DATA=1 ./run.sh --restart
 ```
 
-In the buyer-agent page, try R01 with benefits off and on. In the Request console, the 30
-scenarios are precomputed evaluation reports, not new customer activity. To return to your
+In the buyer-agent page, try R01 with benefits off and on. The historical `/onboard/requests`
+API serves 30 precomputed evaluation reports; these are excluded from Shopping insights. To return to your
 uploads, unset `BONDLAYER_TEST_DATA` and restart; in PowerShell use
 `Remove-Item Env:BONDLAYER_TEST_DATA`, or `unset BONDLAYER_TEST_DATA` in a POSIX shell.
+Set `BONDLAYER_AI_MODE=openai` again for live AI features. Historical figures use the
+reference rules parser; live model interpretations can differ and are identified in the trace.
 
 **R01:** *"a laptop under $1,500 I can return easily if it turns out not to suit my work,
 from a brand that actually repairs things."*
@@ -499,12 +559,13 @@ Developer trace, from the repository root after setup:
 ```powershell
 # PowerShell; append --control to compare without benefit records.
 $env:BONDLAYER_TEST_DATA = "1"
+$env:BONDLAYER_AI_MODE = "rules"
 $env:PYTHONUTF8 = "1"
 .\.venv\Scripts\python.exe bondlayer/scripts/trace_run.py 'a laptop under $1,500 I can return easily if it turns out not to suit my work, from a brand that actually repairs things.'
 ```
 
 ```bash
-BONDLAYER_TEST_DATA=1 .venv/bin/python bondlayer/scripts/trace_run.py 'a laptop under $1,500 I can return easily if it turns out not to suit my work, from a brand that actually repairs things.'
+BONDLAYER_AI_MODE=rules BONDLAYER_TEST_DATA=1 .venv/bin/python bondlayer/scripts/trace_run.py 'a laptop under $1,500 I can return easily if it turns out not to suit my work, from a brand that actually repairs things.'
 ```
 
 `bondlayer/tests/test_invariants.py` checks that unverified claims earn no credit and that
@@ -589,8 +650,8 @@ for influence over the ranking.
 retail delivery practice foremost — plus e-commerce agencies and, longer-term, a UCP
 platform/app-store listing once the extension has adoption evidence behind it.
 
-**Roadmap.** Connect policy upload, merchant review and benefit publication → support policy
-extraction beyond the prepared fixtures → pilot with one mid-market electronics retailer in shadow mode → protocol
+**Roadmap.** Pilot the connected catalogue and policy workflow with one mid-market electronics
+retailer in shadow mode → protocol
 certification against the UCP conformance suite → an agent-side SDK so a sceptical agent can
 re-derive the arithmetic itself → propose `org.bondlayer.benefit_value` upstream to UCP as an
 open contribution once real merchants have exercised it.
@@ -609,8 +670,8 @@ production scaling result.
 Every benefit record is signed (ES256 over canonical JSON) or explicitly marked unsigned —
 `signed` is derived from the presence of a signature and key id, never authored. Unsigned
 records are displayed, never credited: a record that cannot be verified cannot move a
-ranking. Public keys are published in `/.well-known/ucp`'s `signing_keys[]`; private keys
-never leave `bondlayer/keys/` and are gitignored. The shopper's valuation policy — what a
+ranking. Public keys are published in `/.well-known/ucp`'s `signing_keys[]`; newly generated
+private keys stay under the gitignored uploads directory. The shopper's valuation policy — what a
 benefit is worth to them, what premium they will tolerate — stays in the agent and is never
 sent to a merchant, so no merchant can price against it. That holds at checkout too: the
 merchant receives SKU ids, quantities and the record ids the agent cited, and the request

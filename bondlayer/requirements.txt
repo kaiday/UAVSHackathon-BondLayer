@@ -8,6 +8,8 @@ cryptography>=42.0
 httpx>=0.27
 python-multipart>=0.0.9
 pypdf>=4.0
+openai>=2.0
+python-dotenv>=1.0
 # WS-A: similarity dependency goes here
 # dev
 pytest>=8.0

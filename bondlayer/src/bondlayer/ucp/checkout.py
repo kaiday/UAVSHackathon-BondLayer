@@ -12,11 +12,10 @@ comparing is re-judged here, on the merchant's side, and the ones that hold
 are returned inside the order, as the same signed envelopes the catalogue
 served.
 
-**What the server can and cannot sign.** The server holds *only* public keys
-(``keys/*.pub.json``); the merchant's private key is never on disk, by design
--- the records were signed out of band, and the whole verification story rests
-on that. So the server **cannot mint a new signed order object**. Instead the
-order carries (a) the merchant's already-signed record envelopes, which the
+**What this confirmation signs.** Policy approval manages merchant signing keys
+under the uploads directory. Checkout reuses the approved signed records; it
+does not generate a new order signature. The order carries (a) those record
+envelopes, which the
 agent can re-verify against ``signing_keys[]`` in ``/.well-known/ucp`` exactly
 as it did during discovery, and (b) a deterministic content hash as
 ``order_id`` -- SHA-256 over the canonical JSON of ``{merchant_id, items,
