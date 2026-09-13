@@ -9,8 +9,12 @@ Two Fly apps from one repo, both built from the repo root:
 
 Deploy the merchant first: the agent needs the merchant's URL.
 
-Both apps default to region `syd` (Sydney). Uploaded catalogues live on the
-machine's own disk and are lost on every redeploy or restart.
+Both apps default to region `syd` (Sydney).
+
+The merchant server starts with **no merchants**: open `/console/onboarding/`
+to onboard one. Onboarded merchants are saved on a Fly volume
+(`bondlayer_data`, mounted at `/data`), so they survive restarts and redeploys.
+The buyer agent has nothing to rank until at least one merchant is onboarded.
 
 ## Before you start: pick app names
 
@@ -32,12 +36,15 @@ Run everything from the repo root in PowerShell.
 2. Create and deploy the merchant server:
    ```powershell
    fly apps create bondlayer-merchant
+   fly volumes create bondlayer_data --region syd --size 1 --config fly.merchant.toml -y
    fly deploy --config fly.merchant.toml --ha=false
    ```
-   `--ha=false` creates one machine. Without it Fly's first deploy creates two,
-   and with auto-stop off both would run and double the cost.
-   Check it: `https://bondlayer-merchant.fly.dev/console/` and
-   `https://bondlayer-merchant.fly.dev/voltway/.well-known/ucp`.
+   The volume is created once and keeps onboarded merchants. `--ha=false`
+   creates one machine: without it Fly's first deploy tries to create two, and
+   a volume can only attach to one machine.
+   Check it: `https://bondlayer-merchant.fly.dev/health` should say
+   `"status": "ok"`, then onboard a merchant at
+   `https://bondlayer-merchant.fly.dev/console/onboarding/`.
 3. Create and deploy the buyer agent:
    ```powershell
    fly apps create bondlayer-agent
@@ -65,6 +72,10 @@ Create two apps from the same repository.
 | Working directory | leave empty | leave empty |
 | Config path | `fly.merchant.toml` | `fly.agent.toml` |
 
+The merchant app needs its volume, which the dashboard form does not create.
+Install flyctl (Option A, step 1) and, before deploying the merchant, run:
+`fly volumes create bondlayer_data --region syd --size 1 --config fly.merchant.toml -y`
+
 The dashboard may create two machines per app. Check with
 `fly status --config fly.merchant.toml` and, if there are two, run
 `fly scale count 1 --config fly.merchant.toml` (same for the agent).
@@ -83,7 +94,9 @@ fly status --config fly.agent.toml
 ```
 
 Fly can still restart a machine for host maintenance or a crash. It comes
-back by itself, but uploaded catalogues are lost when it does.
+back by itself, and onboarded merchants survive because they are stored on the
+`bondlayer_data` volume. Scaling to 0 keeps the volume (and its data) too;
+`fly apps destroy` deletes it.
 
 When the 15 days are over, stop paying for them:
 

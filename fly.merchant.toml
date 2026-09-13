@@ -1,5 +1,5 @@
-# Fly.io app: BondLayer merchant server (UCP routes, /console, /dashboard, /onboard).
-# Deploy from the repo root:   fly deploy --config fly.merchant.toml
+# Fly.io app: BondLayer merchant server (UCP routes, /console, /onboard).
+# Deploy from the repo root:   fly deploy --config fly.merchant.toml --ha=false
 # See docs/deploy-fly.md. App names are global on Fly: if this one is taken,
 # change it here AND in BONDLAYER_MERCHANT_URL in fly.agent.toml.
 app = "bondlayer-merchant"
@@ -7,6 +7,17 @@ primary_region = "syd"
 
 [build]
   dockerfile = "Dockerfile.merchant"
+
+[env]
+  # The server starts empty; onboarded merchants are saved here, on the volume.
+  BONDLAYER_UPLOADS_DIR = "/data/uploads"
+
+# Persistent disk for onboarded merchants, so a restart or redeploy keeps them.
+# Create it once before the first deploy:
+#   fly volumes create bondlayer_data --region syd --size 1 --config fly.merchant.toml -y
+[[mounts]]
+  source = "bondlayer_data"
+  destination = "/data"
 
 [http_service]
   internal_port = 8080
@@ -19,11 +30,12 @@ primary_region = "syd"
   min_machines_running = 1
   processes = ["app"]
 
+  # /health answers even with no merchants onboarded yet.
   [[http_service.checks]]
     grace_period = "15s"
     interval = "30s"
     method = "GET"
-    path = "/voltway/.well-known/ucp"
+    path = "/health"
     timeout = "5s"
 
 [[vm]]
