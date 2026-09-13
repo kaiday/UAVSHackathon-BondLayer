@@ -61,7 +61,8 @@ def test_query_with_mocked_fetcher_and_no_key_returns_ranking_trace_and_prose(mo
     monkeypatch.setattr(ucp_client, "make_verifier", lambda *a, **k: (lambda entry: True))
 
     client = TestClient(main.app)
-    response = client.post("/query", json={"query": "a laptop", "bondlayer_enabled": True})
+    response = client.post("/query", json={"query": "a laptop", "bondlayer_enabled": True,
+                                         "values_aud": {"free_returns": "40"}})
 
     assert response.status_code == 200
     body = response.json()
@@ -105,6 +106,7 @@ def test_query_returns_the_resolver_justification_for_every_offer(monkeypatch, s
     client = TestClient(main.app)
     body = client.post("/query", json={
         "query": "a laptop I can return easily", "bondlayer_enabled": True,
+        "values_aud": {"free_returns": "40"},
     }).json()
 
     winner = body["winner"]
@@ -175,7 +177,8 @@ def test_the_model_decides_the_winner_not_the_arithmetic(monkeypatch, stub_model
     _patch_common(monkeypatch)
 
     body = TestClient(main.app).post(
-        "/query", json={"query": "a laptop", "bondlayer_enabled": True},
+        "/query", json={"query": "a laptop", "bondlayer_enabled": True,
+                        "values_aud": {"free_returns": "40"}},
     ).json()
 
     assert [r["sku_id"] for r in body["ranked"]][0] == "NORTHGEAR-1"
@@ -203,13 +206,13 @@ def test_an_offer_the_model_omits_is_kept_not_dropped(monkeypatch, stub_model):
 
 def test_the_rank_prompt_is_never_shown_the_effective_cost(monkeypatch, stub_model):
     """The model judges terms, so it must not be handed the arithmetic's answer."""
+    stub_model()
+    original = main.llm.complete_json
     seen = {}
 
     def capture(label, system, prompt):
         seen[label] = prompt
-        if label == "intent_parse":
-            return {"summary": "s", "category": None, "max_price_aud": None, "must_have": []}
-        return {"ranking": [], "recommendation": "r"}
+        return original(label, system, prompt)
 
     _patch_common(monkeypatch)
     monkeypatch.setattr(main.llm, "complete_json", capture)

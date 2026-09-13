@@ -21,6 +21,7 @@ from pathlib import Path
 from fastapi import APIRouter, FastAPI, Header, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from bondlayer.adapters import CsvCatalogAdapter
@@ -77,6 +78,8 @@ def seed() -> None:
             _merchants[merchant.id], _catalog[merchant.id] = merchant, report.skus
             _records[merchant.id] = []
             onboard._reports[merchant.id] = report
+            from bondlayer.ucp.benefits import restore
+            restore(merchant.id)
 
 
 def _merchant(merchant_id: str) -> Merchant:
@@ -123,7 +126,7 @@ def _benefit_block(merchant: Merchant, sku: Sku,
     """
     return {
         "sku_id": sku.sku_id,
-        "issuer": merchant.domain,
+        "issuer": merchant.domain or merchant.id,
         "records": for_sku(_records.get(merchant.id, []), sku.sku_id, shopper_id),
     }
 
@@ -292,7 +295,15 @@ class ConsoleFiles(StaticFiles):
 
 
 def create_app() -> FastAPI:
+    from bondlayer.ucp.insights import router as insights_router
+    from bondlayer import ai
+    from bondlayer.ucp import assistant, policy_onboard, activity
+
     app = FastAPI(title="BondLayer merchant service")
+    @app.exception_handler(ai.AIError)
+    async def ai_error(_request, exc: ai.AIError):
+        return JSONResponse(status_code=exc.status_code, content={"detail": str(exc), "provider": "openai"})
+
     @app.get("/health")
     def health() -> dict:
         return {"status": "ok", "service": "merchant", "merchants": len(_merchants)}
@@ -302,6 +313,10 @@ def create_app() -> FastAPI:
         return RedirectResponse("/console/")
     app.include_router(router)
     app.include_router(onboard.router)
+    app.include_router(insights_router)
+    app.include_router(assistant.router)
+    app.include_router(activity.router)
+    app.include_router(policy_onboard.router)
     app.include_router(intent.router)
     app.include_router(checkout.router)
     app.include_router(identity_routes.router)

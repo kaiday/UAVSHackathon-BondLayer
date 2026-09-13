@@ -1,16 +1,14 @@
 """The shopping agent.
 
-The model is load-bearing. It decodes the shopper's sentence, it decides the
+In live mode the model decodes the shopper's sentence, decides the
 ranking, and it carries the conversation. ``bondlayer`` still does everything
 that must not be guessed at: the UCP fan-out, signature verification, record
 citation, the merchant's own decode, bundling and checkout. What it no longer
 does here is pick the winner.
 
-That is a deliberate trade, made knowingly. The deterministic effective-cost
-path still exists and is still what ``bondlayer/scripts/trace_run.py`` and the
-evaluation measure; this agent no longer runs it. A number this process shows
-is therefore the model's judgement, not the evaluation's arithmetic, and the
-two will disagree.
+Deterministic effective costs are still computed and displayed as reference
+figures, but the live winner is the model's pick. Explicit rules mode uses the
+reference parser and ranking without making provider calls.
 
 This process still never runs its own merchant, its own data or its own
 signing keys -- there is one of each, in ``bondlayer/``.
@@ -26,9 +24,9 @@ from __future__ import annotations
 import inspect
 import sys
 from pathlib import Path
+from decimal import Decimal
 
 import httpx
-from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
@@ -38,9 +36,8 @@ CHAT_APP = Path(__file__).resolve().parents[2]
 STATIC_DIR = Path(__file__).parent / "static"
 sys.path.insert(0, str(CHAT_APP.parent))
 
-load_dotenv(CHAT_APP / ".env")
-
-from bondlayer.agent import run_request
+from bondlayer import ai
+from bondlayer.types import BenefitType, Constraint, ConstraintKind
 from bondlayer.agent.close_loop import close_loop, close_loop_step, record_unreachable
 from bondlayer.agent.merchant_decode import merchant_decode_step, run_with_merchant_decode
 from bondlayer.agent.trace import AgentRun
@@ -54,6 +51,12 @@ app = FastAPI(
     version="0.4.0",
 )
 
+
+@app.exception_handler(ai.AIError)
+async def ai_error(_request, exc: ai.AIError):
+    from fastapi.responses import JSONResponse
+    return JSONResponse(status_code=exc.status_code, content={"detail": str(exc), "provider": "openai"})
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -66,11 +69,16 @@ app.add_middleware(
 class ShoppingQuery(BaseModel):
     query: str = Field(min_length=1, max_length=4000)
     bondlayer_enabled: bool = True
-    #: Who to shop as, when the shopper has said. Left unset the request goes
-    #: out anonymously: no id on the wire, no identity capability declared, and
-    #: every merchant's member benefits credited exactly as they are today.
-    #: Setting it is the consent, and it is the whole of the consent.
+    #: Unset means no identity is sent; live anonymous requests assume no membership.
     shopper_id: str | None = Field(default=None, max_length=200)
+    values_aud: dict[BenefitType, Decimal] = Field(default_factory=dict)
+
+    @field_validator("values_aud")
+    @classmethod
+    def valid_values(cls, values):
+        if any(not value.is_finite() or value < 0 for value in values.values()):
+            raise ValueError("Benefit values must be finite non-negative AUD amounts")
+        return values
 
     @field_validator("query")
     @classmethod
@@ -83,7 +91,7 @@ class ShoppingQuery(BaseModel):
 def _audit(run: AgentRun) -> list[dict]:
     """What the protocol established, independently of any model: which
     records verified, which were ignored, and why. Kept, and returned
-    alongside the deterministic ranking (D1) -- never instead of it.
+    alongside the ranking -- never instead of it.
 
     Built straight from ``Ranked.citations``, which ``run_request`` already
     populates with exactly this breakdown per offer: cited-and-credited,
@@ -170,7 +178,7 @@ PAGE = 100
 
 
 def _http_client():
-    return httpx.Client(base_url=ucp_client.MERCHANT_BASE_URL, timeout=10)
+    return httpx.Client(base_url=ucp_client.MERCHANT_BASE_URL, timeout=100)
 
 
 def _sanitise(exc: Exception) -> str:
@@ -210,7 +218,7 @@ def _fetcher(http: httpx.Client, plan_override: dict | None = None,
                 merged[key] = value
         return base(merchant, query, extension=extension, plan=merged)
 
-    for attr in ("client", "owns_client"):
+    for attr in ("client", "owns_client", "snapshots"):
         if hasattr(base, attr):
             setattr(fetch, attr, getattr(base, attr))
     return fetch
@@ -223,18 +231,16 @@ def handle_query(request: ShoppingQuery) -> dict:
             return _handle_query(request, http)
     except httpx.HTTPError as exc:
         raise HTTPException(503, "Merchant service is unavailable. Start it and retry.") from exc
-    except llm.LLMUnavailable as exc:
-        # The model decides the ranking now, so without a key there is no run.
-        # Say that plainly instead of returning an answer the model never gave.
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    except HTTPException:
+    except (ai.AIError, HTTPException):
         raise
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=502, detail=_sanitise(exc)) from exc
 
 
 def _handle_query(request: ShoppingQuery, http: httpx.Client) -> dict:
+    llm.reset_transcript()
     merchants = ucp_client.discover_merchants(http)
+    live = ai.mode() == "openai"
 
     # (1) decode the sentence -- live model call, and it drives the search below.
     # Skipped entirely when nothing is onboarded: there is nothing to search, and
@@ -243,8 +249,11 @@ def _handle_query(request: ShoppingQuery, http: httpx.Client) -> dict:
         intent = rank.parse_intent(request.query)
     else:
         intent = {"summary": request.query, "category": None, "max_price_aud": None,
-                  "must_have": [], "note": "no merchants onboarded; nothing decoded"}
+                  "must_have": [], "constraints": [], "ai": {"provider": "none"},
+                  "note": "no merchants onboarded; nothing decoded"}
 
+    constraints = [Constraint(c["text"], ConstraintKind(c["kind"])) for c in intent["constraints"]]
+    decode_meta = intent["ai"]
     fetch = _fetcher(http, rank.plan_from_intent(intent) if merchants else None,
                      shopper_id=request.shopper_id)
     verify = ucp_client.make_verifier(http, merchants=merchants)
@@ -256,31 +265,37 @@ def _handle_query(request: ShoppingQuery, http: httpx.Client) -> dict:
     # ``ranked`` is computed from it.
     run = run_with_merchant_decode(
         request.query,
-        merchants,
+        merchants if constraints else [],
         fetch,
         propose=ucp_client.make_proposer(http),
         extension=request.bondlayer_enabled,
         verify=verify,
-        policy=ucp_client.POLICY,
-        # Composition, after the ranking. The bundler cannot add a listing,
-        # change a price or reorder the ranking -- everything above stays
-        # exactly what it was before bundling existed (D1: the deterministic
-        # ranking is never replaced, only added to).
+        policy={kind.value: value for kind, value in request.values_aud.items()} if live else ucp_client.POLICY,
+        satisfied_conditions=() if live else None,
+        # Bundles are reference compositions; the model subsequently ranks offers.
         bundler=CategoryBundler(),
-        **ucp_client.interpret_kwargs(run_request),
+        interpret=lambda _utterance: constraints,
+        enforce_constraints=live,
+        merchant_domains=getattr(verify, "merchant_domains", None),
     )
+    if run.steps:
+        run.steps[0].detail["ai"] = decode_meta
+    model_notes = {}
+    rank_meta = {"provider": "rules" if not live else "none"}
     # (2) the model ranks. It is handed the shelf price and the verified terms
     # and never the effective cost, so what comes back is its judgement of what
     # the terms are worth rather than its agreement with arithmetic it was shown.
     # ``apply_ranking`` reorders ``run.ranked`` in place, which is why every step
     # below -- the checkout above all -- follows the model's pick.
-    if run.ranked:
+    if run.ranked and live:
         ranking = rank.rank_offers(request.query, run)
         model_notes = rank.apply_ranking(run, ranking)
         recommendation = ranking.get("recommendation") or ""
+        rank_meta = ranking.get("ai", {})
+    elif run.ranked:
+        recommendation = llm.narrate(run)["text"]
     else:
         # Nothing to rank, so no model call: an empty shelf is not a judgement.
-        model_notes = {}
         recommendation = (
             "No merchants have been onboarded. Add a merchant and upload a catalogue to start."
             if not merchants else
@@ -301,13 +316,14 @@ def _handle_query(request: ShoppingQuery, http: httpx.Client) -> dict:
         {"phase": s.phase.value, "outcome": s.outcome.value, "summary": s.summary, "detail": s.detail}
         for s in run.steps
     ]
-    steps.insert(0, {"phase": "intent_parse", "outcome": "ok",
-                     "summary": "Model decoded the request.", "detail": intent})
+    steps.insert(0, {"phase": "intent_parse", "outcome": "ok" if merchants else "absent",
+                     "summary": ("Model decoded the request." if live else "Explicit rules-mode decode.")
+                     if merchants else "No merchants onboarded; no decode called.", "detail": intent})
     if run.ranked:
-        steps.append({"phase": "rank", "outcome": "ok",
-                      "summary": f"Model ranked {len(run.ranked)} offer(s) from the verified "
-                                 f"terms and decided for itself what they are worth.",
-                      "detail": {"model": llm.DEFAULT_MODEL}})
+        steps.append({"phase": "rank" if live else "prose", "outcome": "ok" if live else "template",
+                      "summary": f"Model ranked {len(run.ranked)} offer(s) from the verified terms."
+                      if live else "Explicit rules mode; no OpenAI call.",
+                      "detail": rank_meta})
 
     ranked = [
         {
@@ -326,8 +342,8 @@ def _handle_query(request: ShoppingQuery, http: httpx.Client) -> dict:
             # The model's own account of this offer: the verified terms it says
             # moved the decision, and its sentence. Empty when it did not rank
             # this offer.
-            "decisive_terms": model_notes.get(r.sku_id, {}).get("decisive_terms", []),
-            "reasoning": model_notes.get(r.sku_id, {}).get("reasoning", ""),
+            "decisive_terms": model_notes.get((r.merchant, r.sku_id), {}).get("decisive_terms", []),
+            "reasoning": model_notes.get((r.merchant, r.sku_id), {}).get("reasoning", ""),
         }
         for r in run.ranked
     ]
@@ -344,7 +360,7 @@ def _handle_query(request: ShoppingQuery, http: httpx.Client) -> dict:
         {"kind": "merchant_decode", "merchant_decodes": [], "outcome": "absent",
          "summary": "No merchant-decode step on this run."}
     )
-    flipped = bool(winner and cheapest_shelf and winner["sku_id"] != cheapest_shelf["sku_id"])
+    flipped = bool(winner and cheapest_shelf and (winner["merchant"], winner["sku_id"]) != (cheapest_shelf["merchant"], cheapest_shelf["sku_id"]))
 
     # The close-loop step's detail -- the request sent, the merchant's order
     # object and its honoured-benefits verdicts -- plus its outcome and summary
@@ -358,8 +374,23 @@ def _handle_query(request: ShoppingQuery, http: httpx.Client) -> dict:
          "summary": "No close-loop step on this run."}
     )
 
+    request_id = None
+    history_error = None
+    from bondlayer.ucp.storage import test_data_enabled
+    if merchants and (live or not test_data_enabled()):
+        from bondlayer.activity import build_report
+        try:
+            report = build_report(run, merchants, getattr(fetch, "snapshots", {}),
+                                  {"intent": decode_meta, "ranking": rank_meta}, order)
+            request_id = ucp_client.submit_report(report, http)
+        except (httpx.HTTPError, ValueError):
+            history_error = "Comparison completed, but the merchant could not save its request report. Check service connectivity and BONDLAYER_SERVICE_TOKEN."
+
     return {
+        "request_id": request_id, "history_error": history_error,
         "user_query": request.query,
+        "ai": {"intent": decode_meta, "ranking": rank_meta},
+        "ranking_source": "model" if live else "rules",
         "onboarding_required": not merchants,
         # The model's decode of the sentence, which drove the search above.
         "intent": intent,
@@ -385,7 +416,7 @@ def _handle_query(request: ShoppingQuery, http: httpx.Client) -> dict:
         # ranking never reads it.
         "order": order,
         "audit": _audit(run),
-        "transcript": llm.transcript_payload(),
+        "transcript": ([decode_meta] if decode_meta.get("provider") == "openai" else []) + llm.transcript_payload(),
     }
 
 
@@ -435,7 +466,14 @@ def handle_chat(request: ChatRequest) -> dict:
     if not thread:
         raise HTTPException(status_code=400, detail="No messages in the conversation.")
 
+    llm.reset_transcript()
     try:
+        if ai.mode() == "rules":
+            utterance = " ".join(t["content"] for t in thread if t["role"] == "user").strip()
+            if not utterance:
+                raise HTTPException(status_code=400, detail="No shopper request in the conversation.")
+            return {"action": "search", "reply": "", "utterance": utterance,
+                    "mode": "rules", "transcript": []}
         decision = llm.complete_json(
             "route",
             ROUTER_SYSTEM,
@@ -457,9 +495,7 @@ def handle_chat(request: ChatRequest) -> dict:
             reply = llm.chat("converse", ROUTER_SYSTEM, thread)
         return {"action": "reply", "reply": reply, "utterance": None,
                 "transcript": llm.transcript_payload()}
-    except llm.LLMUnavailable as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    except HTTPException:
+    except (ai.AIError, HTTPException):
         raise
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=502, detail=_sanitise(exc)) from exc

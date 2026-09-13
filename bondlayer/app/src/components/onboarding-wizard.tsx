@@ -51,6 +51,7 @@ export function OnboardingWizard() {
       <div>{preview.report.skus} products saved. Readiness: {preview.report.readiness}%.</div>
       <p className="state-note">Your catalogue and business details are saved on the server and will load again after a restart.</p>
       <Link href="/catalogue/">Open your catalogue</Link>
+      <Link href="/benefits/">Next: upload your policies and publish benefits</Link>
     </section>
   );
 

@@ -114,6 +114,15 @@ class ES256Signer:
             serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo,
         )
 
+    def private_key_pem(self) -> bytes:
+        """Persist a merchant-owned key locally; never publish this value."""
+        if not isinstance(self._key, ec.EllipticCurvePrivateKey):
+            raise ValueError("No private signing key is available")
+        return self._key.private_bytes(
+            serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption(),
+        )
+
     def public_key_jwk(self) -> dict[str, str]:
         """Export public coordinates for Nguyen to publish in signing_keys[]."""
         numbers = self.public_key.public_numbers()

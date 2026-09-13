@@ -20,6 +20,7 @@ from urllib.parse import urlsplit
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
+from pydantic import BaseModel, Field, ConfigDict
 
 from bondlayer.adapters import CatalogReport, CsvCatalogAdapter
 from bondlayer.ucp.storage import UPLOADS, save_upload, test_data_enabled, uploaded_merchant, validate_id
@@ -109,6 +110,39 @@ def merchants() -> list[dict]:
     ]
 
 
+class MerchantUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    display_name: str = Field(min_length=1, max_length=120)
+    domain: str = Field(default="", max_length=253)
+
+
+@router.patch("/merchants/{merchant}")
+def update_merchant(merchant: str, body: MerchantUpdate) -> dict:
+    from dataclasses import replace
+    from bondlayer.ucp import server
+    current = server._merchant(merchant)
+    name = body.display_name.strip()
+    if not name:
+        raise HTTPException(422, "business name must not be blank")
+    domain = body.domain.strip()
+    if domain:
+        parsed = urlsplit(domain if "://" in domain else "https://" + domain)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname or "." not in parsed.hostname:
+            raise HTTPException(422, "website must be a valid HTTP(S) domain")
+        domain = parsed.hostname.lower()
+    if current.signs_records and current.domain != domain:
+        raise HTTPException(409, "The website identifies your signed records. Keep it unchanged while benefits are published.")
+    path = server.UPLOADS / f"{merchant}.merchant.json"
+    if not path.exists():
+        raise HTTPException(409, "Publish your own catalogue before editing this merchant profile.")
+    with _publish_lock:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        updated = replace(current, display_name=name, domain=domain)
+        save_upload(server.UPLOADS, updated, payload["catalogue"])
+        server._merchants[merchant] = updated
+    return {"merchant": merchant, "display_name": name, "domain": domain}
+
+
 @router.get("/catalog/template")
 def catalogue_template() -> Response:
     """A header-only template: users supply their own products and prices."""
@@ -160,6 +194,8 @@ async def upload_catalog(
 
     with _publish_lock:
         existing = server._merchants.get(merchant)
+        if existing and existing.signs_records and domain is not None and domain != existing.domain:
+            raise HTTPException(409, "The website identifies published signed records; keep it unchanged when replacing the catalogue.")
         if create and existing is not None:
             raise HTTPException(409, "merchant already exists; replace its catalogue from the Catalogue page")
         profile = uploaded_merchant(
@@ -173,9 +209,11 @@ async def upload_catalog(
             except OSError as exc:
                 raise HTTPException(500, "could not save catalogue; please retry") from exc
             server._catalog[merchant] = analysed.skus
-            server._records[merchant] = []
+            server._records.setdefault(merchant, [])
             _reports[merchant] = analysed
             server._merchants[merchant] = profile
+            from bondlayer.ucp.benefits import restore
+            restore(merchant)
     return {"merchant": merchant, "display_name": profile.display_name,
             "report": _serialise(analysed), "published": not preview}
 
@@ -203,7 +241,8 @@ def _request_summary(report: dict) -> dict:
 @router.get("/requests")
 def requests_list() -> list[dict]:
     """No fabricated history on a new installation."""
-    return [_request_summary(r) for _, r in sorted(_requests.items())]
+    from bondlayer.activity import reports
+    return [_request_summary(r) for r in reports().values()] + [_request_summary(r) for _, r in sorted(_requests.items())]
 
 
 @router.get("/requests/{request_id}")
@@ -214,9 +253,11 @@ def request_detail(request_id: str, merchant: str | None = None) -> dict:
     control included. With ``merchant``: just that merchant's row, so the
     dashboard can ask for exactly the row it is about to render.
     """
-    if request_id not in _requests:
+    from bondlayer.activity import reports
+    available = {**_requests, **reports()}
+    if request_id not in available:
         raise HTTPException(404, f"no report for request {request_id!r}")
-    report = _requests[request_id]
+    report = available[request_id]
     if merchant is None:
         return report
     for row in report["merchants"]:

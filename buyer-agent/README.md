@@ -15,7 +15,7 @@ owns none of them.** They all live in `bondlayer/`. This app is a client: it
 declares capabilities over `UCP-Agent`, fetches `bondlayer`'s catalogue and
 benefit extension over real HTTP, and hands both to
 `bondlayer.agent.composition.run_request`, which does the verification,
-crediting and ranking. Nothing here re-implements any of that.
+crediting and reference effective costs. In live mode the buyer model then chooses the order.
 
 ## Architecture
 
@@ -23,9 +23,9 @@ crediting and ranking. Nothing here re-implements any of that.
 src/agent/
   main.py         FastAPI app, :8001 -- the only service this folder runs
   ucp_client.py   the switch: declares capabilities, fetches, verifies
-  llm.py          the model client: decode, rank and converse
-  rank.py         the two load-bearing calls -- decode the sentence, decide the order
-  static/index.html   two panes (control | BondLayer), one query
+  llm.py          shared OpenAI transport, ranking/chat schemas, per-request evidence
+  rank.py         shared intent decoder and model-controlled offer ranking
+  static/index.html   conversation, identity/value controls, control/BondLayer evidence
 ```
 
 There is no `src/merchant/` any more, and no `data/`. The merchant is
@@ -61,7 +61,7 @@ cd bondlayer && pip install -e '.[dev]' && python run_server.py &   # :8000
 cd buyer-agent
 pip install -e ../bondlayer      # the local sibling package
 pip install -r requirements.txt
-cp .env.example .env                # OPENAI_API_KEY is optional -- see below
+cp .env.example .env                # set a real OPENAI_API_KEY for live mode
 python -m uvicorn src.agent.main:app --host 127.0.0.1 --port 8001
 ```
 
@@ -77,13 +77,22 @@ No bundled demo merchant is used in normal operation. An empty registry returns
 Search follows catalogue pagination. A newly uploaded merchant is catalogue-only,
 so both comparison panes use its real shelf prices and credit no invented benefits.
 
-**An API key is required.** The model decides the ranking, so with
-`OPENAI_API_KEY` unset `/query` and `/chat` return `503` rather than an answer
-the model never gave. Put a real key in `buyer-agent/.env`.
+Live mode uses OpenAI for intent decoding, conversation and ranking, with visible errors for missing
+credentials or failed calls. Configure the root `.env` or this folder's `.env`; the root
+configuration takes precedence. `BONDLAYER_MODEL` defaults to `gpt-4o-mini`.
+`BONDLAYER_AI_MODE=rules` explicitly selects the offline reference parser, deterministic ranking
+and a labelled template. The chat page passes user messages to the reference search in this
+mode without calling a model. It is never a silent fallback for a failed live request.
 
-Set `BONDLAYER_MERCHANT_URL` if the merchant bound a different port
-than :8000 (`run_server.py` moves up automatically if :8000 is busy, and
-prints the URL it actually bound).
+Live queries accept `values_aud` (benefit type to non-negative AUD amount). The page exposes
+these as shopper-entered values, defaulting to zero. They control reference effective-cost
+figures, not the live model's order. Optional `shopper_id` enables merchant identity linking;
+membership comes from each merchant's response. Anonymous live requests assume no membership
+or trade-in eligibility. Actual comparisons are sent over HTTP to the merchant's persistent storage and are
+summarised in the merchant's Shopping insights page, with supporting evidence per request.
+The response's `ai` and `transcript` fields contain
+actual model/completion IDs and usage metadata, not a global log of other shoppers' prompts.
+Set `BONDLAYER_MERCHANT_URL` if the merchant service uses a different address.
 
 ## What `/query` returns
 
@@ -147,20 +156,22 @@ as JSON -- the same object `bondlayer/scripts/trace_run.py` prints as text.
 `audit` is kept from the original P6 design (what verified, what was ignored,
 and why) and returned *alongside* the ranking, never instead of it (D1).
 
-`ranked` is in the **model's** order. `run_request` still computes an effective
+In live mode `ranked` is in the **model's** order. `run_request` still computes an effective
 cost for every offer and it is still reported per offer, but it no longer
 decides anything here: `rank.apply_ranking` reorders `run.ranked` in place, so
 `winner` -- and the checkout that follows it -- is the model's pick. Where the
 model and the arithmetic disagree, the offer card shows both, and that
-disagreement is the point.
+disagreement is visible. `ranking_source` identifies `model` or explicit `rules` mode.
+The `ai.intent` and `ai.ranking` fields carry completion metadata; `request_id` links to the
+saved report. Offers are identified by both merchant and SKU so store-local codes cannot collide.
 
 ## The UI
 
 A chat thread with the prompt bar pinned to the bottom edge, and an **Evidence**
 widget beside it holding everything that is not the answer: the model's decode,
 the trace, each merchant's own reading, every offer's signed records and clause
-resolution, the checkout receipt, and every model call with its prompt and
-completion. A toggle at the top of that widget switches between the BondLayer
+resolution, the checkout receipt, intent completion metadata and this request's ranking calls.
+A toggle at the top of that widget switches between the BondLayer
 run and the control, which are the same sentence asked twice -- so the
 comparison never depends on remembering to ask twice. Per
 published record: three visually distinct states -- signed and priced
@@ -193,9 +204,9 @@ step, no second thing to keep in sync.
 
 ## What changed from the earlier P5/P6 design
 
-- Ranking used to be a live model call over raw records ("no effective cost
-  computed for it", the old `main.py`'s words). It is now
-  `bondlayer.agent.composition.run_request` -- deterministic, always, per D4.
+- Verification and reference effective-cost arithmetic live in
+  `bondlayer.agent.composition.run_request`. The live buyer model orders the verified
+  offers; the historical rules-mode path retains deterministic ranking.
 - Verification and crediting used to run against this app's own signed
   records and its own `voltway` key (which had drifted from `bondlayer/`'s).
   Both are gone; every verification call resolves the merchant's key live from

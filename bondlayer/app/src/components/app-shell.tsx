@@ -15,7 +15,7 @@ import { useMerchants } from "@/lib/api";
 const workspaceLinks = [
   { href: "/", label: "Overview", icon: LayoutDashboard, tour: "nav-overview" },
   { href: "/catalogue", label: "Catalogue", icon: Package, tour: "nav-catalogue" },
-  { href: "/requests", label: "Request console", icon: ClipboardList, tour: "nav-requests" },
+  { href: "/requests", label: "Shopping insights", icon: ClipboardList, tour: "nav-requests" },
   { href: "/quality", label: "Data quality", icon: ShieldCheck, tour: "nav-quality" },
 ];
 

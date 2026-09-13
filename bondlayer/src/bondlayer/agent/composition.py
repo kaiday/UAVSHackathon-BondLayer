@@ -349,10 +349,11 @@ def _proposals_from(ranked: list[Ranked], skus: dict[str, Sku],
     """
     out: list[Proposal] = []
     for r in ranked:
-        if r.sku_id in resolved:
-            out.append(resolved[r.sku_id])
-        elif r.sku_id in skus:
-            out.append(Proposal(sku=skus[r.sku_id], resolved=[],
+        key = (r.merchant, r.sku_id)
+        if key in resolved:
+            out.append(resolved[key])
+        elif key in skus:
+            out.append(Proposal(sku=skus[key], resolved=[],
                                 unsatisfied=[], records=[]))
     return out
 
@@ -370,6 +371,9 @@ def run_request(
     policy: dict[str, Decimal] | None = None,
     bundler: Bundler | None = None,
     resolve: Resolve | None = None,
+    enforce_constraints: bool = False,
+    merchant_domains: dict[str, str] | None = None,
+    satisfied_conditions: tuple[str, ...] | None = None,
 ) -> AgentRun:
     """One shopper request across every merchant, with the reasoning recorded.
 
@@ -402,7 +406,7 @@ def run_request(
     decision, taken when it builds ``fetch`` -- withholding consent means the
     id is never on the wire, not that it is filtered afterwards.
     """
-    policy = policy or DEFAULT_POLICY
+    policy = DEFAULT_POLICY if policy is None else policy
     shopper = _shopper(policy)
     steps: list[Step] = []
     constraints: list[dict] = []
@@ -438,13 +442,14 @@ def run_request(
     ranked: list[Ranked] = []
     #: Every listing that came back, kept as a Sku so the bundler can compose
     #: sets from the same objects the valuation priced.
-    wire_skus: dict[str, Sku] = {}
+    wire_skus: dict[tuple[str, str], Sku] = {}
     #: Every record that **verified**, by record_id, and nothing else. This is
     #: the only collection the resolver is handed, which is what makes "an
     #: unsigned record is never cited" a property of the wiring rather than a
     #: rule the resolver has to remember. A merchant-wide record rides on every
     #: product block, so the id keys deduplicate it.
     verified_signed: dict[str, SignedRecord] = {}
+    verified_by_merchant: dict[str, dict[str, SignedRecord]] = {}
     verifier_missing = verify is None
     any_records = False
     with_plan = bool(plan) and _accepts_plan(fetch)
@@ -480,11 +485,11 @@ def run_request(
         #
         # The merchant is the authority on its own membership, so the tokens
         # that gate its records come out of its answer rather than out of a
-        # constant here. A merchant that was sent no id, or does not know the
-        # one it was sent, attests nothing and its member benefits credit zero.
+        # constant here. Without an identity response, use the caller's explicit
+        # conditions (empty for live anonymous requests), or the historical default.
         identity = body.get("shopper") or {}
-        attested = (ATTESTED_CONDITIONS if not identity
-                    else attested_conditions(identity))
+        default_conditions = ATTESTED_CONDITIONS if satisfied_conditions is None else satisfied_conditions
+        attested = attested_conditions(identity) if identity else default_conditions
         if identity:
             linked = bool(identity.get("linked"))
             status, tier = identity.get("status"), identity.get("tier")
@@ -524,7 +529,7 @@ def run_request(
             # each SignedRecord bound to the envelope it came from, so the
             # caller's own verifier decides what verified.
             sku = _wire_sku(product, merchant_id)
-            wire_skus[sku.sku_id] = sku
+            wire_skus[(merchant_id, sku.sku_id)] = sku
             entries: dict[int, dict] = {}
             signed_records: list[SignedRecord] = []
             unreadable: list[dict] = []
@@ -538,7 +543,7 @@ def run_request(
 
             cost = DeterministicValuation(
                 _WireVerifier(verify, entries),
-                merchant_domains=MERCHANT_DOMAINS,
+                merchant_domains=merchant_domains if merchant_domains is not None else MERCHANT_DOMAINS,
                 satisfied_conditions=attested,
             ).effective_cost(sku, signed_records, shopper)
 
@@ -547,6 +552,7 @@ def run_request(
             for rebuilt in signed_records:
                 if not verifier_missing and verify(entries[id(rebuilt)]):
                     verified_signed.setdefault(rebuilt.record.record_id, rebuilt)
+                    verified_by_merchant.setdefault(merchant_id, {})[rebuilt.record.record_id] = rebuilt
 
             citations = []
             for line, rebuilt in zip(cost.credited, signed_records):
@@ -618,13 +624,20 @@ def run_request(
     # `cited: False` and earns nothing -- but it never reaches the resolver, so
     # no unsigned claim can become evidence for anything.
     typed = _typed_constraints(constraints)
-    resolved_by_sku: dict[str, Proposal] = {}
+    resolved_by_sku: dict[tuple[str, str], Proposal] = {}
     if typed and ranked:
         resolver = resolve or default_resolve
         try:
-            proposals = resolver(typed, list(wire_skus.values()),
-                                 list(verified_signed.values()))
+            proposals = []
+            for mid in dict.fromkeys(r.merchant for r in ranked):
+                proposals.extend(resolver(
+                    typed, [sku for (owner, _), sku in wire_skus.items() if owner == mid],
+                    list(verified_by_merchant.get(mid, {}).values()),
+                    **({"merchant_domains": merchant_domains} if resolver is default_resolve else {}),
+                ))
         except Exception as exc:  # degrade honestly: a ranking without a reason
+            if enforce_constraints:
+                raise
             steps.append(Step(
                 Phase.RESOLVE, Outcome.DEGRADED,
                 "The interpreter could not resolve these clauses against the "
@@ -632,12 +645,14 @@ def run_request(
                 "justification.",
                 {"error": f"{type(exc).__name__}: {exc}"}))
         else:
-            resolved_by_sku = {p.sku.sku_id: p for p in proposals}
+            resolved_by_sku = {(p.sku.attributes.get("merchant"), p.sku.sku_id): p for p in proposals}
+            if enforce_constraints:
+                ranked = [r for r in ranked if (r.merchant, r.sku_id) in resolved_by_sku]
             ranked = [
                 replace(r,
-                        resolved=list(resolved_by_sku[r.sku_id].resolved),
-                        unsatisfied=list(resolved_by_sku[r.sku_id].unsatisfied))
-                if r.sku_id in resolved_by_sku else r
+                        resolved=list(resolved_by_sku[(r.merchant, r.sku_id)].resolved),
+                        unsatisfied=list(resolved_by_sku[(r.merchant, r.sku_id)].unsatisfied))
+                if (r.merchant, r.sku_id) in resolved_by_sku else r
                 for r in ranked
             ]
 
@@ -673,7 +688,7 @@ def run_request(
     if ranked:
         top = ranked[0]
         cheapest_shelf = min(ranked, key=lambda r: r.shelf_price)
-        flipped = top.sku_id != cheapest_shelf.sku_id
+        flipped = (top.merchant, top.sku_id) != (cheapest_shelf.merchant, cheapest_shelf.sku_id)
         steps.append(Step(
             Phase.RANKING, Outcome.OK,
             (f"{top.merchant} wins on effective cost {top.effective_cost:.2f} "

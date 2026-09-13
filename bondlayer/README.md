@@ -4,8 +4,8 @@ A retailer's existing catalogue export and policy documents, published as UCP
 data an AI shopping agent can read, verify and value **while it is still
 comparing merchants**.
 
-Three merchants run from one server on one code path. The only difference
-between them is what their manifest declares.
+Merchants share one protocol implementation and onboard their own catalogues. For the
+current user journey and live OpenAI setup, see the [root README](../README.md).
 
 ## Run it
 
@@ -23,11 +23,18 @@ Pass a port if you want a specific one: `python run_server.py 8123`, or set
 the URL it actually bound -- so you never end up reading a stale build on the
 port you expected.
 
-No network call, no API key, no model call, no key generation. Everything is
-seeded from `data/`, because venue wifi is shared by twenty teams.
+Normal operation starts empty and restores uploaded data. Configure `OPENAI_API_KEY` and
+`BONDLAYER_AI_MODE=openai` in the root `.env` for real intent decoding, merchant assistance
+and policy extraction. Approved policy records are signed with locally stored merchant
+keys and published through the same catalogue and checkout routes. Use the console's
+Benefit records page for upload, review and publication; Settings can test the API connection.
+
+The Voltway/CityCircuit/NorthGear examples below describe historical synthetic data.
+Enable `BONDLAYER_TEST_DATA=1` and `BONDLAYER_AI_MODE=rules` explicitly to reproduce that
+offline reference mode. It is separate from your real merchant uploads.
 
 ```bash
-pytest            # 95 tests, all offline
+pytest            # network-free regression tests
 ```
 
 ## What an agent sees

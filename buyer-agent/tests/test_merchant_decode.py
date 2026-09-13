@@ -83,6 +83,7 @@ def test_toggle_on_returns_three_merchant_decodes_next_to_the_ranking(monkeypatc
     _patch(monkeypatch, fake)
     body = TestClient(main.app).post("/query", json={
         "query": "a laptop I can return easily", "bondlayer_enabled": True,
+        "values_aud": {"free_returns": "40"},
     }).json()
 
     assert PRE_EXISTING_KEYS <= set(body)

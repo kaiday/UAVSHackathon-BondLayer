@@ -159,19 +159,16 @@ if (Port-Busy $MerchantPort) {
 $AgentMain = Join-Path $ChatApp "src\agent\main.py"
 if ($StartAgent -and (Test-Path $AgentMain)) {
   Say "shopping agent (buyer-agent: src.agent.main) on :$AgentPort"
-  # The model decides the ranking, so a missing key is no longer a cosmetic
-  # downgrade to a template sentence -- it is a 503 on every search. Say so
-  # here rather than letting the page fail in front of an audience.
-  $EnvFile = Join-Path $ChatApp ".env"
-  $HasKey = $false
-  if ($env:OPENAI_API_KEY -and -not $env:OPENAI_API_KEY.StartsWith("sk-your")) {
-    $HasKey = $true
-  } elseif (Test-Path $EnvFile) {
-    if ((Get-Content $EnvFile -Raw) -match 'OPENAI_API_KEY\s*=\s*sk-(?!your)\S+') { $HasKey = $true }
-  }
-  if (-not $HasKey) {
-    Write-Host "   WARNING: no OPENAI_API_KEY in the environment or buyer-agent\.env."
-    Write-Host "            The model decides the ranking, so /query and /chat answer 503."
+  # Use the services' root-first configuration and explicit offline mode.
+  $AiStatus = & $VPy -c "import json,sys; sys.path.insert(0, sys.argv[1]); from bondlayer.ai import status; print(json.dumps(status()))" (Join-Path $Root "bondlayer\src")
+  if ($LASTEXITCODE -eq 0) {
+    $AiConfig = $AiStatus | ConvertFrom-Json
+    if ($AiConfig.mode -eq "rules") {
+      Write-Host "   explicit rules mode: reference ranking, no model calls."
+    } elseif (-not $AiConfig.configured) {
+      Write-Host "   WARNING: no usable OPENAI_API_KEY in the environment, root .env or buyer-agent\.env."
+      Write-Host "            Live ranking and chat require OpenAI; configure the key and restart."
+    }
   }
   if (Port-Busy $AgentPort) {
     Write-Host "   :$AgentPort already serving -- leaving it alone (.\run.ps1 -Restart loads new code)"

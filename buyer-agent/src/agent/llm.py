@@ -1,164 +1,92 @@
-"""Model client: live on every call, temperature 0, with a visible transcript.
-
-Every call is live. There is no fixture replay -- a decision taken knowingly
-(issue #11, D8): the stage result is decided in the room, and the framing is
-that the agent decides and we do not rig it.
-
-Temperature 0 is a reproducibility default, not a hedge. It is not a
-determinism guarantee across a live API.
-
-Whatever the model answers is appended to TRANSCRIPT with its prompt, its
-verbatim completion and its provenance, and mirrored to ``data/transcript.jsonl``.
-A demo that shows only a parsed winner is asking to be taken on trust.
-
-The model is load-bearing here: it decodes the shopper's sentence, it decides
-the ranking, and it carries the conversation. Without a key there is no run --
-:class:`LLMUnavailable` is raised rather than a plausible-looking answer being
-substituted for one the model never gave.
-"""
+"""Buyer model calls through the shared OpenAI service, with per-request evidence."""
 
 from __future__ import annotations
 
 import json
-import os
 import time
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any
+from contextvars import ContextVar
+from typing import Literal
 
-DATA = Path(__file__).resolve().parents[2] / "data"
-TRANSCRIPT_PATH = DATA / "transcript.jsonl"
-
-DEFAULT_MODEL = os.environ.get("BONDLAYER_MODEL", "gpt-4o-mini")
+from bondlayer import ai
+from bondlayer.agent.trace import AgentRun
 
 
-@dataclass
-class Call:
-    """One model call, as it happened."""
-
-    label: str
-    model: str
-    system: str
-    prompt: str
-    completion: str
-    latency_ms: int
-    at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+class RankedOffer(ai.AIModel):
+    rank: int
+    merchant: str
+    sku_id: str
+    decisive_terms: list[str]
+    reasoning: str
 
 
-#: Every call this process has made, newest last. The UI renders it.
-TRANSCRIPT: list[Call] = []
+class Ranking(ai.AIModel):
+    ranking: list[RankedOffer]
+    recommendation: str
 
 
-class LLMUnavailable(RuntimeError):
-    """Raised when no usable provider is configured."""
+class ChatDecision(ai.AIModel):
+    action: Literal["search", "reply"]
+    utterance: str | None
+    reply: str | None
 
 
-def has_key() -> bool:
-    key = os.environ.get("OPENAI_API_KEY")
-    return bool(key) and not key.startswith("sk-your")
+_transcript: ContextVar[tuple[dict, ...]] = ContextVar("buyer_transcript", default=())
 
 
-def _client():
-    if not has_key():
-        raise LLMUnavailable(
-            "OPENAI_API_KEY is missing or still the placeholder. "
-            "Put a real key in buyer-agent/.env"
-        )
-    from openai import OpenAI
-
-    return OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+def reset_transcript() -> None:
+    _transcript.set(())
 
 
-def _append(call: Call) -> None:
-    try:
-        DATA.mkdir(parents=True, exist_ok=True)
-        with TRANSCRIPT_PATH.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(asdict(call), ensure_ascii=False) + "\n")
-    except OSError:
-        # A transcript we cannot write is not a reason to fail the run.
-        pass
-
-
-def _record(label: str, system: str, prompt: str, text: str, latency_ms: int) -> None:
-    call = Call(
-        label=label,
-        model=DEFAULT_MODEL,
-        system=system,
-        prompt=prompt,
-        completion=text,
-        latency_ms=latency_ms,
-    )
-    TRANSCRIPT.append(call)
-    _append(call)
-
-
-def complete(label: str, system: str, prompt: str, *, as_json: bool = False) -> str:
-    """One live completion. Returns the verbatim text."""
-    client = _client()
-    kwargs: dict[str, Any] = {
-        "model": DEFAULT_MODEL,
-        "temperature": 0,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": prompt},
-        ],
-    }
-    if as_json:
-        kwargs["response_format"] = {"type": "json_object"}
-
+def _complete(label: str, system: str, data: object, schema):
     started = time.monotonic()
-    response = client.chat.completions.create(**kwargs)
-    latency_ms = int((time.monotonic() - started) * 1000)
-    text = response.choices[0].message.content or ""
+    result, meta = ai.structured(label, system, data, schema)
+    call = {
+        **meta, "label": label, "system": system,
+        "prompt": data if isinstance(data, str) else json.dumps(data, ensure_ascii=False),
+        "completion": result.model_dump_json(),
+        "latency_ms": int((time.monotonic() - started) * 1000),
+    }
+    _transcript.set((*_transcript.get(), call))
+    return result, meta
 
-    _record(label, system, prompt, text, latency_ms)
-    return text
 
-
-def complete_json(label: str, system: str, prompt: str) -> Any:
-    """A completion parsed as JSON, or ``None`` when the model did not comply.
-
-    The caller decides what an unparseable answer means. Silently substituting
-    an empty result would hide a failed run behind a plausible-looking ranking.
-    """
-    text = complete(label, system, prompt, as_json=True)
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        start, end = text.find("{"), text.rfind("}")
-        if start != -1 and end > start:
-            try:
-                return json.loads(text[start : end + 1])
-            except json.JSONDecodeError:
-                return None
-        return None
+def complete_json(label: str, system: str, prompt: str) -> dict:
+    schema = {"rank": Ranking, "route": ChatDecision}[label]
+    result, meta = _complete(label, system, prompt, schema)
+    return {**result.model_dump(), "ai": meta}
 
 
 def chat(label: str, system: str, messages: list[dict[str, str]]) -> str:
-    """A multi-turn completion over the conversation so far.
-
-    ``messages`` is the running thread in OpenAI's own shape -- ``{"role":
-    "user"|"assistant", "content": ...}`` -- oldest first. The system prompt is
-    prepended here so a caller cannot accidentally drop it mid-conversation.
-    """
-    client = _client()
-    started = time.monotonic()
-    response = client.chat.completions.create(
-        model=DEFAULT_MODEL,
-        temperature=0,
-        messages=[{"role": "system", "content": system}, *messages],
-    )
-    latency_ms = int((time.monotonic() - started) * 1000)
-    text = response.choices[0].message.content or ""
-
-    # The prompt recorded is the turn that provoked this answer; the whole
-    # thread is on screen anyway, and repeating it per call would make the
-    # transcript unreadable.
-    last = messages[-1]["content"] if messages else ""
-    _record(label, system, last, text, latency_ms)
-    return text
+    result, _ = _complete(label, system, messages, ai.Answer)
+    return result.answer
 
 
 def transcript_payload() -> list[dict]:
-    return [asdict(c) for c in TRANSCRIPT]
+    return list(_transcript.get())
+
+
+def narrate(run: AgentRun) -> dict:
+    """Explain the reference comparison when explicit offline mode is selected."""
+    if ai.mode() == "rules":
+        winner = run.winner
+        text = (
+            f"{winner.merchant}'s {winner.title} ({winner.sku_id}) ranks first with a "
+            f"shelf price of ${winner.shelf_price:.2f}, credited benefit value of "
+            f"${winner.credited:.2f}, and effective comparison cost of ${winner.effective_cost:.2f}. "
+            "This explanation is generated in explicit offline rules mode."
+            if winner else "No merchant returned a matching, priced listing for this request."
+        )
+        return {"text": text, "source": "template", "note": "Explicit rules mode; no OpenAI call."}
+    result, meta = _complete(
+        "recommendation",
+        "Explain this already-computed shopping comparison. Do not change the winner. "
+        "Effective cost is indicative value, not the checkout amount.",
+        {"request": run.utterance, "offers": [
+            {"merchant": r.merchant, "sku": r.sku_id, "title": r.title,
+             "shelf_price": str(r.shelf_price), "effective_cost": str(r.effective_cost),
+             "citations": r.citations, "unsatisfied": [c.text for c in r.unsatisfied]}
+            for r in run.ranked[:10]
+        ]}, ai.Answer,
+    )
+    return {"text": result.answer, "source": "model",
+            "note": f"OpenAI: {meta['model']} ({meta['response_id']})", "ai": meta}

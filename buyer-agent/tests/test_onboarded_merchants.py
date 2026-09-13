@@ -17,6 +17,7 @@ def apps(tmp_path, monkeypatch, stub_model):
     with monkeypatch.context() as patch:
         patch.delenv("BONDLAYER_TEST_DATA", raising=False)
         patch.delenv("OPENAI_API_KEY", raising=False)
+        patch.setenv("BONDLAYER_AI_MODE", "rules")
         patch.setattr(server, "UPLOADS", tmp_path)
         merchant_app = server.create_app()
         patch.setattr(main, "_http_client", lambda: TestClient(merchant_app))

@@ -485,6 +485,18 @@
   <aside class="side" id="side">
     <div class="sidehdr">
       <h2>Evidence</h2>
+  <details style="margin:12px 0;font-size:13px">
+    <summary>Your benefit values (AUD)</summary>
+    <p>These values set the reference effective-cost figures; the live model chooses the order from the terms. Defaults are zero and values stay agent-side. Membership comes from each merchant's identity response.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <label>Returns <input data-benefit="free_returns" type="number" min="0" step="0.01" value="0" style="width:75px"></label>
+      <label>Warranty <input data-benefit="warranty" type="number" min="0" step="0.01" value="0" style="width:75px"></label>
+      <label>Delivery <input data-benefit="delivery" type="number" min="0" step="0.01" value="0" style="width:75px"></label>
+      <label>Member price <input data-benefit="member_price" type="number" min="0" step="0.01" value="0" style="width:75px"></label>
+      <label>Points <input data-benefit="points_earn" type="number" min="0" step="0.01" value="0" style="width:75px"></label>
+      <label>Trade-in <input data-benefit="trade_in_credit" type="number" min="0" step="0.01" value="0" style="width:75px"></label>
+    </div>
+  </details>
       <div class="runtoggle">
         <button id="tab-bl" class="on">BondLayer</button>
         <button id="tab-ctrl">Control</button>
@@ -832,21 +844,24 @@ const TOP_N = 4;
 
 function resultCardsHtml(d) {
   if (d.error) return '<p class="err">' + esc(d.error) + '</p>';
+  const saved = (d.request_id ? '<p class="hdrline">Saved request: ' + esc(d.request_id) + ' · view it in the merchant Request console.</p>' : '') +
+    (d.history_error ? '<p class="err">' + esc(d.history_error) + '</p>' : '');
   if (!d.ranked || !d.ranked.length) {
-    return d.onboarding_required
+    return saved + (d.onboarding_required
       ? '<p class="empty">No merchants yet. <a href="/onboarding">Onboard your first merchant</a> and upload a catalogue.</p>'
-      : '<p class="empty">No merchant returned a matching, priced listing.</p>';
+      : '<p class="empty">No merchant returned a matching, priced listing.</p>');
   }
-  let html = bundleHtml(d.bundles, d.ranked);
+  let html = saved + bundleHtml(d.bundles, d.ranked);
   html += d.ranked.slice(0, TOP_N).map((r, i) => offerHtml(r, i, i === 0, true)).join('');
   if (d.ranked.length > TOP_N) {
     html += '<p class="mt">+' + (d.ranked.length - TOP_N) +
       ' more, with every record and clause, in the evidence panel.</p>';
   }
+  const chooser = d.ranking_source === 'rules' ? 'the rules-mode comparison' : 'the model';
   html += d.flipped
-    ? '<div class="flip">FLIP: the model preferred ' + esc(d.winner.merchant) + ' over ' +
+    ? '<div class="flip">FLIP: ' + chooser + ' preferred ' + esc(d.winner.merchant) + ' over ' +
       esc(d.cheapest_shelf.merchant) + ', which has the cheaper shelf price.</div>'
-    : '<div class="flip noflip">No flip: the model preferred the cheapest shelf price.</div>';
+    : '<div class="flip noflip">No flip: ' + chooser + ' preferred the cheapest shelf price.</div>';
   return html;
 }
 
@@ -863,6 +878,9 @@ function intentHtml(d) {
   const row = (k, v) => '<p class="kv"><b>' + esc(k) + '</b><span>' +
     esc(v === null || v === undefined || v === '' ? '—' : v) + '</span></p>';
   return '<div class="hdrline">UCP-Agent: ' + esc(d.ucp_agent_header || '') + '</div>' +
+    row('provider', d.ai && d.ai.intent && d.ai.intent.provider) +
+    row('model', d.ai && d.ai.intent && d.ai.intent.model) +
+    row('response ID', d.ai && d.ai.intent && d.ai.intent.response_id) +
     row('summary', it.summary) +
     row('category', it.category === null ? 'null (no match — the interpreter’s plan stands)' : it.category) +
     row('max price', it.max_price_aud) +
@@ -876,11 +894,13 @@ function logsHtml(d) {
   const calls = d.transcript || [];
   if (!calls.length) return '<p class="mt">No model calls recorded on this run.</p>';
   return calls.map(c =>
-    '<details class="logcall"><summary><span class="lbl">' + esc(c.label) + '</span>' +
+    '<details class="logcall"><summary><span class="lbl">' + esc(c.label || c.task) + '</span>' +
     '<span>' + esc(c.model) + '</span>' +
-    '<span class="ms">' + esc(c.latency_ms) + ' ms</span></summary>' +
-    '<pre>' + esc(c.prompt) + '</pre>' +
-    '<pre class="out">' + esc(c.completion) + '</pre></details>'
+    '<span class="ms">' + (c.latency_ms == null ? '' : esc(c.latency_ms) + ' ms') + '</span></summary>' +
+    '<p class="mt">Response ID: ' + esc(c.response_id) + '</p>' +
+    (c.prompt ? '<pre>' + esc(c.prompt) + '</pre>' : '') +
+    '<pre class="out">' + esc(c.completion || JSON.stringify(c.clauses || {}, null, 2)) + '</pre>' +
+    (c.usage ? '<pre>' + esc(JSON.stringify(c.usage, null, 2)) + '</pre>' : '') + '</details>'
   ).join('');
 }
 
@@ -892,7 +912,7 @@ function evidenceHtmlAll(d) {
 function sideHtml(d) {
   if (!d) return '<p class="sempty">Nothing yet for this run.</p>';
   if (d.error) return '<p class="err" style="margin:16px">' + esc(d.error) + '</p>';
-  return sec('Intent — the model’s decode', intentHtml(d), true) +
+  return sec(d.ranking_source === 'rules' ? 'Intent — explicit rules mode' : 'Intent — the model’s decode', intentHtml(d), true) +
     sec('Trace — what actually happened', traceHtml(d.steps), true) +
     // Renders whether or not anything was ranked: "nobody could decode it" is
     // a finding too.
@@ -915,7 +935,8 @@ function renderSide() {
 async function query(text, bondlayerEnabled) {
   // No selection means the key is absent from the body, not sent as null:
   // the request is anonymous all the way down to the merchant's query string.
-  const body = {query: text, bondlayer_enabled: bondlayerEnabled};
+  const values = Object.fromEntries([...document.querySelectorAll('[data-benefit]')].map(input => [input.dataset.benefit, input.value || '0']));
+  const body = {query: text, bondlayer_enabled: bondlayerEnabled, values_aud: values};
   const shopper = $('shopper') && $('shopper').value;
   if (shopper) body.shopper_id = shopper;
   const r = await fetch('/query', {
@@ -924,8 +945,8 @@ async function query(text, bondlayerEnabled) {
     body: JSON.stringify(body),
   });
   if (!r.ok) {
-    const body = await r.text();
-    return {error: 'HTTP ' + r.status + ' - ' + body.slice(0, 300)};
+    const body = await r.json().catch(() => ({}));
+    return {error: typeof body.detail === 'string' ? body.detail : 'Request failed (' + r.status + '). Please retry.'};
   }
   return r.json();
 }

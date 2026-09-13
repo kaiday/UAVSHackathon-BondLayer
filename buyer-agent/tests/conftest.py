@@ -26,25 +26,35 @@ import pytest
 # Set before anything imports bondlayer: the protocol regression tests read a
 # fixed catalogue rather than whatever has been onboarded.
 os.environ["BONDLAYER_TEST_DATA"] = "1"
+os.environ["BONDLAYER_AI_MODE"] = "rules"
+os.environ["BONDLAYER_SERVICE_TOKEN"] = "bondlayer-test-service-token"
 
 BUYER_AGENT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BUYER_AGENT))
 sys.path.insert(0, str(BUYER_AGENT.parent / "bondlayer" / "src"))
 
-from src.agent import llm  # noqa: E402
+from src.agent import llm, rank  # noqa: E402
+from bondlayer import ai, activity  # noqa: E402
+from bondlayer.interpreter.parser import parse  # noqa: E402
 
 
-def _skus_in_prompt(prompt: str) -> list[str]:
-    """The sku ids from the offer payload, in the order the model was shown them."""
+@pytest.fixture(autouse=True)
+def offline_transport_and_history(monkeypatch, tmp_path):
+    def blocked(*args, **kwargs):
+        raise AssertionError("Tests must stub OpenAI transport; live calls are disabled")
+    monkeypatch.setattr(ai, "OpenAI", blocked)
+    monkeypatch.setattr(activity, "UPLOADS", tmp_path)
+
+
+def _offers_in_prompt(prompt: str) -> list[dict]:
+    """The merchant/SKU identities from the offer payload, in input order."""
     match = re.search(r"Offers:\n(\[.*?\])\n\nRank", prompt, re.DOTALL)
     if match:
         try:
-            return [o["sku_id"] for o in json.loads(match.group(1))]
+            return json.loads(match.group(1))
         except (json.JSONDecodeError, KeyError, TypeError):
             pass
-    # Fall back to scanning, so a payload-shape change degrades to a weaker
-    # stub rather than to an empty ranking that silently drops every offer.
-    return re.findall(r'"sku_id":\s*"([^"]+)"', prompt)
+    raise AssertionError("No offer payload in rank prompt")
 
 
 @pytest.fixture
@@ -57,23 +67,25 @@ def stub_model(monkeypatch):
 
     def install(*, intent=None, order=None, recommendation="A stubbed recommendation.",
                 route=None):
+        monkeypatch.setenv("BONDLAYER_AI_MODE", "openai")
+        monkeypatch.setattr(rank, "decode", lambda utterance: (
+            parse(utterance), {"provider": "stub", "model": "test", "response_id": "stub-intent"}))
+        if intent is not None:
+            original = rank.parse_intent
+            monkeypatch.setattr(rank, "parse_intent", lambda utterance: {**original(utterance), **intent})
         def fake_complete_json(label, system, prompt):
-            if label == "intent_parse":
-                return intent if intent is not None else {
-                    "summary": "stub intent", "category": None,
-                    "max_price_aud": None, "must_have": [],
-                }
             if label == "rank":
-                skus = _skus_in_prompt(prompt)
+                offers = _offers_in_prompt(prompt)
                 if order is not None:
-                    skus = [s for s in order if s in skus] + [s for s in skus if s not in order]
+                    offers = sorted(offers, key=lambda o: order.index(o["sku_id"]) if o["sku_id"] in order else len(order))
                 return {
                     "ranking": [
-                        {"rank": i, "sku_id": s, "decisive_terms": [],
-                         "reasoning": f"stub reasoning for {s}"}
-                        for i, s in enumerate(skus, start=1)
+                        {"rank": i, "sku_id": o["sku_id"], "merchant": o["merchant"], "decisive_terms": [],
+                         "reasoning": f"stub reasoning for {o['sku_id']}"}
+                        for i, o in enumerate(offers, start=1)
                     ],
                     "recommendation": recommendation,
+                    "ai": {"provider": "stub", "model": "test", "response_id": "stub-rank"},
                 }
             if label == "route":
                 return route if route is not None else {

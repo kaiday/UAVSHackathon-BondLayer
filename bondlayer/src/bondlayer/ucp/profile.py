@@ -4,9 +4,8 @@ This is the key discovery mechanism the entire verification story depends on.
 If ``signing_keys[]`` is not reachable and correct, every signature we publish
 is unverifiable and the pitch is an assertion rather than a demonstration.
 
-**We publish Bach's key; we never generate one.** A signing key minted by the
-serving layer would prove nothing -- the point is that the records were signed
-by the merchant's own key, out of band, and that any agent can check them.
+Published profiles expose public verification keys only. Live merchant keys are
+managed by the policy approval service; historical fixtures retain their prepared keys.
 """
 
 from __future__ import annotations
@@ -78,6 +77,11 @@ def signing_keys(merchant: Merchant, keys_dir: Path = KEYS) -> list[dict]:
     """
     if not merchant.signs_records:
         return []
+    if keys_dir == KEYS:
+        from bondlayer.ucp.benefits import published
+        uploaded = published(merchant.id)
+        if uploaded["signing_keys"]:
+            return uploaded["signing_keys"]
     path = keys_dir / f"{merchant.id}.pub.json"
     if not path.exists():
         return []
@@ -121,7 +125,7 @@ def build_profile(merchant: Merchant, keys_dir: Path = KEYS) -> dict:
         "business": {
             "id": merchant.id,
             "name": merchant.display_name,
-            "domain": merchant.domain,
+            "domain": merchant.domain or merchant.id,
         },
         "capabilities": caps,
         "extensions": extensions,

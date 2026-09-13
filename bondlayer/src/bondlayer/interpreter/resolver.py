@@ -454,7 +454,7 @@ def resolve_detailed(
     merchant_domains: dict[str, str] | None = None,
 ) -> Resolution:
     """``resolve`` with its working shown."""
-    merchant_domains = dict(merchant_domains or MERCHANT_DOMAINS)
+    merchant_domains = dict(MERCHANT_DOMAINS if merchant_domains is None else merchant_domains)
     index = TfidfIndex(skus) if skus else None
 
     hard = [c for c in constraints if c.kind is ConstraintKind.HARD]
@@ -601,9 +601,10 @@ def resolve_detailed(
 
 def resolve(
     constraints: list[Constraint], skus: list[Sku], records: list[SignedRecord],
+    *, merchant_domains: dict[str, str] | None = None,
 ) -> list[Proposal]:
     """The protocol seam: proposals only, ordered as described in the module docstring."""
-    return resolve_detailed(constraints, skus, records).proposals
+    return resolve_detailed(constraints, skus, records, merchant_domains=merchant_domains).proposals
 
 
 class ConstraintInterpreter:

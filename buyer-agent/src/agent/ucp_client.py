@@ -154,6 +154,7 @@ def make_fetcher(client: httpx.Client | None = None,
     """
     owns_client = client is None
     http = client or httpx.Client(base_url=MERCHANT_BASE_URL, timeout=10)
+    snapshots: dict[str, dict] = {}
 
     def fetch(merchant: str, query: str, *, extension: bool, plan: dict | None = None) -> dict:
         header = CATALOG_SEARCH + ";" + CATALOG_LOOKUP
@@ -181,11 +182,13 @@ def make_fetcher(client: httpx.Client | None = None,
             offset = body.get("next_offset")
             if offset is None or offset <= params.get("offset", -1):
                 combined["next_offset"] = None
+                snapshots[merchant] = combined
                 return combined
             params["offset"] = offset
 
     fetch.client = http  # type: ignore[attr-defined]
     fetch.owns_client = owns_client  # type: ignore[attr-defined]
+    fetch.snapshots = snapshots
     return fetch
 
 
@@ -280,6 +283,7 @@ def make_verifier(client: httpx.Client | None = None,
             return make_verifier(http, merchants=merchants)
     http = client
     keys_by_issuer: dict[str, dict[str, dict]] = {}
+    merchant_domains: dict[str, str] = {}
     for merchant in merchants if merchants is not None else discover_merchants(http):
         try:
             response = http.get(f"/{merchant}/.well-known/ucp")
@@ -291,6 +295,7 @@ def make_verifier(client: httpx.Client | None = None,
         domain = body.get("business", {}).get("domain")
         if not domain:
             continue
+        merchant_domains[merchant] = domain
         keys_by_issuer[domain] = {
             jwk["kid"]: jwk for jwk in body.get("signing_keys", []) if jwk.get("kid")
         }
@@ -313,7 +318,20 @@ def make_verifier(client: httpx.Client | None = None,
             return False
         return verifier.verify(signed)
 
+    verify.merchant_domains = merchant_domains
     return verify
+
+
+def submit_report(report: dict, client: httpx.Client) -> str:
+    """The merchant owns storage; no shared filesystem is required by the buyer agent."""
+    token = os.environ.get("BONDLAYER_SERVICE_TOKEN", "")
+    headers = {"X-BondLayer-Service-Token": token} if token else {}
+    response = client.post("/internal/requests", json=report, headers=headers)
+    response.raise_for_status()
+    body = response.json()
+    if body.get("saved") is not True or body.get("request_id") != report["request_id"]:
+        raise ValueError("merchant did not acknowledge the request report")
+    return body["request_id"]
 
 
 def merchant_health() -> dict:

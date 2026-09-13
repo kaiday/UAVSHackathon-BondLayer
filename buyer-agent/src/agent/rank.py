@@ -19,7 +19,11 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from bondlayer import ai
+from bondlayer.agent.composition import _search_query
 from bondlayer.agent.trace import AgentRun, Ranked
+from bondlayer.interpreter.openai import decode
+from bondlayer.types import ConstraintKind
 
 from . import llm
 from .ucp_client import _CATEGORIES
@@ -46,30 +50,18 @@ Be neutral and concrete. Never invent a benefit that is not in the data you were
 given, and be willing to prefer the cheaper offer when the extra terms do not earn \
 their premium."""
 
-INTENT_SYSTEM_PROMPT = "You extract shopping constraints. Reply with JSON only."
-
-
 def parse_intent(utterance: str) -> dict:
-    """Decode the shopper's sentence. One live call; the result drives the search."""
-    intent = llm.complete_json(
-        "intent_parse",
-        INTENT_SYSTEM_PROMPT,
-        f'Extract the shopping constraints from this request: "{utterance}"\n\n'
-        "\"category\" must be exactly one of these, or null if none fits:\n"
-        + ", ".join(_CATEGORIES) + "\n\n"
-        'Reply as JSON: {"summary": "...", "category": "..." or null, '
-        '"max_price_aud": number or null, "must_have": ["..."]}',
-    )
-    if not isinstance(intent, dict):
-        # The model answered something unparseable. Say so rather than
-        # substituting a guess that would read as its decode.
-        return {"summary": utterance, "category": None, "max_price_aud": None,
-                "must_have": [], "note": "model did not return usable JSON"}
-    intent.setdefault("summary", utterance)
-    intent.setdefault("category", None)
-    intent.setdefault("max_price_aud", None)
-    intent.setdefault("must_have", [])
-    return intent
+    """One shared decode supplies both search parameters and hard-clause checks."""
+    constraints, meta = decode(utterance)
+    _, plan = _search_query(constraints)
+    price = plan.get("max_price")
+    return {
+        "summary": utterance, "category": plan.get("category"),
+        "max_price_aud": float(price) if price is not None else None,
+        "must_have": [c.text for c in constraints if c.kind != ConstraintKind.HARD],
+        "constraints": [{"text": c.text, "kind": c.kind.value} for c in constraints],
+        "ai": meta,
+    }
 
 
 def _known_category(value: object) -> str | None:
@@ -150,14 +142,12 @@ def rank_offers(utterance: str, run: AgentRun) -> dict:
         '"reasoning": "one or two sentences"}], '
         '"recommendation": "one short paragraph to the customer"}',
     )
-    if not isinstance(ranking, dict):
-        return {"ranking": [], "recommendation": "The model did not return a usable ranking."}
-    ranking.setdefault("ranking", [])
-    ranking.setdefault("recommendation", "")
+    if not isinstance(ranking, dict) or not isinstance(ranking.get("ranking"), list):
+        raise ai.AIError("OpenAI did not return a usable ranking. Please retry.")
     return ranking
 
 
-def apply_ranking(run: AgentRun, ranking: dict) -> dict[str, Any]:
+def apply_ranking(run: AgentRun, ranking: dict) -> dict[tuple[str, str], Any]:
     """Reorder ``run.ranked`` into the model's order, in place.
 
     ``AgentRun`` is frozen but ``ranked`` is a list, so this rebinds its
@@ -169,26 +159,31 @@ def apply_ranking(run: AgentRun, ranking: dict) -> dict[str, Any]:
     order. Dropping it would let a model silently disappear a listing a
     merchant did return.
     """
-    by_sku = {r.sku_id: r for r in run.ranked}
-    notes: dict[str, Any] = {}
+    by_offer = {(r.merchant, r.sku_id): r for r in run.ranked}
+    notes: dict[tuple[str, str], Any] = {}
     ordered: list[Ranked] = []
-    seen: set[str] = set()
+    seen: set[tuple[str, str]] = set()
 
     for row in ranking.get("ranking") or []:
         if not isinstance(row, dict):
             continue
-        sku = row.get("sku_id")
-        offer = by_sku.get(sku)
-        if offer is None or sku in seen:
+        merchant, sku = row.get("merchant"), row.get("sku_id")
+        if not isinstance(merchant, str) or not isinstance(sku, str):
             continue
-        seen.add(sku)
+        key = (merchant, sku)
+        offer = by_offer.get(key)
+        if offer is None or key in seen:
+            continue
+        seen.add(key)
         ordered.append(offer)
         terms = row.get("decisive_terms")
-        notes[sku] = {
+        notes[key] = {
             "decisive_terms": [str(t) for t in terms] if isinstance(terms, list) else [],
             "reasoning": str(row.get("reasoning") or ""),
         }
 
-    ordered.extend(r for r in run.ranked if r.sku_id not in seen)
+    if run.ranked and not ordered:
+        raise ai.AIError("OpenAI did not select a known offer. Please retry.")
+    ordered.extend(r for r in run.ranked if (r.merchant, r.sku_id) not in seen)
     run.ranked[:] = ordered
     return notes

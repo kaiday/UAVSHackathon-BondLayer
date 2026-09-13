@@ -318,6 +318,35 @@ class TestIdentityChangesWhoWins:
         assert identified.ranked[0].effective_cost == anonymous.ranked[0].effective_cost
 
 
+@pytest.mark.parametrize("identity, expected", [
+    (None, Decimal("0")),
+    ({"linked": False}, Decimal("0")),
+    ({"linked": True, "status": "member", "tier": "circle"}, Decimal("25")),
+])
+def test_live_eligibility_combines_dynamic_domains_and_merchant_identity(identity, expected):
+    from bondlayer.agent.composition import run_request
+
+    body = {
+        "business": {"id": "uploaded"},
+        "products": [{"id": "ONE", "title": "Laptop", "category": "laptop",
+                      "price": {"amount": "1000"}, "attributes": {}}],
+        "extensions": {BENEFIT_VALUE: [{
+            "sku_id": "ONE", "issuer": "uploaded.example",
+            "records": [{"record": {"record_id": "member-offer", "benefit_type": "member_price",
+                                     "value_ceiling_aud": "25", "conditions": ["member"]},
+                         "signature": "test", "key_id": "test", "signed": True}],
+        }]},
+    }
+    if identity is not None:
+        body["shopper"] = identity
+    run = run_request(
+        "laptop", ["uploaded"], lambda *args, **kwargs: body,
+        verify=lambda entry: True, policy={"member_price": Decimal("25")},
+        merchant_domains={"uploaded": "uploaded.example"}, satisfied_conditions=(),
+    )
+    assert run.winner.credited == expected
+
+
 def sys_path_agent() -> None:
     """Put ``buyer-agent`` on the path; it is a sibling package, not a dep."""
     import sys

@@ -57,8 +57,8 @@ export type MerchantRow = {
   control_merchant: boolean;
   fields_exposed: number;
   legible_share: number;
-  value_credited_aud: string;
-  value_withheld_aud: string;
+  value_credited_aud: string | null;
+  value_withheld_aud: string | null;
   won: boolean;
   lost_because: string | null;
   sku_id: string | null;
@@ -68,6 +68,8 @@ export type MerchantRow = {
 };
 
 export type RequestReport = {
+  source?: string;
+  extension_enabled?: boolean;
   request_id: string;
   utterance: string;
   bundle: boolean;
@@ -142,7 +144,7 @@ export type Loadable<T> = {
   reload: () => void;
 };
 
-function useEndpoint<T>(path: string | null): Loadable<T> {
+export function useEndpoint<T>(path: string | null): Loadable<T> {
   const [result, setResult] = useState<{ key: string; path: string; data: T | null; error: string | null } | null>(null);
   const [nonce, setNonce] = useState(0);
   const key = `${path}:${nonce}`;
