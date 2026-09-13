@@ -1,5 +1,10 @@
 # BondLayer Landing and Merchant Onboarding Experience Plan
 
+> **Design rationale, not the shipped contract.** Kept for the reasoning.
+> The onboarding backend that ships is `src/bondlayer/ucp/onboard.py` +
+> `policy.py`; its real routes are the Onboarding API table in
+> `bondlayer/README.md`. No route named below is implemented.
+
 ## Purpose
 
 Use the existing four-step onboarding mock-up as a product and content reference in two distinct experiences:

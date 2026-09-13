@@ -1,5 +1,10 @@
 # Merchant onboarding API handoff
 
+> **Design rationale, not the shipped contract.** Kept for the reasoning.
+> The onboarding backend that ships is `src/bondlayer/ucp/onboard.py` +
+> `policy.py`; its real routes are the Onboarding API table in
+> `bondlayer/README.md`. No route named below is implemented.
+
 All routes are server-authoritative and are intended to sit behind the
 authenticated merchant router. The route owner derives `merchant_id` and
 `user_id` from authentication in production; the development adapter exposes
