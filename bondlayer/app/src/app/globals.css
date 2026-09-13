@@ -57,6 +57,10 @@ h1, h2, h3, .brand, .metric strong { font-family: var(--font-display), sans-seri
 .search { width: min(360px, 44%); display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 9px; color: var(--muted); background: var(--quiet); }
 .search input { width: 100%; border: 0; outline: 0; color: var(--text); background: transparent; font-size: 13px; }
 .topbar-tools { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.merchant-switcher { display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
+.merchant-switcher select { max-width: min(350px, 45vw); padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--paper); color: var(--text); }
+.merchant-select { padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
+.merchant-select:hover, .merchant-select[aria-pressed="true"] { color: var(--accent); text-decoration: underline; }
 .icon-button { position: relative; display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid transparent; border-radius: 50%; color: var(--muted); background: transparent; }
 .icon-button:hover { border-color: var(--border); color: var(--accent); background: var(--accent-soft); }
 .notification-button i { position: absolute; top: 6px; right: 6px; width: 5px; height: 5px; border: 1px solid #fff; border-radius: 50%; background: #dc6572; }

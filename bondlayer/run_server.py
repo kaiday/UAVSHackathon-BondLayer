@@ -18,7 +18,7 @@ import sys
 
 import uvicorn
 
-from bondlayer.ucp.profile import load_merchants
+from bondlayer.ucp.server import _merchants
 
 HOST = "127.0.0.1"
 
@@ -40,7 +40,7 @@ def main() -> None:
     port = free_port(preferred)
 
     print("BondLayer merchant service")
-    for m in load_merchants().values():
+    for m in _merchants.values():
         ext = "benefit extension" if m.publishes_benefit_extension else "plain UCP"
         print(f"  {m.display_name:<12} {m.domain:<22} {m.role:<11} {ext}")
     print()
@@ -49,9 +49,9 @@ def main() -> None:
         print()
     base = f"http://{HOST}:{port}"
     print(f"  console   {base}/console/")
-    print(f"  profile   {base}/voltway/.well-known/ucp")
-    print(f"  search    {base}/voltway/ucp/catalog/search?category=laptop")
-    print(f"  onboard   {base}/onboard/report/voltway")
+    print(f"  onboard   {base}/console/onboarding/")
+    print(f"  merchants {base}/onboard/merchants")
+    print(f"  health    {base}/health")
     print(f"  docs      {base}/docs")
     print()
     uvicorn.run("bondlayer.ucp.server:app", host=HOST, port=port, log_level="warning")

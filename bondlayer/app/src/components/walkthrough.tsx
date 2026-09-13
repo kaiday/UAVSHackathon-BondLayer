@@ -63,7 +63,7 @@ const STEPS: Step[] = [
     target: "nav-requests",
     placement: "right",
     title: "Request console",
-    body: "30 shopper requests an agent might send, like “a laptop under $1,500 I can return easily”. For each one, see which merchant won, how much of your verified benefit value was credited, and why you lost.",
+    body: "Request reports appear here when available. A new workspace has no saved request history; use the buyer agent to inspect a live comparison of your uploaded catalogues.",
   },
   {
     target: "nav-quality",
@@ -75,13 +75,13 @@ const STEPS: Step[] = [
     target: "nav-benefits",
     placement: "right",
     title: "Benefit records",
-    body: "Signed offers such as free returns, warranty and loyalty points that agents can verify before they choose. In this prototype their value shows up in the Request console.",
+    body: "Signed offers such as free returns, warranty and loyalty points that agents can verify before they choose. Catalogue onboarding does not invent benefit records for your business.",
   },
   {
-    target: "search",
+    target: "merchant-selector",
     placement: "bottom",
-    title: "Search",
-    body: "Find a request or a product by name. Preview: not connected in this prototype.",
+    title: "Choose a merchant",
+    body: "Switch between your uploaded merchants. Use Add merchant to onboard another business with its own catalogue.",
   },
   {
     target: "prompt",

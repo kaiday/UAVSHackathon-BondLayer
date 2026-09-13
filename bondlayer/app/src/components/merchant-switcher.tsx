@@ -15,12 +15,12 @@ export function MerchantSwitcher() {
   if (!data) return <span className="switcher-error">loading merchants…</span>;
 
   return (
-    <label className="merchant-switcher">
+    <label className="merchant-switcher" data-tour="merchant-selector">
       <span>Merchant</span>
       <select value={selected ?? ""} onChange={(event) => setMerchant(event.target.value)}>
         {data.map((merchant) => (
           <option key={merchant.merchant} value={merchant.merchant}>
-            {humanise(merchant.merchant)} · {merchant.readiness}% ready
+            {merchant.display_name || humanise(merchant.merchant)} · {merchant.readiness}% ready
           </option>
         ))}
       </select>
@@ -41,7 +41,7 @@ export function ComparisonStrip() {
           className={`metric ${merchant.merchant === selected ? "metric-selected" : ""}`}
           key={merchant.merchant}
         >
-          <p>{humanise(merchant.merchant)}</p>
+          <p><button className="merchant-select" onClick={() => setMerchant(merchant.merchant)} aria-pressed={merchant.merchant === selected}>{merchant.display_name || humanise(merchant.merchant)}</button></p>
           <strong>{merchant.readiness}%</strong>
           <div className="metric-trend">
             <span className={merchant.blockers > 0 ? "down" : "up"}>

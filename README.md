@@ -1,62 +1,331 @@
-<!-- Root README. Written 12-13/09/2026 against round2/dev, re-verified sentence by
-     sentence against the running code at 339a7ed on 13/09 (WS-D2 truth pass). Every
-     figure below is copied from bondlayer/docs/eval-results.md at that commit or was
-     reproduced by a command run in this worktree; nothing here is invented. The
-     merchant-decode, checkout and close-the-loop passages (WS-J / WS-K / WS-L) were
-     added on 13/09 against 66bb37c, each figure copied from a trace_run.py or
-     TestClient run at that commit. Rulebook
-     section references are to docs/Hackathon-Rulebook-2026-Final-Updated-1.pdf
-     section C (Round 2 - 16-Hour Hackathon). -->
-
 # BondLayer
+
+**Help AI shopping assistants understand your products and the benefits of buying from your store.**
 
 **UAVS Hackathon 2026 · FPT Australasia — "The B2A Shift: Adapting Retail for AI Shopping Agents"**
 
 ## What this is, and why
 
-Shopping agents are starting to do the comparing that used to happen in a human's head. They
-read structured data, not sentiment: a price, a barcode, a hyperlink to a returns policy. A
-retailer's real advantages — member pricing, free returns, a warranty that actually pays out,
-a brand that repairs its own products — sit on the far side of that hyperlink, in prose a
-machine cannot read, weigh, or verify. So an agent either ignores those facts or has to trust
-an unverifiable feed, and a merchant that has built genuine loyalty value has no way to make
-it legible at exactly the moment an agent is deciding who wins the sale.
+BondLayer is for **retailers**. Start with a product spreadsheet: BondLayer checks it,
+standardises supported fields, explains data problems and publishes a catalogue that
+compatible shopping assistants can search.
 
-BondLayer is a merchant-side layer that publishes a retailer's catalogue and policy facts as
-the Universal Commerce Protocol (UCP) already expects to receive them — plus a signed
-extension, `org.bondlayer.benefit_value`, that turns loyalty and service prose into typed,
-verifiable, priced records attached to the catalogue call an agent already makes. Nothing is
-installed on the agent side. An agent that does not know us gets plain, conformant UCP; an
-agent that declares the extension gets the full offer, signed, with a stated ceiling on what
-each claim is worth.
+A **shopping agent** is software that finds and compares products on a shopper's behalf.
+Price alone does not tell it the whole story. Your store might offer easier returns, a
+longer warranty or a useful loyalty programme. BondLayer's benefit-record system lets a
+compatible agent inspect those advantages while choosing an offer, with conditions and
+evidence attached.
 
-Two paths exist side by side, both negotiated capabilities on the same server, the same
-merchants, the same signed records. The **publishing path** (`catalog.search` / `catalog.lookup`
-plus `org.bondlayer.benefit_value`) is the default: the merchant publishes its shelf and its
-signed facts, and the agent decodes the shopper's sentence, resolves it against what came back,
-and ranks — the merchant never sees the utterance. The **intent path**
-(`org.bondlayer.intent_match`, extending `catalog.search`, declared only by a merchant that also
-publishes the benefit extension) is additive: an agent that negotiates it sends the shopper's
-utterance verbatim, and the merchant decodes and resolves it on its own wire, returning
-proposals with a per-constraint justification cited to its own records. Even there, the
-shopper's valuation policy, benefit weights and the cross-merchant comparison never leave the
-agent — only decoding moves merchant-side; verification, valuation and ranking stay
-agent-side, so who wins is still the agent's own arithmetic.
-
-The loop then closes. Once the agent has ranked, it checks out the offer it ranked first on
-`dev.ucp.shopping.checkout` — base UCP, declared by every merchant — citing exactly the
-signed records it relied on. The merchant re-judges each cited record on its own side and
-binds the ones that hold into the order confirmation, as the same signed envelopes the
-catalogue served, so the transaction carries proof of the benefits it was chosen for.
-Payment is out of scope and the response says so: no funds move.
+For example, a shopper asks for **"a laptop under $1,500 that is easy to return."** Product
+data answers the price question. A published returns record can answer the service question.
+The shopping agent decides how much that benefit matters to its shopper.
 
 > In a room full of agents, we are building the thing agents read.
 
-This is deliberately not a shopping assistant — the Problem Statement puts consumer-facing
-agents out of scope, and this repository's own buyer-agent stand-in (`buyer-agent/`)
-exists only to demonstrate the merchant side, never to be the product.
+**Start here:** [Run it](#run-it) → [Onboard your store](#onboard-your-store) →
+[Understand your report](#understand-your-report) → [Try a shopping request](#try-a-shopping-request).
+
+**Learn more:** [Policies and benefits](#policies-and-benefits) · [What is UCP?](#what-is-ucp) ·
+[Troubleshooting](#troubleshooting) · [Architecture](#architecture) · [Evaluation](#evaluation).
+
+### What works in this prototype
+
+| Feature | Current behaviour |
+|---|---|
+| New merchant onboarding | Enter business details, upload a CSV, preview the report and publish. |
+| Catalogue checks and publishing | Accepted products are searchable; diagnostics explain repairs and remaining issues. |
+| Saved merchant data | Published profiles and catalogues load again after a server restart. A fresh installation starts empty. |
+| Buyer-agent demonstration | Discovers merchants on the local server and compares their uploaded products. |
+| Policy extraction and approval | An offline library uses prepared extraction fixtures. A complete policy-upload and approval workflow is not connected to the console. |
+| Signed benefits | Implemented in the protocol and historical demo. Newly uploaded merchants are catalogue-only and have no benefit records. |
+| Request history | Empty in normal operation. The historical evaluation mode serves 30 precomputed scenarios; chat requests are not saved here. |
+| Checkout | Returns an order confirmation; payment and order management are outside this prototype. |
+
+The `buyer-agent/` app demonstrates what a shopping agent can do with the merchant service.
+The product is the merchant-side service in `bondlayer/`.
+
+## Run it
+
+If the team has already started BondLayer for you, open the **merchant console** link below.
+Otherwise, install **Python 3.12 or newer**, open a terminal in this repository and run:
+
+**Windows — PowerShell**
+
+```powershell
+$env:PYTHONUTF8 = "1"
+.\run.ps1
+```
+
+**macOS / Linux**
+
+```bash
+./run.sh
+```
+
+The launcher creates a Python environment, installs dependencies and starts both local
+services. First-time setup needs internet access for downloads. The catalogue workflow runs
+locally; the optional model-generated explanation is described under [external resources](#technologies-apis-and-every-external-resource-rulebook-c5b).
+Node.js is only needed to rebuild the merchant console, not to serve its existing static export.
+
+| Open in your browser | What to do there |
+|---|---|
+| <http://127.0.0.1:8000/console/> | **Merchant console:** add your store, publish products and inspect data quality. |
+| <http://127.0.0.1:8000/console/onboarding/> | **Add a merchant:** go directly to the three-step setup. |
+| <http://127.0.0.1:8001/> | **Buyer-agent demo:** try a shopping request after publishing a catalogue. |
+| <http://127.0.0.1:8000/docs> | **Developer API reference:** the technical operations exposed by the server. |
+
+These addresses work on the computer running the services. A new installation has no
+merchants or products; the console directs you to onboarding. Previously published uploads
+are restored on restart.
+
+### Launcher options
+
+| Purpose | Windows | macOS / Linux |
+|---|---|---|
+| Restart after updating code | `.\run.ps1 -Restart` | `./run.sh --restart` |
+| Install dependencies only | `.\run.ps1 -Setup` | `./run.sh --setup` |
+| Start the merchant service only | `.\run.ps1 -NoAgent` | `./run.sh --no-agent` |
+| Run the merchant test suite | `.\run.ps1 -Check` | `./run.sh --check` |
+
+Keep the terminal open while using the app. **Ctrl-C** stops the processes that launcher run
+started. `PYTHON`, `BONDLAYER_PORT` and `AGENT_PORT` override the interpreter and ports.
+
+## Onboard your store
+
+**You need a business name, a store identifier and a product CSV.** A website is optional.
+Business registration documents, a logo and a loyalty programme are not required for
+catalogue onboarding.
+
+### Step 1 — Enter your business details
+
+Open **Add merchant** or the [onboarding page](http://127.0.0.1:8000/console/onboarding/).
+
+- **Business name:** the name displayed in the console, for example `My Electronics Store`.
+- **Merchant ID:** a short identifier such as `myshop`. Use 1–64 lowercase letters, numbers,
+  hyphens or underscores, beginning with a letter or number. It becomes part of your store's
+  technical address and must be unique on this server.
+- **Business website:** optional, for example `myshop.example`.
+
+Click **Continue to catalogue**. Your merchant is created only when you publish in step 3.
+
+### Step 2 — Prepare and validate your catalogue
+
+Download the **empty CSV template** on the upload screen. CSV is a spreadsheet saved as
+plain-text rows and columns; in Excel or Google Sheets, export/download the sheet as CSV.
+
+**File requirements:** UTF-8 CSV, at most **10 MB**, prices in **AUD**, one product per row.
+UTF-8 files with Excel's leading byte marker are accepted. XLSX workbooks, PDFs and images
+are not catalogue uploads.
+
+| Required column | What it means | Example |
+|---|---|---|
+| `sku` | Your unique product code within this store | `SHOP-001` |
+| `title` | Product name | `Example laptop` |
+| `category` | Product type; use a consistent category such as `laptop` | `laptop` |
+| `price` | Product price in Australian dollars | `999.00` |
+
+This is a minimal **illustrative** file for the onboarding wizard. Replace its example
+product with your own before publishing:
+
+```csv
+sku,title,category,price
+SHOP-001,Example laptop,laptop,999.00
+```
+
+Add specifications where available so agents can answer more detailed requests:
+
+| Optional columns | What to put in them |
+|---|---|
+| `currency`, `brand`, `condition` | `AUD`, the brand name and a condition such as `new` |
+| `stock` | A non-negative whole-number quantity |
+| `ram`, `storage`, `cpu` | For example `16GB`, `512GB`, and the processor model |
+| `screen_in`, `weight_kg`, `battery_wh` | Numeric screen size in inches, weight in kilograms and battery capacity in watt-hours |
+| `gtin` | Barcode identifier, if known |
+| `model_key` | A shared identifier for listings of the same model; otherwise derived from the store and SKU |
+| `merchant` | Store ID; optional in the wizard because step 1 supplies it |
+
+Leave inapplicable specifications blank. Required cells must contain values, and product
+codes must be unique within a store. If your CSV has a `merchant` column, its values must
+include the ID entered in step 1; the import uses the rows for that merchant.
+
+Choose the file, then click **Validate catalogue**. BondLayer reads it and calculates a
+preview. **Validation does not publish or save a merchant.**
+
+### Step 3 — Review and publish
+
+Review the preview's **Products accepted**, **Rows rejected**, **Catalogue readiness** and
+diagnostic messages. BondLayer standardises supported formats, such as memory units, and
+shows what needs your attention.
+
+- To correct issues, go **Back**, fix your original spreadsheet and choose the revised CSV.
+- You can publish accepted products even if some rows were rejected; rejected rows are not served.
+- A file with no usable products is refused.
+
+Click **Publish merchant**. The server saves your business details and catalogue together,
+then makes the accepted products available for search. The completion page shows the saved
+product count and provides **Open your catalogue**.
+
+Published uploads are stored under `bondlayer/data/uploads/` as `<merchant-id>.merchant.json`
+and restored after restart. `BONDLAYER_UPLOADS_DIR` can select a different storage directory.
+Unpublished form entries and selected files are not saved as a resumable draft.
+
+**Success means your catalogue is published and searchable on this BondLayer server.**
+Connecting that server to external shopping platforms is a separate deployment/integration
+step. Catalogue publication does not create benefit records.
+
+### Updating an existing catalogue
+
+Select your store in the merchant switcher, then open **Catalogue → Replace catalogue**.
+The same four-column format works here. If your file includes a `merchant` column, use the
+selected store's ID, for example:
+
+```csv
+sku,merchant,title,category,price
+SHOP-001,myshop,Example laptop,laptop,999.00
+```
+
+The selected merchant determines the destination. If the file has a `merchant` column,
+only matching rows are imported. This path **replaces the catalogue after successful
+validation**; include all products you want to keep. It publishes catalogue-only data.
+Use **Add merchant** for a new store and the guided preview; that flow refuses to overwrite
+an existing ID.
+
+## Understand your report
+
+| What you see | What it means / what to do |
+|---|---|
+| **Agent readiness** | A weighted data-quality score from 0–100. Higher means fewer detected issues; it is not a sales forecast or a literal percentage of usable products. |
+| **Rows rejected** | Products the importer could not use and does not publish. Correct their source rows. |
+| **Attributes normalised** | Fields BondLayer converted into a consistent form, such as `16 GB` into `16GB`. |
+| **Blocker** | An issue that can prevent a relevant filter from using the original data. Check whether it was autofixed or still needs correction. |
+| **Degrades match** | Missing or inconsistent information that can weaken a match, such as missing weight for a portability request. |
+| **Cosmetic** | A consistency or formatting issue. |
+| **Info** | An observation that may need no action, such as a battery field correctly left empty. |
+| **Found / Normalised** | The original value and the value prepared for publication. An `autofixed` flag identifies repairs already made. |
+
+Start with **Worst first**, use **Catalogue** for individual rows, and **Data quality** to
+group issues by rule. Update your source spreadsheet and upload it again when you fix facts.
+BondLayer's repair does not rewrite the spreadsheet on your computer.
+
+**Ask BondLayer** helps interpret the selected merchant's report. Try **"What should I fix
+first?"** or **"What's wrong with my prices?"** Answers are selected from the report using
+deterministic matching; this bar does not call an AI model.
+
+## Try a shopping request
+
+1. Publish at least one catalogue, then open <http://127.0.0.1:8001/>.
+2. Ask about products you actually uploaded, for example **"a laptop under $1,500"**.
+3. Inspect the matching products, their prices and the explanation of the comparison.
+4. Try a specification present in your file, or add another merchant to compare stores.
+
+The buyer-agent demo discovers merchants from the running server. An empty installation
+asks you to onboard first. Newly uploaded merchants have no signed benefits, so enabling
+BondLayer benefits will not invent returns, warranty or loyalty information for them.
+
+**Price versus effective cost:** the shelf price is the product's stated price. Effective
+cost is a comparison figure after the agent credits eligible, verified benefits under its
+shopper policy. For illustration, a $1,000 product with $80 of credited benefit value has a
+$920 effective cost. **That is not a promise of a $920 checkout price.**
+
+The demo can return a checkout confirmation for the selected offer. Its status is
+`confirmed_awaiting_payment`; **no money moves**, no stock is reserved, and no persistent
+order-management record is created. The Request console is not live analytics: chat requests
+do not populate it, and its historical evaluation reports are described [below](#evaluation).
+
+## Policies and benefits
+
+Catalogue data says **what you sell**. Benefit records explain **what an eligible customer
+receives when buying from you**.
+
+| Document to prepare | Useful facts to include |
+|---|---|
+| Returns policy | Return window, fees, eligibility and exclusions |
+| Warranty terms | Coverage duration, covered products and exclusions |
+| Delivery policy | Charges, free-delivery thresholds and conditions |
+| Loyalty/member terms | Membership cost, discounts, points and eligibility |
+| Repair or sustainability commitments | Specific, supportable statements and their scope |
+
+**Current limitation:** the console does not provide an end-to-end policy upload, review
+and publishing flow. The policy library accepts text-readable PDF, UTF-8 TXT and Markdown,
+but its converter uses prepared extraction fixtures; it does not extract arbitrary new
+merchant policies. The policy router is not mounted in the main application, and the
+Benefit records page does not yet list or manage records.
+
+The implemented offline policy-service sequence is:
+
+1. Read the document and store its source text.
+2. Produce matching draft records from the prepared fixtures.
+3. Keep the source passage, scope and conditions available for review.
+4. Edit, approve or reject each draft; approval signs the record.
+5. Return the approved signed records for publishing integration.
+
+A **signed record** lets an agent check the issuer and detect changes to the record. It
+does not independently establish that the underlying business claim is true. Eligible
+priced benefits are capped by both the merchant's declared ceiling and the shopper's own
+valuation. Unverified or unpriced claims earn no monetary credit. A verified, unpriced
+repairability claim can still answer a shopper's repair preference.
+
+## What is UCP?
+
+**Universal Commerce Protocol (UCP)** is a shared way for shopping software and retailers to
+exchange commerce information. Think of it as a standard conversation:
+
+| A shopping agent asks… | BondLayer responds with… |
+|---|---|
+| "What can your store support?" | A merchant profile listing supported features |
+| "Do you sell laptops under $1,500?" | Matching catalogue entries |
+| "Tell me about this product." | Product details |
+| "Confirm the selected order." | A checkout confirmation |
+
+You provide the business information and files; BondLayer generates the technical responses.
+You do not need to write UCP messages to onboard a store.
+
+BondLayer adds two optional capabilities:
+
+- **`org.bondlayer.benefit_value`:** benefit records attached to catalogue results, with
+  signatures, conditions and monetary ceilings where applicable.
+- **`org.bondlayer.intent_match`:** lets a compatible agent send a shopper's sentence to a
+  merchant and receive product proposals with reasons for each match.
+
+An agent declares which features it understands. Basic agents receive the basic catalogue;
+agents supporting the extensions can use the extra information when a merchant publishes
+it. Verification, shopper-specific valuation and cross-merchant ranking remain agent-side.
+The implementation targets the UCP draft dated `2026-04-08`; protocol certification is on
+the roadmap.
+
+## Troubleshooting
+
+| Problem | Next step |
+|---|---|
+| The workspace is empty | Add your first merchant. Bundled demo merchants are not loaded by default. |
+| Missing columns or blank required cells | Use the template's exact lowercase headers and fill `sku`, `title`, `category`, `price`. |
+| No rows for the selected merchant | If the CSV contains a `merchant` column, check that it matches the store selected in the console. |
+| Merchant already exists | Update it through Catalogue rather than creating the same ID again. |
+| No usable products | Review prices, required fields and the merchant ID. At least one accepted product is needed. |
+| File too large / wrong format | Export UTF-8 CSV under 10 MB; prices must use AUD. |
+| No matches in the buyer-agent demo | Confirm publication, then ask for a category, price range or product actually in the upload. |
+| No benefits or request history | Catalogue uploads do not generate benefit records, and chat does not save request reports. |
+| "Already serving — leaving it alone" | A server is already running. Use the launcher's restart option after updating code. |
+| PowerShell blocks the launcher | Run `powershell -ExecutionPolicy Bypass -File .\run.ps1`. |
+| An older setup wizard still appears | The console is a static build. Rebuild it after frontend source changes, restart, and refresh the browser (developer steps below). |
+
+### Rebuild the console after frontend changes
+
+Developers need Node.js and npm for this step. Run from the repository root:
+
+```sh
+npm --prefix bondlayer/app ci
+npm --prefix bondlayer/app run build
+```
+
+The server serves `bondlayer/app/out/`, not the React source directly. The launchers install
+Python dependencies but do not rebuild that export. On Windows, keep `PYTHONUTF8=1` when
+running trace commands or tests so diagnostic symbols can be printed.
 
 ## Architecture
+
+The default upload path publishes catalogue-only merchants. The benefit and intent paths
+also support prepared signed records, as exercised by the historical demo.
 
 ```mermaid
 flowchart TD
@@ -65,50 +334,65 @@ flowchart TD
     UCP["BondLayer UCP server -- bondlayer/ :8000\nucp/server.py, capabilities.py, profile.py"]
     Intent["Intent route (merchant-side decode)\nucp/intent.py -- org.bondlayer.intent_match"]
     Interp["Intent interpreter\ninterpreter/parser.py, resolver.py, interpreter/describe.py"]
-    Comp["Composition root + trace\nagent/composition.py -- resolve() on the live path, Phase.BUNDLE"]
+    Comp["Agent-side comparison + trace\nagent/composition.py"]
     Bundle["Bundler\nbundle/compose.py"]
     Adapter["Catalogue adapter\nadapters/catalog.py"]
-    Records["Signed benefit records\nrecords/, keys/, data/records/*.signed.json"]
-    Policy["Policy onboarding\npolicy.py, data/policies/*.md"]
-    Data["Merchant data\ndata/catalog/electronics.csv, manifests.json"]
-    Dash["Merchant console /console/\napp/src -> app/out (Next.js static export), GET /onboard/*"]
+    Records["Prepared benefit records + public keys\ndata/records/, keys/"]
+    Policy["Offline policy library\nfixture-based drafts, review, signing"]
+    Data["Saved merchant profiles + catalogues\ndata/uploads/"]
+    Dash["Merchant console /console/\nNext.js static export"]
+    Onboard["Onboarding API\nvalidate, preview, publish"]
     Checkout["Checkout route\nucp/checkout.py -- dev.ucp.shopping.checkout"]
 
     Shopper --> Agent
-    Agent -- "UCP-Agent header declares/omits\norg.bondlayer.benefit_value" --> UCP
-    Agent -- "or negotiates org.bondlayer.intent_match\nsends the utterance verbatim" --> Intent
-    Agent -- "after ranking: checks out the winner\nciting the records it relied on" --> Checkout
+    Agent --> Comp
+    Comp -- "search declared capabilities" --> UCP
+    Agent -- "optional merchant-side reading" --> Intent
+    Agent -- "confirm selected offer" --> Checkout
     Checkout --> Records
     Intent --> Interp
     UCP --> Adapter --> Data
     UCP --> Records
-    UCP --> Comp
     Comp --> Interp
     Comp --> Bundle
-    Policy --> Records
-    UCP --> Dash
+    Dash --> Onboard
+    Onboard --> Adapter
+    Onboard -- "save on publish" --> Data
+    Policy -. "publishing integration required" .-> Records
 ```
 
 | Component | What it does | Path |
 |---|---|---|
-| Catalogue adapter | CSV export in, normalised `Sku` + `Diagnostic` out; repairs are logged, never silently applied | `bondlayer/src/bondlayer/adapters/catalog.py` |
-| UCP head | `/.well-known/ucp` profile, capability negotiation, `catalog.search` / `catalog.lookup` for three merchants on one code path | `bondlayer/src/bondlayer/ucp/{profile,capabilities,server}.py` |
-| Onboarding API | Merchant switcher, diagnostics report, CSV upload, `GET /onboard/requests` and `GET /onboard/requests/{id}` serving the eval runner's `RequestReport` JSON | `bondlayer/src/bondlayer/ucp/onboard.py` |
-| Signed benefit records | ES256 detached signature over canonical JSON; a record is signed iff it carries both a signature and a key id | `bondlayer/src/bondlayer/records/`, `bondlayer/keys/`, `bondlayer/data/records/*.signed.json` |
-| Policy onboarding | Merchant T&C/warranty/loyalty prose imported behind a human approval gate | `bondlayer/src/bondlayer/policy.py`, `bondlayer/data/policies/*.md` |
-| Valuation | `credited = min(declared_ceiling, shopper_policy_value)`; zero for unsigned or unpriced claims | `bondlayer/src/bondlayer/valuation/` |
-| Intent interpreter | Parses HARD / SOFT / SERVICE / VALUES clauses; `resolve()` runs on the live path (not a stub) and justifies each clause against catalogue attributes or verified records with a cited reason; `interpreter/describe.py` renders that same decode as JSON for the wire | `bondlayer/src/bondlayer/interpreter/{parser,resolver,describe}.py` |
-| Merchant-side intent route | `POST /{merchant}/ucp/intent/propose` — the merchant receives the shopper's utterance verbatim, runs the same parser and resolver on its own wire, and returns `decoded_intent` plus `proposals` cited to its own verified records; negotiated as `org.bondlayer.intent_match`, declared only by a merchant that also publishes the benefit extension, 406 otherwise (and always on the control) | `bondlayer/src/bondlayer/ucp/intent.py` |
-| Checkout route | `POST /{merchant}/ucp/checkout` — turns the chosen offer into an order confirmation (`status: confirmed_awaiting_payment`, `payment: {status: out_of_scope}`); with the benefit extension negotiated, returns one `honoured_benefits` verdict per cited record id (honoured only if published by this merchant, signed, unexpired, verifying against its own key and applying to a line item — otherwise the failing test in plain words) and the signed envelope of every honoured record. The server holds public keys only, so `order_id` is a deterministic content hash, not a new signature. 406 without the capability, 404 unknown SKU, 409 over published stock, 422 for any extra body field such as `shopper_policy` | `bondlayer/src/bondlayer/ucp/checkout.py` |
-| Merchant decode, agent side | The buyer agent sends the same sentence to every merchant that negotiated `org.bondlayer.intent_match` and appends one trace step with each merchant's `decoded_intent`, its first five proposals and a clause-by-clause agreement check against the agent's own decode; never read by the ranking | `bondlayer/src/bondlayer/agent/merchant_decode.py` |
-| Close the loop, agent side | After ranking, checks out one unit of the winner, citing exactly the verified records that moved its effective cost or answered a clause, and appends the merchant's confirmation as the last trace step; never changes the ranking, never cites an unverified record | `bondlayer/src/bondlayer/agent/close_loop.py` |
-| Bundler | Composes already-matched proposals from one merchant into a set with a togetherness rationale; never re-matches, never crosses merchants; a bundle of one is the valid degenerate case | `bondlayer/src/bondlayer/bundle/compose.py` |
-| Composition root + trace | Wires interpreter, merchants, valuation and the bundler into one request; renders the AI reasoning trace including the `Phase.RESOLVE` and `Phase.BUNDLE` steps | `bondlayer/src/bondlayer/agent/{composition,trace}.py` |
-| Merchant console | Served at `/console/`: per-merchant readiness and diagnostics worst first, Catalogue with **Upload catalogue** (a new merchant id in the CSV registers a catalogue-only retailer), Data quality, the Request console rendering the four figures and "why we lost/won" per request, and the **Ask BondLayer** bar, which answers a merchant's question from `/onboard/report/{merchant}` with no model. Every figure is fetched from `/onboard/*`; the Next.js static export in `app/out` is committed, so no Node runs at the venue. The older no-build dashboard is still served at `/dashboard/` for compatibility | `bondlayer/app/src/`, `bondlayer/app/out/` |
-| Buyer-agent stand-in | The demo harness: turns a shopper's sentence into a UCP request against the running merchant server, shows the "Merchant's own reading" block between the trace and the ranking, and renders the checkout receipt last; one static page in the console's visual style, no separate build step | `buyer-agent/src/agent/` |
+| Catalogue adapter | CSV to normalised products and diagnostics; records repairs and rejected rows | `bondlayer/src/bondlayer/adapters/catalog.py` |
+| Onboarding and storage | Template, preview, merchant registration, publication and restart persistence | `bondlayer/src/bondlayer/ucp/onboard.py`, `bondlayer/src/bondlayer/ucp/storage.py` |
+| UCP surface | Merchant profiles, capability negotiation, catalogue search and lookup | `bondlayer/src/bondlayer/ucp/` |
+| Benefit records | ES256 signatures over canonical JSON, serialization and verification | `bondlayer/src/bondlayer/records/`, `bondlayer/keys/` |
+| Offline policy service | Fixture-based drafts, human editing/approval and signing; console integration incomplete | `bondlayer/src/bondlayer/policy.py` |
+| Interpreter | Decodes requirements and justifies matches against catalogue attributes or verified records | `bondlayer/src/bondlayer/interpreter/` |
+| Valuation | Caps eligible monetary credit by the merchant ceiling and shopper policy | `bondlayer/src/bondlayer/valuation/` |
+| Agent composition | Connects matching, valuation and trace output; adds merchant readings and checkout | `bondlayer/src/bondlayer/agent/` |
+| Bundler | Combines matched items from one merchant into a set with a rationale | `bondlayer/src/bondlayer/bundle/compose.py` |
+| Checkout | Rechecks cited benefit records and returns a confirmation; no payment or order store | `bondlayer/src/bondlayer/ucp/checkout.py` |
+| Merchant console | Onboarding, catalogue reports, data quality and report-based help | `bondlayer/app/src/`, `bondlayer/app/out/` |
+| Buyer-agent stand-in | Discovers local merchants, demonstrates comparison and displays the trace and receipt | `buyer-agent/src/agent/` |
 
 `bondlayer/src/bondlayer/types.py` is the one shared contract every component above imports.
 It is frozen on feature branches; a change goes to the team before it lands.
+
+### Protocol details
+
+- **Publishing:** `GET /{merchant}/.well-known/ucp` describes supported capabilities and public
+  signing keys. `catalog.search` and `catalog.lookup` carry benefit records only when both
+  parties negotiate `org.bondlayer.benefit_value`.
+- **Optional intent matching:** `POST /{merchant}/ucp/intent/propose` receives the shopper's
+  sentence verbatim and returns the merchant's decoded requirements and proposals. It requires
+  `org.bondlayer.intent_match`. The agent's cross-merchant ranking does not read these proposals.
+- **Checkout:** `POST /{merchant}/ucp/checkout` receives SKU IDs, quantities and cited record
+  IDs. A cited benefit is honoured only if published by that merchant, signed, unexpired,
+  verifying against its public key and applicable to an order item. Conditions still apply.
+  The order carries the existing signed records; its ID is a content hash, not a new signature.
+- **Shopper control:** valuation policy and cross-merchant comparison remain agent-side.
+  Extra checkout fields such as `shopper_policy` are rejected.
 
 ## Technologies, APIs, and every external resource (Rulebook §C.5.b)
 
@@ -127,8 +411,8 @@ Declared in full, as the rules require, so nothing here is an undisclosed depend
   built once with `npm run build` into a static export (`bondlayer/app/out/`, committed) that
   the merchant server mounts at `/console/`. Fonts (Figtree, Space Grotesk) are self-hosted in
   the export; nothing is fetched at runtime and no Node is needed to run the demo.
-- **React, vendored as UMD builds** (`bondlayer/app/vendor/`) — the older no-build dashboard,
-  still served at `/dashboard/` for compatibility.
+- **React, vendored as UMD builds** — retained for the historical no-build dashboard.
+  The `/dashboard/` entry point redirects to the merchant console.
 - **No separate chat UI build.** The buyer-agent stand-in serves one static page,
   `buyer-agent/src/agent/static/index.html`, from the agent's own FastAPI process on
   :8001. There is no Vite/TypeScript `src/ui/` in this build — an earlier draft of this
@@ -140,215 +424,114 @@ Declared in full, as the rules require, so nothing here is an undisclosed depend
   namespaced under `org.bondlayer.*` rather than `dev.ucp.*` because `dev.ucp.*` is reserved
   for capabilities governed by the UCP Tech Council itself (`bondlayer/docs/stage1-agent-ready-catalog.md`
   §5.6) — a third party may extend UCP only inside its own namespace.
-- **OpenAI, optional, prose-only** — if `OPENAI_API_KEY` is set (in `buyer-agent/.env`, see
-  [Run it](#run-it)), the buyer-agent stand-in asks
+- **OpenAI, optional, prose-only** — if `OPENAI_API_KEY` is set, the buyer-agent stand-in asks
   a model for one paragraph of rationale generated from the already-computed trace; if it is
   not set, a template sentence is rendered instead and the trace records
   `"prose: template (no model key)"`. No code path on the ranking or valuation side ever calls
   a model, and `buyer-agent/src/agent/llm.py` never raises for a missing key or a failed
-  model call — both fall back to the template sentence.
-- **No third-party dataset.** The electronics catalogue (`bondlayer/data/catalog/electronics.csv`),
+  model call — both fall back to the template sentence. To opt in, copy
+  `buyer-agent/.env.example` to `buyer-agent/.env` (gitignored), set the key and restart the
+  agent. This makes an external API call containing the request and computed comparison;
+  leave the key unset for offline operation. Rankings do not depend on a model.
+- **Historical test data is synthetic.** The electronics catalogue (`bondlayer/data/catalog/electronics.csv`),
   the three merchant manifests, the policy documents and the 30-request evaluation set are all
   synthetic, authored inside the competition window on 12/09/2026 from public product-page
-  conventions, per assumption A1 in the submitted Round 1 proposal.
-- **No network call at runtime.** `pip install` / `npm install` during setup are the only
-  downloads; the demo runs entirely from seeded local state, because venue wifi is shared by
-  twenty teams.
+  conventions, per assumption A1 in the submitted Round 1 proposal. Normal operation loads
+  merchant uploads instead of this bundled dataset.
+- **Offline-capable runtime.** The merchant service reads local data; the buyer-agent demo
+  makes local HTTP requests to it. External downloads are needed during setup, and external
+  runtime calls occur only if optional model narration is enabled.
 
-## Run it
+## Historical benefit demo
 
-One command from a clean clone. Needs Python 3.12+ only — no Node, no network at runtime.
+The R01 scenario below uses the bundled, synthetic merchants **Voltway, CityCircuit and
+NorthGear** and their prepared benefit records. It demonstrates the benefits protocol; it
+is separate from onboarding your own catalogue. Recorded R01 figures were verified at
+`66bb37c`; the evaluation table below records its own revision and method.
 
-**Windows (PowerShell)**
+To run the merchant service with this historical data, set `BONDLAYER_TEST_DATA=1` before
+starting it. This mode loads the bundled merchants and precomputed request reports instead
+of your saved uploads. The launchers do not enable it automatically.
+
+**PowerShell, from the repository root:**
 
 ```powershell
+$env:BONDLAYER_TEST_DATA = "1"
 $env:PYTHONUTF8 = "1"
-.\run.ps1             # venv, install, merchant server :8000, buyer agent :8001
-.\run.ps1 -Restart    # stop the BondLayer servers already on :8000/:8001, start fresh ones
-.\run.ps1 -Check      # venv, install, pytest
-.\run.ps1 -Setup      # install only, start nothing
-.\run.ps1 -NoAgent    # merchant server only
+.\run.ps1 -Restart
 ```
 
-If scripts are blocked: `powershell -ExecutionPolicy Bypass -File .\run.ps1`.
-
-**macOS / Linux**
+**macOS / Linux:**
 
 ```bash
-./run.sh              # venv, install, merchant server :8000, buyer agent :8001
-./run.sh --restart    # stop the BondLayer servers already on :8000/:8001, start fresh ones
-./run.sh --check      # venv, install, pytest -- what scripts/clean_clone_check.sh runs
-./run.sh --setup      # install only, start nothing
-./run.sh --no-agent   # merchant server only
+BONDLAYER_TEST_DATA=1 ./run.sh --restart
 ```
 
-Then open:
+In the buyer-agent page, try R01 with benefits off and on. In the Request console, the 30
+scenarios are precomputed evaluation reports, not new customer activity. To return to your
+uploads, unset `BONDLAYER_TEST_DATA` and restart; in PowerShell use
+`Remove-Item Env:BONDLAYER_TEST_DATA`, or `unset BONDLAYER_TEST_DATA` in a POSIX shell.
 
-| URL | What it is |
-|---|---|
-| <http://127.0.0.1:8000/console/> | **Merchant console** — readiness per merchant, catalogue diagnostics, Upload catalogue, the Request console, and the Ask BondLayer bar |
-| <http://127.0.0.1:8001/> | **Buyer-agent chat** — type a shopping request; control and BondLayer panes side by side, the trace, the merchant's own reading, the checkout receipt |
-| <http://127.0.0.1:8000/docs> | API docs for the merchant server |
-| <http://127.0.0.1:8000/dashboard/> | the older no-build dashboard, kept for compatibility and no longer advertised |
+**R01:** *"a laptop under $1,500 I can return easily if it turns out not to suit my work,
+from a brand that actually repairs things."*
 
-**"already serving -- leaving it alone" is not an error.** The launcher never starts a second
-copy of a server. If :8000 or :8001 already answers, it prints the links and ends with
-`(everything was already running; nothing to wait on)`, and that server keeps the code it was
-started with. After pulling new code, use `.\run.ps1 -Restart` (`./run.sh --restart`): it stops
-only processes running `run_server.py` or `src.agent.main` on those ports — anything else
-holding a port is reported and left alone — and starts fresh ones. Ctrl-C stops what a run
-started. `PYTHON`, `BONDLAYER_PORT` and `AGENT_PORT` override the interpreter and ports.
+| Recorded result | Benefits off | Benefits on |
+|---|---|---|
+| Requirements answered | 2 of 4 | 4 of 4; two rely on verified benefit records |
+| Winner | CityCircuit `CIT-0032` | Voltway `VOL-0031` |
+| Shelf price / checkout subtotal | $1,066.00 | $1,142.96 |
+| Effective comparison cost | $1,066.00 | $933.01 |
+| Benefits acknowledged in confirmation | None | 6 of 6 cited records |
 
-**OpenAI key (optional).** Copy `buyer-agent/.env.example` to `buyer-agent/.env` (gitignored)
-and set `OPENAI_API_KEY`, then restart the agent. It writes one paragraph of prose on the chat
-page after the ranking is already decided; without a key the page shows a template sentence and
-the trace records `prose: template (no model key)`. Rankings and figures are identical either way.
+The returns and repair preferences cite `vw-returns-60` and `vw-repairability-parts-5y`.
+The repairability record answers a preference but earns no monetary credit. With benefits
+on, the trace also shows each participating merchant's own reading of the request; this
+does not change the agent's ranking. Both checkout results say payment is out of scope.
 
-**Uploading a catalogue.** Console → Catalogue → **Upload catalogue**, a UTF-8 CSV with at least
-`sku, merchant, title, category, price`. The `merchant` column decides whose catalogue it is: a
-seeded merchant (`voltway`, `citycircuit`, `northgear`) has its catalogue replaced; a new id
-(for example `bigw`) is registered as a catalogue-only retailer with no benefit records. The
-file is analysed before it is published; a CSV missing required columns, or with no rows for
-the merchant named, is refused with a 400 and the reason. Uploads are kept in
-`bondlayer/data/uploads/` (gitignored) and load again on restart.
+For protocol inspection, use the running server's [API reference](http://127.0.0.1:8000/docs).
+The same catalogue route returns basic products without an extension declaration and benefit
+records when `UCP-Agent` declares both catalogue capabilities and `org.bondlayer.benefit_value`.
+Intent matching additionally requires `org.bondlayer.intent_match`; checkout requires
+`dev.ucp.shopping.checkout`.
 
-**Ask BondLayer.** The bar at the bottom of the console answers questions about the selected
-merchant — "how do I improve my performance", "what's wrong with my prices", "worst blockers" —
-by selecting and grouping that merchant's diagnostics from `GET /onboard/report/{merchant}`,
-worst first, with the server's own explanation for each. No model is called; the panel says
-which word it matched and where the answer came from.
+Developer trace, from the repository root after setup:
 
-**On Windows**, `PYTHONUTF8=1` matters for the tests too. The trace prints `←` and `✓`, which a
-default cp1252 console cannot encode: without it `scripts/trace_run.py` raises
-`UnicodeEncodeError` and the eight tests that run it as a subprocess fail. With it,
-`bondlayer/`'s suite is 295 passed and `buyer-agent/`'s is 15 passed.
-
-**Manual path**, if you want the merchant server without the launcher:
+```powershell
+# PowerShell; append --control to compare without benefit records.
+$env:BONDLAYER_TEST_DATA = "1"
+$env:PYTHONUTF8 = "1"
+.\.venv\Scripts\python.exe bondlayer/scripts/trace_run.py 'a laptop under $1,500 I can return easily if it turns out not to suit my work, from a brand that actually repairs things.'
+```
 
 ```bash
-cd bondlayer
-pip install -e '.[dev]'
-python run_server.py        # :8000, or the next free port if it is busy
-pytest                       # bondlayer/'s own suite, offline
+BONDLAYER_TEST_DATA=1 .venv/bin/python bondlayer/scripts/trace_run.py 'a laptop under $1,500 I can return easily if it turns out not to suit my work, from a brand that actually repairs things.'
 ```
 
-### The R01 demo script
-
-R01 is the frozen request the proposal and the pitch both use: *"a laptop under $1,500 I can
-return easily if it turns out not to suit my work, from a brand that actually repairs
-things."* One hard price filter, one soft performance signal, one service constraint, one
-values constraint — the four clause kinds in `bondlayer/data/eval/taxonomy.md`.
-
-1. **Plain UCP — what every agent in the world does today.**
-   ```bash
-   curl "localhost:8000/voltway/ucp/catalog/search?category=laptop&max_price=1500"
-   ```
-   No `extensions` key in the response at all — absent, not empty.
-
-2. **An agent that declares the extension.** Search itself must be negotiated the same way
-   lookup is — declare both catalog capabilities plus the benefit extension in one header:
-   ```bash
-   curl -H "UCP-Agent: dev.ucp.shopping.catalog.search;dev.ucp.shopping.catalog.lookup;org.bondlayer.benefit_value" \
-        "localhost:8000/voltway/ucp/catalog/search?category=laptop&max_price=1500"
-   ```
-   Same route, same response builder, same merchants. The only difference is that
-   `extensions` now carries each product's benefit records, signed or not, each tagged
-   `signed: bool`.
-
-3. **The toggle, end to end.** Through the buyer-agent stand-in (`buyer-agent`) or
-   `bondlayer/scripts/trace_run.py "a laptop under \$1,500 I can return easily if it turns out
-   not to suit my work, from a brand that actually repairs things."` (`--control` for off),
-   submit R01 with the BondLayer switch off, then on.
-   - **On:** the trace's `[resolve: ok]` step reads `4 of 4 constraints answered; 2 answered
-     only by a verified record.` Per constraint: the price and RAM/weight clauses resolve
-     against catalogue attributes; the return-easily (SERVICE) and repairs-things (VALUES)
-     clauses are each cited to a specific verified record on the winner, Voltway
-     `VOL-0031` — `vw-returns-60` and `vw-repairability-parts-5y`. Voltway wins on effective
-     cost **$933.01** against a $1,142.96 shelf price, never the cheapest shelf price anywhere
-     in the catalogue, once those signed return-window, warranty and repairability records are
-     credited under the shopper's own policy.
-   - **Off (`--control`):** the trace's `[resolve: degraded]` step reads `2 of 4 constraints
-     answered; 0 answered only by a verified record`, and the two unanswerable clauses each
-     carry the marker `← no catalogue attribute answers this`. No merchant response in the log
-     carries an `extensions` key. CityCircuit `CIT-0032` wins on shelf price alone at
-     **$1,066.00** — cheapest shelf, no flip.
-   - **The merchant's own reading.** With the switch on, the trace's `merchant decode (POST
-     /ucp/intent/propose)` section shows what each merchant understood from the same
-     sentence: Voltway and NorthGear each decode 4 constraints and agree with the agent 4/4
-     (Voltway's first proposal answers 4/4 clauses; NorthGear's answers 3/4, unsatisfied on
-     the repairs clause), and CityCircuit did not negotiate `org.bondlayer.intent_match`, so
-     it decoded nothing. Off, the sentence is not sent at all. The ranking never reads this
-     block — it is what the merchants proposed, not what the agent decided.
-   - **The receipt.** The last section, `close the loop (POST /ucp/checkout)`, is the order
-     the winner became. On: Voltway `VOL-0031`, `confirmed_awaiting_payment`, subtotal
-     $1,142.96, **6/6 cited records honoured** and bound into the order (returns, warranty,
-     points, member price, delivery, repairability). Off: CityCircuit `CIT-0032`, subtotal
-     $1,066.00, a plain UCP order that binds no records. Both say payment is out of scope.
-
-4. **The bundle.** `bondlayer/scripts/trace_run.py "Everything I need to start a podcast, under
-   $1,200 all up"` composes a five-item Voltway set — microphone, headphones, interface, XLR
-   cable, boom arm — at a combined shelf price of **$723.08**, with a togetherness rationale
-   and each item's own cited notes underneath, rendered as a `Phase.BUNDLE` step in the trace.
-   `bondlayer/docs/eval-results.md` scores this and one more bundle request (R06, R07) at 5/5
-   of the frozen gold set; a third (R24, "a work laptop and a dock, under $2,200 together")
-   composes 1 of 2 gold items because the frozen gold set names only laptops even though the
-   request asks for a dock too — reported as a gold-set gap, not fitted around.
-
-5. **The merchant-side intent route.** The same decode and match-with-justification can also
-   run on the merchant's own wire instead of the agent's. Declare the extra capability:
-   ```bash
-   curl -X POST "localhost:8000/voltway/ucp/intent/propose" \
-        -H "UCP-Agent: dev.ucp.shopping.catalog.search;dev.ucp.shopping.catalog.lookup;org.bondlayer.benefit_value;org.bondlayer.intent_match" \
-        -H "Content-Type: application/json" \
-        -d '{"utterance": "a laptop under $1,500 I can return easily if it turns out not to suit my work, from a brand that actually repairs things.", "limit": 5}'
-   ```
-   Voltway receives the utterance verbatim, decodes it with the same parser, and returns
-   `decoded_intent` (the parsed constraints, what the catalogue cannot answer, and a clarifying
-   question when nothing names a product) plus `proposals` cited to Voltway's own verified
-   records — `evidence_record_id` / `evidence_attribute` / `note` per clause, exactly as the
-   agent-side resolver reports them. `org.bondlayer.intent_match` is declared only by a merchant
-   that also publishes the benefit extension; CityCircuit and any agent that omits the
-   capability from its header get **406**. What never crosses this wire: the shopper's
-   valuation policy, its benefit weights, or the cross-merchant comparison — those stay
-   agent-side even here.
-
-6. **Closing the loop by hand.** Check out the R01 winner, citing two of the records that
-   answered its clauses plus one id Voltway never published:
-   ```bash
-   curl -X POST "localhost:8000/voltway/ucp/checkout" \
-        -H "UCP-Agent: dev.ucp.shopping.catalog.search;dev.ucp.shopping.catalog.lookup;dev.ucp.shopping.checkout;org.bondlayer.benefit_value" \
-        -H "Content-Type: application/json" \
-        -d '{"items": [{"sku_id": "VOL-0031", "quantity": 1}], "cited_record_ids": ["vw-returns-60", "vw-repairability-parts-5y", "made-up-id"]}'
-   ```
-   The response carries `order` (`order_id`, `status: confirmed_awaiting_payment`, subtotal
-   AUD 1142.96, `payment.status: out_of_scope`), `honoured_benefits` — `vw-returns-60` and
-   `vw-repairability-parts-5y` honoured with the reason they hold, `made-up-id` refused as
-   `not published by this merchant` — and `extensions` carrying the signed envelopes of the
-   two honoured records. The same body twice gives the same `order_id`. Drop
-   `dev.ucp.shopping.checkout` from the header and the call is **406**; add a
-   `shopper_policy` field to the body and it is **422**, because the merchant must never
-   receive it. The same call against CityCircuit returns a plain order with no
-   `honoured_benefits` or `extensions` key.
-
-7. **The tamper test.** Inflate an unsigned claim's declared value and re-run: ranking does
-   not move, because an unsigned record is displayed and never credited, and a larger
-   declared ceiling on a signed record is still only a ceiling — the shopper's own policy
-   value caps it, so inflating it cannot buy rank either. Both are enforced as tests
-   (`bondlayer/tests/test_invariants.py`), not asserted in a slide.
+`bondlayer/tests/test_invariants.py` checks that unverified claims earn no credit and that
+merchant ceilings do not override shopper valuation. The bundle examples and their known
+gold-set gap are recorded in the evaluation below.
 
 ## Evaluation
 
 **30 requests, frozen at 10:50 on 12/09 (`7b086bb`) before the enriched feed existed; one
 gold-set correction at 13:16 (`5463287`).**
 
-The table below is copied from `bondlayer/docs/eval-results.md` at commit `339a7ed`
+The table below is copied from [the evaluation report](bondlayer/docs/eval-results.md) at commit `339a7ed`
 (generated by `python scripts/eval_run.py` at `90de308`, re-verified byte-identical at
 `339a7ed`), per the numbers policy: a figure appears here only if it exists in that file with
-a commit hash, and only after it has been reproduced once. No number below is invented.
-Reproduce with:
+a commit hash, and only after it has been reproduced once. These are historical synthetic
+benchmark results, not performance measurements for a newly uploaded store.
+To rerun the evaluation after launcher setup, use the environment it installed:
 
-```bash
-cd bondlayer && pip install -e '.[dev]' && pytest -q && python scripts/eval_run.py
+```powershell
+# Windows, from the repository root
+$env:PYTHONUTF8 = "1"
+.\.venv\Scripts\python.exe bondlayer/scripts/eval_run.py
+```
+
+```sh
+# macOS / Linux, from the repository root
+.venv/bin/python bondlayer/scripts/eval_run.py
 ```
 
 | Metric | BondLayer | Control (no records) | Command | Commit |
@@ -364,10 +547,10 @@ cd bondlayer && pip install -e '.[dev]' && pytest -q && python scripts/eval_run.
 | Kind confusions (total) | 2 | — | — | `339a7ed` |
 | Perfect decodes (precision = recall = 1.00, no confusion) | 22/30 | — | — | `339a7ed` |
 
-**The one number that matters** is the SERVICE + VALUES row: HARD and SOFT clauses resolve
+**The main result** is the SERVICE + VALUES row: HARD and SOFT clauses resolve
 identically whether or not records exist — a competent catalogue search handles price, RAM and
-weight. The gap is entirely in SERVICE and VALUES, the clauses no product export has a column
-for: 83% answered against 0%, because the control reports them honestly unsatisfied with the
+weight. The gap is in SERVICE and VALUES, the requirements this evaluation's basic product
+export cannot answer: 83% answered against 0%, because the control reports them unsatisfied with the
 marker `← no catalogue attribute answers this` rather than guessing.
 
 **Bundle requests.** Three of the thirty requests have a *set* for a gold answer. R06 and R07
@@ -386,7 +569,7 @@ with 100,000 members spending an average of $400/year, the 37% brand-switch-tole
 (Accenture 2026) puts roughly $14.8m of annual revenue inside an agent's comparison each
 year — currently undefended, because none of it is legible at the moment of comparison.
 
-**Value model.** BondLayer is a hosted publishing layer, not a per-transaction toll: a
+**Proposed value model.** A hosted publishing layer with a
 per-merchant subscription, priced on request volume and catalogue size rather than a share of
 sales. The agent-side valuation logic is open, so the arithmetic behind a credited figure is
 independently auditable rather than merchant-controlled — a merchant pays for legibility, not
@@ -406,20 +589,20 @@ for influence over the ranking.
 retail delivery practice foremost — plus e-commerce agencies and, longer-term, a UCP
 platform/app-store listing once the extension has adoption evidence behind it.
 
-**Roadmap.** Pilot with one mid-market electronics retailer in shadow mode → protocol
+**Roadmap.** Connect policy upload, merchant review and benefit publication → support policy
+extraction beyond the prepared fixtures → pilot with one mid-market electronics retailer in shadow mode → protocol
 certification against the UCP conformance suite → an agent-side SDK so a sceptical agent can
 re-derive the arithmetic itself → propose `org.bondlayer.benefit_value` upstream to UCP as an
 open contribution once real merchants have exercised it.
 
 ## Deployability and scale
 
-BondLayer is a stateless publishing layer: it holds no per-shopper state and makes no
-comparison decision, so it scales by **merchant count, not shopper count** — the merchant
-never learns it was compared, and every response is cacheable, since a signed record is valid
-until its stated `expires_at` regardless of who asks for it next. Cost per merchant is
-dominated by catalogue and policy re-processing on ingest, not by serving traffic, which is
-what makes it reachable by a mid-market retailer that cannot re-platform for every agent that
-starts shopping its catalogue.
+The prototype persists merchant profiles and catalogues on disk and serves their parsed
+products from memory. It holds no per-shopper valuation state and leaves comparison decisions
+to the agent. Capacity depends on catalogue size, merchant count and request volume.
+Multi-instance deployment would need shared persistent storage, coordinated catalogue refresh
+and load testing. The repository demonstrates local operation rather than a measured
+production scaling result.
 
 ## Security and privacy
 
@@ -432,9 +615,9 @@ benefit is worth to them, what premium they will tolerate — stays in the agent
 sent to a merchant, so no merchant can price against it. That holds at checkout too: the
 merchant receives SKU ids, quantities and the record ids the agent cited, and the request
 model rejects any extra field (a `shopper_policy` key is a 422, not a silently ignored leak).
-An order binds only records the merchant can re-verify against its own published key. No PII travels on the wire in this
-prototype: Round 2 uses synthetic member data only, matching assumption A7 in the submitted
-proposal.
+An order binds only records the merchant can re-verify against its own published key.
+The optional intent route receives the shopper's sentence verbatim; the base catalogue path
+receives search filters instead. Historical evaluation uses synthetic member assumptions.
 
 ## Problem Setter input
 

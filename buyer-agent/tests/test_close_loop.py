@@ -61,6 +61,7 @@ class FakeCheckout:
 
 
 def _patch(monkeypatch, checkout):
+    monkeypatch.setattr(ucp_client, "discover_merchants", lambda *a: ["voltway", "citycircuit", "northgear"])
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setattr(ucp_client, "make_fetcher", lambda *a, **k: _mock_fetch)
     monkeypatch.setattr(ucp_client, "make_verifier", lambda *a, **k: (lambda entry: True))

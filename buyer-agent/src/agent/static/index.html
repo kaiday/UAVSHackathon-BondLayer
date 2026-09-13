@@ -352,7 +352,7 @@
     <span class="sep" aria-hidden="true"></span>
     <div class="titles">
       <h1>Buyer-agent stand-in — not a consumer product</h1>
-      <p>compares Voltway, CityCircuit and NorthGear over real UCP, ranked by deterministic effective cost</p>
+      <p>compares your onboarded merchants over UCP, ranked by deterministic effective cost</p>
     </div>
   </div>
   <div class="health">
@@ -701,7 +701,9 @@ function paneHtml(d, header) {
   // ranked: "nobody could decode it" is a finding too.
   html += merchantDecodeHtml(d.merchant_decodes);
   if (!d.ranked || !d.ranked.length) {
-    html += '<p class="empty">No merchant returned a matching, priced listing.</p>';
+    html += d.onboarding_required
+      ? '<p class="empty">No merchants yet. <a href="/onboarding">Onboard your first merchant</a> and upload a catalogue.</p>'
+      : '<p class="empty">No merchant returned a matching, priced listing.</p>';
     return html;
   }
   html += bundleHtml(d.bundles, d.ranked);
@@ -776,7 +778,7 @@ async function health() {
   try {
     const j = await (await fetch('/merchant-health')).json();
     $('d-m').className = 'dot ' + (j.reachable ? 'ok' : 'bad');
-    $('t-m').textContent = j.reachable ? 'merchant up' : 'merchant down';
+    $('t-m').textContent = j.reachable ? (j.merchants ? 'merchant up' : 'no merchants — start onboarding') : 'merchant down';
   } catch (e) {
     $('d-m').className = 'dot bad';
     $('t-m').textContent = 'merchant down';

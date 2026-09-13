@@ -144,7 +144,7 @@ if (Port-Busy $MerchantPort) {
     -WorkingDirectory (Join-Path $Root "bondlayer") -PassThru -NoNewWindow `
     -RedirectStandardOutput (Join-Path $LogDir "merchant.log") `
     -RedirectStandardError (Join-Path $LogDir "merchant.err.log")
-  if (Wait-For "http://127.0.0.1:$MerchantPort/voltway/.well-known/ucp") {
+  if (Wait-For "http://127.0.0.1:$MerchantPort/health") {
     Write-Host "   up (log: .run\merchant.log)"
   } else {
     Write-Host "   FAILED to start; see .run\merchant.err.log"
@@ -205,8 +205,8 @@ if ($StartAgent -and $StartUi -and (Test-Path (Join-Path $UiDir "package.json"))
 
 # ------------------------------------------------------------------ URLs ----
 Say "ready"
-Write-Host "   merchant profile   http://127.0.0.1:$MerchantPort/voltway/.well-known/ucp"
-Write-Host "   plain UCP search   http://127.0.0.1:$MerchantPort/voltway/ucp/catalog/search?category=laptop&max_price=1500"
+Write-Host "   merchant health    http://127.0.0.1:$MerchantPort/health"
+Write-Host "   add a merchant     http://127.0.0.1:$MerchantPort/console/onboarding/"
 Write-Host "   merchant console   http://127.0.0.1:$MerchantPort/console/"
 Write-Host "   onboarding API     http://127.0.0.1:$MerchantPort/onboard/merchants"
 Write-Host "   API docs           http://127.0.0.1:$MerchantPort/docs"

@@ -25,6 +25,8 @@ from bondlayer.ucp.server import create_app  # noqa: E402
 from src.agent import main, ucp_client  # noqa: E402
 from tests.test_query import _mock_fetch  # noqa: E402
 
+MERCHANTS = ["voltway", "citycircuit", "northgear"]
+
 #: Every key ``/query`` returned before this workstream. All must survive.
 PRE_EXISTING_KEYS = {
     "user_query", "bondlayer_enabled", "ucp_agent_header", "constraints", "steps",
@@ -68,6 +70,7 @@ class FakeProposer:
 
 
 def _patch(monkeypatch, proposer):
+    monkeypatch.setattr(ucp_client, "discover_merchants", lambda *a: MERCHANTS)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setattr(ucp_client, "make_fetcher", lambda *a, **k: _mock_fetch)
     monkeypatch.setattr(ucp_client, "make_verifier", lambda *a, **k: (lambda entry: True))
@@ -89,7 +92,7 @@ def test_toggle_on_returns_three_merchant_decodes_next_to_the_ranking(monkeypatc
     assert md["outcome"] == "ok"
     assert md["summary"].startswith("2 of 3 merchants decoded the request themselves")
     entries = md["merchant_decodes"]
-    assert [e["merchant"] for e in entries] == ucp_client.MERCHANTS
+    assert [e["merchant"] for e in entries] == MERCHANTS
     by = {e["merchant"]: e for e in entries}
 
     assert by["voltway"]["negotiated"] and by["northgear"]["negotiated"]
@@ -113,7 +116,7 @@ def test_toggle_on_returns_three_merchant_decodes_next_to_the_ranking(monkeypatc
         assert top["price"] == "920.00"
 
     # The sentence went to every merchant verbatim, with the extension on.
-    assert fake.calls == [(m, "a laptop I can return easily", True) for m in ucp_client.MERCHANTS]
+    assert fake.calls == [(m, "a laptop I can return easily", True) for m in MERCHANTS]
 
     # And it is in the trace as an ordinary step, findable by its detail kind.
     steps = [s for s in body["steps"] if s["detail"].get("kind") == "merchant_decode"]

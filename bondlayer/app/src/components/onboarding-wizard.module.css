@@ -24,7 +24,7 @@
 .header .brand{gap:11px;font-size:17px}
 .header .brand{font-family:var(--font-display),sans-serif}
 .header h1,.stage h2,.complete h1{font-weight:600}
-.header .brand span{width:43px;height:43px;border-radius:0;font-size:0;background:url('/bondlayer-logo.svg') center / contain no-repeat;filter:drop-shadow(0 5px 8px rgba(255,122,0,.2))}
+.header .brand span{width:43px;height:43px;border-radius:0;font-size:0;background:url('/console/bondlayer-logo.svg') center / contain no-repeat;filter:drop-shadow(0 5px 8px rgba(255,122,0,.2))}
 .card{animation:onboarding-fade-up .3s ease-out both}@keyframes onboarding-fade-up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @media (prefers-reduced-motion:reduce){.card{animation:none}}
 .callout button,.quiet{padding:8px 11px!important;font-size:11px!important;font-weight:700}

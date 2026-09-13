@@ -48,7 +48,6 @@ from bondlayer.valuation.reference_policy import REFERENCE_SHOPPER_POLICY
 #: a merchant server running anywhere -- never a second implementation, always
 #: bondlayer's own.
 MERCHANT_BASE_URL = os.environ.get("BONDLAYER_MERCHANT_URL", "http://127.0.0.1:8000")
-MERCHANTS = ["voltway", "citycircuit", "northgear"]
 
 #: The reference shopper (bondlayer.valuation.reference_policy) -- the same one
 #: bondlayer/scripts/trace_run.py and the evaluation run are valued against.
@@ -102,7 +101,7 @@ def _params_from_plan(plan: dict) -> dict:
     The interpreter already decoded category, ceiling and any product name;
     this only spells them the way the search route reads them.
     """
-    params: dict = {}
+    params: dict = {"limit": 100}
     if plan.get("category"):
         params["category"] = str(plan["category"])
     if plan.get("max_price") is not None:
@@ -148,15 +147,26 @@ def make_fetcher(client: httpx.Client | None = None) -> Callable[..., dict]:
         header = CATALOG_SEARCH + ";" + CATALOG_LOOKUP
         if extension:
             header += ";" + BENEFIT_VALUE
-        response = http.get(
-            f"/{merchant}/ucp/catalog/search",
-            params=_params_from_plan(plan) if plan else _search_params(query),
-            headers={"UCP-Agent": header},
-        )
-        if response.status_code == 406:
-            raise PermissionError(response.json().get("detail", response.text))
-        response.raise_for_status()
-        return response.json()
+        params = {"limit": 100, **(_params_from_plan(plan) if plan else _search_params(query))}
+        combined = None
+        while True:
+            response = http.get(f"/{merchant}/ucp/catalog/search", params=params,
+                                headers={"UCP-Agent": header})
+            if response.status_code == 406:
+                raise PermissionError(response.json().get("detail", response.text))
+            response.raise_for_status()
+            body = response.json()
+            if combined is None:
+                combined = body
+            else:
+                combined["products"].extend(body.get("products", []))
+                for name, blocks in body.get("extensions", {}).items():
+                    combined.setdefault("extensions", {}).setdefault(name, []).extend(blocks)
+            offset = body.get("next_offset")
+            if offset is None or offset <= params.get("offset", -1):
+                combined["next_offset"] = None
+                return combined
+            params["offset"] = offset
 
     fetch.client = http  # type: ignore[attr-defined]
     fetch.owns_client = owns_client  # type: ignore[attr-defined]
@@ -229,7 +239,18 @@ def make_checkout(client: httpx.Client | None = None) -> Callable[..., dict | No
     return checkout
 
 
-def make_verifier(client: httpx.Client | None = None) -> Callable[[dict], bool]:
+def discover_merchants(client: httpx.Client | None = None) -> list[str]:
+    """Use the current registry on every query, including uploads made after start."""
+    if client is None:
+        with httpx.Client(base_url=MERCHANT_BASE_URL, timeout=10) as http:
+            return discover_merchants(http)
+    response = client.get("/onboard/merchants")
+    response.raise_for_status()
+    return [entry["merchant"] for entry in response.json()]
+
+
+def make_verifier(client: httpx.Client | None = None,
+                  *, merchants: list[str] | None = None) -> Callable[[dict], bool]:
     """Real ES256 verification against each merchant's own published key.
 
     Resolved from ``/.well-known/ucp``'s ``signing_keys[]`` the moment this is
@@ -238,9 +259,12 @@ def make_verifier(client: httpx.Client | None = None) -> Callable[[dict], bool]:
     verifies false: fail closed, exactly as ``bondlayer.agent.composition``
     expects of a ``verify`` callable.
     """
-    http = client or httpx.Client(base_url=MERCHANT_BASE_URL, timeout=10)
+    if client is None:
+        with httpx.Client(base_url=MERCHANT_BASE_URL, timeout=10) as http:
+            return make_verifier(http, merchants=merchants)
+    http = client
     keys_by_issuer: dict[str, dict[str, dict]] = {}
-    for merchant in MERCHANTS:
+    for merchant in merchants if merchants is not None else discover_merchants(http):
         try:
             response = http.get(f"/{merchant}/.well-known/ucp")
         except httpx.HTTPError:
@@ -284,8 +308,9 @@ def merchant_health() -> dict:
     """
     try:
         with httpx.Client(base_url=MERCHANT_BASE_URL, timeout=3) as http:
-            response = http.get("/voltway/.well-known/ucp")
-        return {"reachable": response.status_code == 200, "status_code": response.status_code}
+            response = http.get("/health")
+        return {"reachable": response.status_code == 200, "status_code": response.status_code,
+                "merchants": response.json().get("merchants", 0) if response.status_code == 200 else 0}
     except httpx.HTTPError as exc:
         return {"reachable": False, "error": str(exc)}
 
