@@ -44,5 +44,16 @@ def test_no_built_file_carries_mock_figures():
                 assert figure not in text, f"{figure!r} in {file.relative_to(CONSOLE)}"
 
 
+def test_the_ask_bar_answers_from_the_report_not_a_model():
+    """The prompt bar was a dead form; it now answers from /onboard/report and says so."""
+    bundle = "".join(
+        file.read_text(encoding="utf-8", errors="ignore")
+        for file in Path(CONSOLE).rglob("*.js")
+    )
+    assert "no AI model" in bundle
+    assert "Fix these first, worst first" in bundle
+    assert "Use voice input" not in bundle
+
+
 def test_the_old_dashboard_is_still_served():
     assert client.get("/dashboard/").status_code == 200
