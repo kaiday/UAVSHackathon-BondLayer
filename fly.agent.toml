@@ -12,7 +12,7 @@ primary_region = "syd"
   # Must be the merchant app's public URL. Change it if you renamed that app.
   BONDLAYER_MERCHANT_URL = "https://bondlayer-merchant.fly.dev"
   BONDLAYER_AI_MODE = "openai"
-  BONDLAYER_TEST_DATA = "0"
+  BONDLAYER_TEST_DATA = "1"
   # Set OPENAI_API_KEY and the SAME BONDLAYER_SERVICE_TOKEN as the merchant
   # using fly secrets. The agent sends reports over HTTP; it needs no volume.
 
