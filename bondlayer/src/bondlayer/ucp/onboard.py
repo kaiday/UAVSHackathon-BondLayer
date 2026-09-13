@@ -16,7 +16,7 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from bondlayer.adapters import CatalogReport, CsvCatalogAdapter
 
@@ -62,8 +62,14 @@ def _serialise(report: CatalogReport) -> dict:
 
 def seed() -> None:
     """Load the three merchants from the frozen catalogue at start-up."""
-    for merchant in ("voltway", "citycircuit", "northgear"):
-        _reports[merchant] = CsvCatalogAdapter(SEED_CATALOG, merchant=merchant).analyse()
+    _reports.clear()
+    merchants = {"voltway", "citycircuit", "northgear"}
+    merchants.update(path.stem for path in UPLOADS.glob("*.csv"))
+    for merchant in sorted(merchants):
+        source = UPLOADS / f"{merchant}.csv"
+        _reports[merchant] = CsvCatalogAdapter(
+            source if source.exists() else SEED_CATALOG, merchant=merchant
+        ).analyse()
     _seed_requests()
 
 
@@ -103,7 +109,9 @@ def merchants() -> list[dict]:
 
 
 @router.post("/catalog")
-async def upload_catalog(merchant: str, file: UploadFile) -> dict:
+async def upload_catalog(
+    merchant: str | None = None, file: UploadFile = File(...)
+) -> dict:
     """Accept a retailer's own export and report on it.
 
     Deliberately narrow: one CSV, one merchant, UTF-8, fail loudly. The demo
@@ -116,17 +124,44 @@ async def upload_catalog(merchant: str, file: UploadFile) -> dict:
     except UnicodeDecodeError:
         raise HTTPException(400, "catalogue must be UTF-8 encoded")
 
-    header = next(csv.reader(io.StringIO(text)), [])
+    rows = list(csv.DictReader(io.StringIO(text)))
+    header = rows[0].keys() if rows else []
     missing = {"sku", "merchant", "price", "title", "category"} - set(header)
     if missing:
         raise HTTPException(400, f"missing required columns: {sorted(missing)}")
+    file_merchants = {row["merchant"].strip() for row in rows if row["merchant"].strip()}
+    if merchant is None:
+        if len(file_merchants) != 1:
+            raise HTTPException(
+                400, "include exactly one merchant in the CSV or provide ?merchant="
+            )
+        merchant = next(iter(file_merchants))
+    if not merchant or merchant not in file_merchants:
+        raise HTTPException(400, f"CSV has no rows for merchant {merchant!r}")
 
+    from bondlayer.ucp import server
+
+    server.register_merchant(merchant)
     UPLOADS.mkdir(parents=True, exist_ok=True)
     path = UPLOADS / f"{merchant}.csv"
-    path.write_text(text, encoding="utf-8")
+    temporary = path.with_suffix(".uploading")
+    try:
+        # The adapter accepts filesystem paths so its normalisation pass
+        # remains identical for uploads and seeded data. Publish only after
+        # the complete analysis succeeds.
+        temporary.write_text(text, encoding="utf-8")
+        analysed = CsvCatalogAdapter(temporary, merchant=merchant).analyse()
+        temporary.replace(path)
+    except (OSError, UnicodeError) as exc:
+        temporary.unlink(missing_ok=True)
+        raise HTTPException(500, f"could not store catalogue: {exc}") from exc
+    except (KeyError, ValueError, csv.Error) as exc:
+        temporary.unlink(missing_ok=True)
+        raise HTTPException(400, f"catalogue could not be analysed: {exc}") from exc
 
-    _reports[merchant] = CsvCatalogAdapter(path, merchant=merchant).analyse()
-    return _serialise(_reports[merchant])
+    server.replace_catalogue(merchant, path)
+    _reports[merchant] = analysed
+    return {"merchant": merchant, "report": _serialise(analysed), "published": True}
 
 
 # --- "why we lost": the per-request console (WS-E) --------------------------

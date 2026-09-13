@@ -42,6 +42,7 @@ from bondlayer.ucp.profile import (
 from bondlayer.ucp.records import bundles_for, for_sku, load_records
 
 CATALOG = DATA / "catalog" / "electronics.csv"
+UPLOADS = DATA / "uploads"
 
 router = APIRouter(tags=["ucp"])
 
@@ -53,9 +54,42 @@ _records: dict[str, list[dict]] = {}
 def seed() -> None:
     """Load merchants, catalogues and published records once, at start-up."""
     _merchants.update(load_merchants())
+    for path in UPLOADS.glob("*.csv"):
+        merchant_id = path.stem
+        if merchant_id not in _merchants:
+            _merchants[merchant_id] = Merchant(
+                id=merchant_id,
+                display_name=merchant_id.replace("-", " ").title(),
+                domain=f"{merchant_id}.example",
+                role="retailer",
+                publishes_benefit_extension=False,
+                signs_records=False,
+            )
     for mid in _merchants:
-        _catalog[mid] = CsvCatalogAdapter(CATALOG, merchant=mid).load()
+        source = UPLOADS / f"{mid}.csv"
+        _catalog[mid] = CsvCatalogAdapter(
+            source if source.exists() else CATALOG, merchant=mid
+        ).load()
         _records[mid] = load_records(mid)
+
+
+def register_merchant(merchant_id: str) -> None:
+    """Register a catalogue-only retailer created by an upload."""
+    if merchant_id not in _merchants:
+        _merchants[merchant_id] = Merchant(
+            id=merchant_id,
+            display_name=merchant_id.replace("-", " ").title(),
+            domain=f"{merchant_id}.example",
+            role="retailer",
+            publishes_benefit_extension=False,
+            signs_records=False,
+        )
+        _records[merchant_id] = []
+
+
+def replace_catalogue(merchant_id: str, path: Path) -> None:
+    """Make a validated upload the live catalogue for an existing merchant."""
+    _catalog[merchant_id] = CsvCatalogAdapter(path, merchant=merchant_id).load()
 
 
 def _merchant(merchant_id: str) -> Merchant:
