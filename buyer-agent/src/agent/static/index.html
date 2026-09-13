@@ -5,318 +5,362 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BondLayer Buyer-Agent Stand-In</title>
 <style>
+  /* Tokens copied from bondlayer/app/src/app/globals.css so this page reads as
+     the same product as the merchant console. Visual only: every class the
+     script below writes keeps its name and meaning. */
   :root{
-    --bg:#eef1f6; --panel:#fff; --ink:#14161a; --muted:#6b7280; --line:#e3e7ee;
-    --brand:#ff6b35; --accent:#004e89; --ok:#16a34a; --bad:#dc2626; --unpriced:#7c3aed;
-    --shadow:0 1px 2px rgba(16,24,40,.06),0 6px 18px rgba(16,24,40,.06);
+    --canvas:#f6f8fb; --paper:#fff; --quiet:#f8fafc; --text:#172033; --muted:#68768a; --border:#e3e8ef;
+    --accent:#0f766e; --accent-light:#159a8c; --accent-soft:#e6f6f3;
+    --accent-gradient:linear-gradient(135deg,#0f766e 0%,#159a8c 48%,#50bfae 100%);
+    --brand-orange:#ff7a00; --brand-orange-gradient:linear-gradient(135deg,#ff7a00 0%,#ff8d31 52%,#ffc27b 100%);
+    --green:#148c68; --green-soft:#e9f7f1; --amber:#a9690b; --amber-soft:#fff5e2;
+    --danger:#a33c49; --danger-soft:#fff0f1; --violet:#5b4bb7; --violet-soft:#f1eefc;
+    --font-body:Figtree,"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+    --font-display:"Space Grotesk","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+    --mono:ui-monospace,"Cascadia Mono",Consolas,monospace;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
   body{
-    margin:0;background:var(--bg);color:var(--ink);
-    font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    margin:0;background:var(--canvas);color:var(--text);
+    font:14px/1.55 var(--font-body);
     display:flex;flex-direction:column;min-height:100vh;
   }
+  h1,h2,h3,h4{font-family:var(--font-display)}
+  button,input{font:inherit}
+  code{font-family:var(--mono)}
+
+  /* topbar */
   header{
-    background:var(--panel);border-bottom:1px solid var(--line);padding:12px 18px;
-    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    min-height:78px;background:var(--paper);border-bottom:1px solid var(--border);padding:13px 28px;
+    display:flex;align-items:center;gap:20px;flex-wrap:wrap;
   }
-  .brand{display:flex;align-items:center;gap:10px;margin-right:auto}
-  .logo{
-    width:32px;height:32px;border-radius:9px;flex:none;
-    background:linear-gradient(135deg,var(--brand),var(--accent));
-    color:#fff;font-weight:800;font-size:15px;
-    display:flex;align-items:center;justify-content:center;
+  .brand{display:flex;align-items:center;gap:12px;margin-right:auto;min-width:0}
+  .logo{width:30px;height:30px;flex:none;display:grid;place-items:center}
+  .logo svg{width:100%;height:100%;display:block}
+  .wordmark{font-family:var(--font-display);font-size:18px;font-weight:700;letter-spacing:-.01em;color:var(--text)}
+  .sep{width:1px;height:30px;background:var(--border);flex:none}
+  .titles{min-width:0}
+  .brand h1{margin:0;font-size:14px;font-weight:600;letter-spacing:-.01em}
+  .brand p{margin:1px 0 0;font-size:11.5px;color:var(--muted)}
+  .health{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .hchip{
+    display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--border);
+    border-radius:999px;background:var(--quiet);color:var(--muted);font-size:11px;font-weight:600;white-space:nowrap;
   }
-  .brand h1{margin:0;font-size:14px;font-weight:700}
-  .brand p{margin:0;font-size:12px;color:var(--muted);font-style:italic}
-  .health{display:flex;gap:12px;font-size:12px;color:var(--muted);align-items:center}
-  .dot{width:8px;height:8px;border-radius:50%;background:#cbd5e1;display:inline-block;margin-right:5px}
-  .dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)}
+  .dot{width:7px;height:7px;border-radius:50%;background:#cbd5e1;display:inline-block}
+  .dot.ok{background:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
+  .dot.bad{background:var(--danger);box-shadow:0 0 0 3px var(--danger-soft)}
 
-  main{flex:1;padding:18px;max-width:1320px;margin:0 auto;width:100%}
-
-  .composer{display:flex;gap:9px;margin-bottom:8px}
-  .composer input{
-    flex:1;padding:12px 15px;font:inherit;border:1px solid var(--line);
-    border-radius:999px;background:#f6f8fb;
+  main{
+    flex:1;width:100%;max-width:1320px;margin:0 auto;padding:30px 30px 44px;
+    background:radial-gradient(circle at 96% 0%,rgba(255,122,0,.055),transparent 24%);
   }
-  .composer input:focus{outline:none;border-color:var(--brand);background:#fff}
+
+  /* composer: the console's prompt bar, in the flow of the page */
+  .composer{
+    display:flex;align-items:center;gap:11px;min-height:60px;margin-bottom:12px;padding:8px 9px 8px 14px;
+    border:1px solid #cbd5e1;border-radius:18px;background:var(--paper);
+    box-shadow:0 4px 8px rgba(23,32,51,.06),0 14px 32px rgba(23,32,51,.10);
+  }
+  .composer:focus-within{border-color:var(--accent-light);box-shadow:0 0 0 3px var(--accent-soft),0 12px 30px rgba(23,32,51,.12)}
+  .composer .mark{
+    display:grid;place-items:center;width:25px;height:25px;flex:0 0 25px;border-radius:7px;
+    color:#fff;background:var(--brand-orange-gradient);font-size:14px;
+  }
+  .composer input{flex:1;min-width:0;padding:8px 0;border:0;outline:0;background:transparent;color:var(--text);font-size:14px}
+  .composer input::placeholder{color:var(--muted)}
   .composer button{
-    padding:12px 22px;border:0;border-radius:999px;background:var(--brand);color:#fff;
-    font-weight:600;font-size:14px;cursor:pointer;
+    flex:none;height:40px;padding:0 18px;border:0;border-radius:10px;background:var(--accent-gradient);color:#fff;
+    font-weight:600;font-size:13px;cursor:pointer;
   }
-  .composer button:disabled{opacity:.5;cursor:not-allowed}
+  .composer button:hover{filter:brightness(.95)}
+  .composer button:disabled{opacity:.5;cursor:not-allowed;filter:none}
   .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
   .chip{
-    background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 13px;
-    font-size:12px;cursor:pointer;box-shadow:var(--shadow);
+    background:var(--paper);border:1px solid var(--border);border-radius:999px;padding:6px 12px;
+    font-size:12px;color:#435066;cursor:pointer;
   }
-  .chip:hover{border-color:var(--brand);color:var(--brand)}
+  .chip:hover{border-color:var(--accent-light);color:var(--accent);background:var(--accent-soft)}
 
-  .switchline{font-size:12px;color:var(--muted);margin:0 0 16px;text-align:center}
+  .switchline{font-size:12px;color:var(--muted);margin:0 0 18px;text-align:center}
   .switchline b{color:var(--accent)}
-  .switchline code{background:#f6f8fb;border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+  .switchline code{background:var(--quiet);border:1px solid var(--border);border-radius:5px;padding:1px 5px;color:var(--text)}
 
-  .panes{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
-  @media(max-width:860px){.panes{grid-template-columns:1fr}}
+  .panes{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+  @media(max-width:860px){.panes{grid-template-columns:minmax(0,1fr)}}
 
-  .pane{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+  /* panes: console .panel cards with a .panel-heading */
+  .pane{position:relative;min-width:0;background:var(--paper);border:1px solid var(--border);border-radius:13px;overflow:hidden}
   .pane h2{
-    margin:0;padding:11px 16px;font-size:13px;font-weight:700;
-    border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;
+    margin:0;min-height:56px;padding:13px 18px;font-size:15px;font-weight:600;letter-spacing:-.015em;
+    border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px;
   }
-  .pane.control h2{background:#f6f8fb;color:var(--muted)}
-  .pane.bondlayer h2{background:linear-gradient(135deg,#fff3ec,#eef4ff);color:var(--accent)}
-  .pane .body{padding:14px 16px}
+  .pane h2::after{
+    display:inline-flex;padding:4px 8px;border-radius:999px;font:700 10px/1.2 var(--font-body);white-space:nowrap;
+  }
+  .pane.control h2{color:var(--muted)}
+  .pane.control h2::after{content:"plain UCP";color:var(--muted);background:var(--quiet);border:1px solid var(--border)}
+  .pane.bondlayer{border-color:#cbe7e2;box-shadow:0 8px 22px rgba(15,118,110,.06)}
+  .pane.bondlayer::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent-gradient)}
+  .pane.bondlayer h2{color:var(--accent)}
+  .pane.bondlayer h2::after{content:"extension";color:var(--green);background:var(--green-soft)}
+  .pane .body{padding:16px 18px}
   .hdrline{
-    font:11px/1.5 ui-monospace,Consolas,monospace;background:#f6f8fb;border:1px solid var(--line);
-    border-radius:7px;padding:6px 9px;margin:0 0 11px;word-break:break-all;color:var(--accent);
+    font:11px/1.5 var(--mono);background:var(--quiet);border:1px solid var(--border);
+    border-radius:9px;padding:7px 10px;margin:0 0 12px;word-break:break-all;color:var(--accent);
   }
 
-  .trace{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:4px}
-  .trace li{font-size:12px;display:flex;gap:7px;align-items:flex-start;padding:3px 0;border-bottom:1px dashed var(--line)}
+  /* trace: one row per step, the outcome as a console pill */
+  .trace{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column}
+  .trace li{font-size:12px;display:flex;gap:9px;align-items:flex-start;padding:6px 0;border-bottom:1px dashed var(--border)}
   .trace li:last-child{border-bottom:0}
   .ph{
     flex:none;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
-    padding:2px 7px;border-radius:999px;background:#eef2f7;color:var(--accent);min-width:78px;text-align:center;
+    padding:3px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);min-width:80px;text-align:center;
   }
-  .ph.degraded,.ph.refused{background:#fff1e6;color:#b45309}
-  .ph.absent{background:#fdecec;color:var(--bad)}
-  .ph.ok{background:#e9f9ee;color:var(--ok)}
+  .ph.degraded,.ph.refused{background:var(--amber-soft);color:var(--amber)}
+  .ph.absent{background:var(--danger-soft);color:var(--danger)}
+  .ph.ok{background:var(--green-soft);color:var(--green)}
 
-  .offer{border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin-bottom:10px}
-  .offer.win{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset}
-  .offer h3{margin:0 0 2px;font-size:13.5px}
-  .offer .mt{margin:0 0 6px;font-size:11px;color:var(--muted);text-transform:capitalize}
-  .prices{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
-  .net{font-weight:700;color:var(--brand);font-size:15px}
+  .offer{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:13px;padding:13px 15px;margin-bottom:10px;background:var(--paper)}
+  .offer.win{border-color:#cbe7e2;box-shadow:0 8px 22px rgba(15,118,110,.07)}
+  .offer.win::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent-gradient)}
+  .offer h3{margin:0 0 2px;font-size:14px;font-weight:600;letter-spacing:-.01em}
+  .offer .mt{margin:0 0 7px;font-size:11px;color:var(--muted);text-transform:capitalize}
+  .prices{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin-bottom:7px}
+  .net{font-family:var(--font-display);font-weight:600;color:var(--text);font-size:21px;letter-spacing:-.03em}
+  .offer.win .net{color:var(--accent)}
   .shelf{font-size:11.5px;color:var(--muted)}
   .shelf.struck{text-decoration:line-through}
-  .save{font-size:10.5px;font-weight:700;color:var(--ok);background:#e9f9ee;border-radius:999px;padding:2px 8px}
+  .save{font-size:10px;font-weight:700;color:var(--green);background:var(--green-soft);border-radius:999px;padding:3px 8px}
 
+  /* the three record states stay visually distinct: priced, verified-unpriced, unsigned */
   .records{margin:6px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
-  .records li{font-size:11.5px;display:flex;gap:6px;align-items:flex-start;padding:4px 6px;border-radius:6px}
-  .rec-priced{background:#e9f9ee}
-  .rec-priced .tick{color:var(--ok)}
-  .rec-unpriced{background:#f2edfc}
-  .rec-unpriced .tick{color:var(--unpriced)}
-  .rec-unsigned{background:#f4f5f7;color:#9aa1ac}
-  .rec-unsigned .tick{color:#9aa1ac}
+  .records li{font-size:11.5px;display:flex;gap:7px;align-items:flex-start;padding:5px 8px;border-radius:8px}
+  .rec-priced{background:var(--green-soft)}
+  .rec-priced .tick{color:var(--green)}
+  .rec-unpriced{background:var(--violet-soft)}
+  .rec-unpriced .tick{color:var(--violet)}
+  .rec-unsigned{background:var(--quiet);color:#98a2b3;border:1px dashed var(--border)}
+  .rec-unsigned .tick{color:#98a2b3}
   .tick{flex:none;font-weight:700}
 
   /* Why this offer matches, clause by clause -- the resolver's own answer,
-     rendered and never derived here. Each row is the clause the shopper said,
-     then the evidence that answered it (a record id, or a catalogue column),
-     then the resolver's one sentence. An unanswered SERVICE/VALUES clause
+     rendered and never derived here. An unanswered SERVICE/VALUES clause
      carries the marker instead, and is styled as the absence it is. */
-  .constraints{margin:10px 0 0;padding:9px 0 0;list-style:none;border-top:1px solid var(--line)}
+  .constraints{margin:11px 0 0;padding:10px 0 0;list-style:none;border-top:1px solid var(--border)}
   .constraints .chd{
-    font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
-    color:var(--muted);padding:0 0 6px;background:none;
+    font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+    color:#96a0af;padding:0 0 7px;background:none;
   }
-  .constraints li{font-size:11.5px;padding:5px 7px;border-radius:6px;background:#f6f8fb;margin-bottom:4px}
-  .constraints li.miss{background:#fff6f6}
+  .constraints li{font-size:11.5px;padding:6px 8px;border-radius:8px;background:var(--quiet);margin-bottom:4px}
+  .constraints li.miss{background:var(--danger-soft)}
   .constraints .kind{
-    display:inline-block;font-size:9.5px;font-weight:700;text-transform:uppercase;color:#fff;
-    background:var(--accent);border-radius:999px;padding:1px 7px;margin-right:6px;vertical-align:1px;
+    display:inline-block;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
+    color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:2px 7px;margin-right:6px;vertical-align:1px;
   }
-  .constraints li.miss .kind{background:var(--bad)}
-  .constraints .clause{font-weight:600;color:#1f2937}
+  .constraints li.miss .kind{color:var(--danger);background:#fbdde1}
+  .constraints .clause{font-weight:600;color:var(--text)}
   .constraints .ev-row{display:block;margin-top:3px;padding-left:2px}
   .constraints .ev{
-    display:inline-block;font-size:10px;font-weight:700;border-radius:4px;
+    display:inline-block;font-size:10px;font-weight:700;border-radius:5px;
     padding:1px 6px;margin-right:6px;white-space:nowrap;
   }
   /* A cited record and a catalogue column are different kinds of evidence and
      must not look alike: one is a signed claim by a named issuer, the other is
      a column in the merchant's own export. */
-  .ev-rec{background:#e9f9ee;color:#166534;border:1px solid #bbf7d0}
-  .ev-attr{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe}
-  .constraints .why{color:#4b5563}
-  .unanswered{color:var(--bad);font-style:italic;font-weight:600}
+  .ev-rec{background:var(--green-soft);color:var(--green);border:1px solid #bfe3d5}
+  .ev-attr{background:#eef2ff;color:#3b4fb8;border:1px solid #d3dbfb}
+  .constraints .why{color:#526179}
+  .unanswered{color:var(--danger);font-style:italic;font-weight:600}
 
-  /* The merchant's own reading: what each merchant understood and proposed
-     when handed the sentence itself (POST /ucp/intent/propose). Deliberately
-     NOT the .offer card and NOT the .bundle frame -- a dashed border and a
-     flat ground, so it cannot be mistaken for a second ranking. This block is
-     "what the merchant understood and proposed"; the ranking below is "what
-     the agent verified and decided", and the second never reads the first. */
+  /* The merchant's own reading. Deliberately NOT the .offer card and NOT the
+     .bundle frame -- a dashed border and a flat ground, so it cannot be
+     mistaken for a second ranking. */
   .mdec{
-    border:1px dashed #b9c4d6;border-radius:11px;background:#fafbfe;
-    padding:10px 13px;margin:0 0 12px;
+    border:1px dashed #c4cedc;border-radius:13px;background:var(--quiet);
+    padding:12px 14px;margin:0 0 12px;
   }
   .mdec h4{
-    margin:0 0 6px;font-size:12px;font-weight:700;color:var(--accent);
+    margin:0 0 6px;font-size:13px;font-weight:600;color:var(--text);
     display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;
   }
-  .mdec h4 span{font-size:10.5px;font-weight:500;color:var(--muted);font-style:italic}
-  .mdec-sum{margin:0 0 8px;font-size:11.5px;color:#374151}
+  .mdec h4 span{font:italic 500 11px/1.4 var(--font-body);color:var(--muted)}
+  .mdec-sum{margin:0 0 8px;font-size:11.5px;color:#435066}
   .mdec-note{margin:4px 0 0;font-size:11.5px;color:var(--muted);font-style:italic}
-  .mdec-m{border-top:1px dashed var(--line);padding:8px 0 4px}
+  .mdec-m{border-top:1px dashed var(--border);padding:9px 0 5px}
   .mdec-hd{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;text-transform:capitalize}
-  .badge{
-    font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
-    border-radius:999px;padding:1px 8px;text-transform:none;
-  }
-  .badge.ok{background:#e9f9ee;color:#166534;border:1px solid #bbf7d0}
-  .badge.no{background:#f4f5f7;color:#6b7280;border:1px solid var(--line)}
-  .mdec-agree{margin:4px 0 6px;font-size:11.5px;color:#374151}
+  .badge{font-size:10px;font-weight:700;letter-spacing:.01em;border-radius:999px;padding:3px 8px;text-transform:none}
+  .badge.ok{background:var(--green-soft);color:var(--green)}
+  .badge.no{background:var(--paper);color:var(--muted);border:1px solid var(--border)}
+  .mdec-agree{margin:5px 0 6px;font-size:11.5px;color:#435066}
   .mdec-rows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
   .mdec-rows li{
-    font-size:11.5px;padding:4px 7px;border-radius:6px;background:#f1f4f9;
+    font-size:11.5px;padding:5px 8px;border-radius:8px;background:var(--paper);border:1px solid var(--border);
     display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;
   }
-  .mdec-rows li.differ{background:#fff6f6}
-  .mdec-rows .mark{flex:none;font-weight:700;color:var(--ok)}
-  .mdec-rows li.differ .mark{color:var(--bad)}
+  .mdec-rows li.differ{background:var(--danger-soft);border-color:#f5d0d5}
+  .mdec-rows .mark{flex:none;font-weight:700;color:var(--green)}
+  .mdec-rows li.differ .mark{color:var(--danger)}
   .mdec-rows .kind{
-    display:inline-block;font-size:9.5px;font-weight:700;text-transform:uppercase;color:#fff;
-    background:var(--accent);border-radius:999px;padding:1px 7px;vertical-align:1px;
+    display:inline-block;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
+    color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:2px 7px;vertical-align:1px;
   }
-  .mdec-rows li.differ .kind{background:var(--bad)}
-  .mdec-rows .clause{font-weight:600;color:#1f2937}
-  .mdec-rows .interp{color:var(--muted);font:10.5px/1.5 ui-monospace,Consolas,monospace;flex-basis:100%;padding-left:22px}
-  .mdec-assume{margin:6px 0 0;padding:0 0 0 16px;font-size:11px;color:#4b5563}
+  .mdec-rows li.differ .kind{color:var(--danger);background:#fbdde1}
+  .mdec-rows .clause{font-weight:600;color:var(--text)}
+  .mdec-rows .interp{color:var(--muted);font:10.5px/1.5 var(--mono);flex-basis:100%;padding-left:22px;overflow-wrap:anywhere}
+  .mdec-assume{margin:6px 0 0;padding:0 0 0 16px;font-size:11px;color:#526179}
   .mdec-assume li{margin:0 0 2px}
-  .mdec-q{margin:6px 0 0;font-size:11.5px;color:#9a3412;font-weight:600}
-  .mdec-prop{margin-top:8px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff}
+  .mdec-q{margin:6px 0 0;font-size:11.5px;color:var(--amber);font-weight:600}
+  .mdec-prop{margin-top:8px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;background:var(--paper)}
   .mdec-prop-hd{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:12px}
   .mdec-prop-hd .tag{
     font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
-    background:#eef2f7;color:var(--accent);border-radius:999px;padding:1px 7px;flex:none;
+    background:var(--quiet);color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:2px 7px;flex:none;
   }
   .mdec-prop-hd .t{font-weight:600}
   .mdec-prop-hd .p{margin-left:auto;color:var(--muted);flex:none}
-  .mdec-unsat{margin:6px 0 0;font-size:11px;color:var(--bad)}
+  .mdec-unsat{margin:6px 0 0;font-size:11px;color:var(--danger)}
 
   .flip{
-    margin-top:6px;padding:9px 11px;border-radius:9px;font-size:12px;font-weight:600;
-    background:#fff3ec;color:#9a3412;border:1px solid #fed7aa;
+    margin-top:6px;padding:10px 12px;border-radius:10px;font-size:12px;font-weight:600;
+    background:var(--amber-soft);color:#8a5608;border:1px solid #f3dfb8;
   }
-  .noflip{background:#f6f8fb;color:var(--muted);border-color:var(--line);font-weight:500}
+  .noflip{background:var(--quiet);color:var(--muted);border-color:var(--border);font-weight:500}
 
-  .prose{font-size:12.5px;color:#374151;margin:10px 0 0;padding-top:9px;border-top:1px solid var(--line)}
+  .prose{font-size:12.5px;color:#435066;margin:12px 0 0;padding-top:10px;border-top:1px solid var(--border)}
   .prose .src{font-size:10.5px;color:var(--muted);font-style:italic;display:block;margin-top:4px}
 
   .empty{color:var(--muted);font-size:12.5px;text-align:center;padding:30px 0}
-  .err{color:var(--bad);font-size:12.5px}
+  .err{color:var(--danger);font-size:12.5px}
 
-  /* The bundle is a SET, and has to look like one. Deliberately not the
-     .offer card: one frame around everything, one combined price at the top,
-     one reason underneath it, and the items indented inside as its parts. If
-     it reads as three stacked search results the criterion is lost on screen,
-     whatever the JSON says. */
+  /* The bundle is a SET, and has to look like one: one frame, one combined
+     price, one reason, the items inside it as its parts. */
   .bundle{
-    border:2px solid var(--accent);border-radius:13px;margin:14px 0 10px;
-    background:linear-gradient(135deg,#f5f9ff,#fff);overflow:hidden;
+    position:relative;border:1px solid #cbe7e2;border-radius:13px;margin:14px 0 10px;
+    background:linear-gradient(180deg,#f3fbf9,#fff 60%);overflow:hidden;
   }
+  .bundle::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent-gradient)}
   .bundle-hd{
-    padding:10px 13px;border-bottom:1px solid #d7e3f5;
+    padding:12px 14px 10px;border-bottom:1px solid #d7ece8;
     display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;
   }
   .bundle-hd .tag{
     font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
-    background:var(--accent);color:#fff;border-radius:999px;padding:2px 9px;flex:none;
+    background:var(--accent-gradient);color:#fff;border-radius:999px;padding:3px 9px;flex:none;
   }
-  .bundle-hd .total{font-weight:800;font-size:17px;color:var(--accent)}
+  .bundle-hd .total{font-family:var(--font-display);font-weight:600;font-size:21px;letter-spacing:-.03em;color:var(--accent)}
   .bundle-hd .n{font-size:11.5px;color:var(--muted);margin-left:auto}
   .bundle-why{
-    padding:9px 13px;font-size:12px;color:#334155;font-style:italic;
-    border-bottom:1px dashed #d7e3f5;
+    padding:9px 14px;font-size:12px;color:#435066;font-style:italic;
+    border-bottom:1px dashed #d7ece8;
   }
-  .bundle-items{list-style:none;margin:0;padding:6px 13px 4px}
+  .bundle-items{list-style:none;margin:0;padding:6px 14px 4px}
   /* The brace: the items are parts of one thing, not a list of results. */
   .bundle-items li{
-    position:relative;padding:7px 0 7px 26px;border-bottom:1px dashed var(--line);
+    position:relative;padding:7px 0 7px 26px;border-bottom:1px dashed var(--border);
   }
   .bundle-items li:last-child{border-bottom:0}
   .bundle-items li::before{
-    content:"";position:absolute;left:9px;top:0;bottom:0;width:2px;background:#c9dcf5;
+    content:"";position:absolute;left:9px;top:0;bottom:0;width:2px;background:#b8dcd5;
   }
   .bundle-items li:first-child::before{top:14px}
   .bundle-items li:last-child::before{bottom:calc(100% - 14px)}
   .bundle-items li::after{
-    content:"";position:absolute;left:9px;top:14px;width:11px;height:2px;background:#c9dcf5;
+    content:"";position:absolute;left:9px;top:14px;width:11px;height:2px;background:#b8dcd5;
   }
-  .bi-row{display:flex;gap:8px;align-items:baseline}
+  .bi-row{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
   .bi-row .t{font-size:12.5px;font-weight:600}
   .bi-row .p{margin-left:auto;font-size:12px;color:var(--muted);flex:none}
   .role{
     font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
-    background:#eef2f7;color:var(--accent);border-radius:999px;padding:1px 7px;flex:none;
+    background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:2px 7px;flex:none;
   }
   .bi-notes{margin:4px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:2px}
   .bi-notes li{padding:0;border:0;font-size:11px;color:var(--muted);padding-left:0}
   .bi-notes li::before,.bi-notes li::after{display:none}
   .bundle-foot{
-    padding:8px 13px;border-top:1px solid #d7e3f5;font-size:11.5px;color:#334155;
+    padding:8px 14px;border-top:1px solid #d7ece8;font-size:11.5px;color:#435066;
     display:flex;justify-content:space-between;gap:9px;flex-wrap:wrap;
   }
-  .bundle-foot .warn{color:var(--bad)}
-  .bundle-alt{font-size:11px;color:var(--muted);padding:0 13px 9px}
+  .bundle-foot .warn{color:var(--danger)}
+  .bundle-alt{font-size:11px;color:var(--muted);padding:0 14px 9px}
 
-  /* Closing the loop: the winning offer as the merchant confirmed it. This is
-     a RECEIPT, not another ranking and not another offer card -- a solid
-     ground, a monospace order id, one line per cited record with the
-     merchant's own verdict -- and it is the LAST thing in the pane, because
-     it is the outcome of everything above it. Compact on purpose. */
+  /* Closing the loop: a RECEIPT, not another ranking -- a flat ground, a
+     monospace order id, one line per cited record with the merchant's own
+     verdict -- and the LAST thing in the pane. */
   .receipt{
-    margin:14px 0 0;border:1px solid var(--line);border-radius:11px;
-    background:#fbfbf9;overflow:hidden;
+    margin:14px 0 0;border:1px solid var(--border);border-radius:13px;
+    background:var(--quiet);overflow:hidden;
   }
   .receipt-hd{
     display:flex;gap:9px;align-items:baseline;flex-wrap:wrap;
-    padding:9px 13px;border-bottom:1px dashed var(--line);
+    padding:10px 14px;border-bottom:1px dashed var(--border);background:var(--paper);
   }
   .receipt-hd .tag{
     font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
-    background:var(--ink);color:#fff;border-radius:999px;padding:2px 9px;flex:none;
+    background:var(--brand-orange-gradient);color:#fff;border-radius:999px;padding:3px 9px;flex:none;
   }
   .receipt-hd .step{font-size:10.5px;color:var(--muted);font-style:italic}
   .receipt-hd .who{margin-left:auto;font-size:11.5px;color:var(--muted);text-transform:capitalize}
-  .receipt-row{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:7px 13px 0;font-size:12px}
+  .receipt-row{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:9px 14px 0;font-size:12px}
   .receipt-row .t{font-weight:600}
-  .receipt-row .oid{font:11px/1.5 ui-monospace,Consolas,monospace;color:var(--accent);background:#eef2ff;border-radius:5px;padding:1px 6px}
-  .receipt-row .sub{margin-left:auto;font-weight:700;color:var(--ink);flex:none}
-  .receipt-status{padding:3px 13px 8px;font-size:11px;color:#4b5563;font-style:italic;border-bottom:1px dashed var(--line)}
-  .receipt-status b{color:var(--ok);font-style:normal}
-  .receipt-degraded .receipt-status b{color:#b45309}
-  .honoured{list-style:none;margin:0;padding:6px 13px 8px;display:flex;flex-direction:column;gap:3px}
+  .receipt-row .oid{font:11px/1.5 var(--mono);color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:1px 7px}
+  .receipt-row .sub{margin-left:auto;font-family:var(--font-display);font-weight:600;font-size:15px;color:var(--text);flex:none}
+  .receipt-status{padding:4px 14px 9px;font-size:11px;color:#526179;font-style:italic;border-bottom:1px dashed var(--border)}
+  .receipt-status b{color:var(--green);font-style:normal}
+  .receipt-degraded .receipt-status b{color:var(--amber)}
+  .honoured{list-style:none;margin:0;padding:7px 14px 9px;display:flex;flex-direction:column;gap:3px}
   .honoured .chd{
-    font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
-    color:var(--muted);padding:0 0 3px;
+    font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+    color:#96a0af;padding:0 0 4px;
   }
-  .honoured li{font-size:11.5px;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;padding:3px 6px;border-radius:6px;background:#eef8f0}
-  .honoured li.no{background:#fff1f1}
-  .honoured .mark{flex:none;font-weight:700;color:var(--ok)}
-  .honoured li.no .mark{color:var(--bad)}
-  .honoured .rid{font:10.5px/1.5 ui-monospace,Consolas,monospace;color:#1f2937}
-  .honoured .bt{font-size:9.5px;font-weight:700;text-transform:uppercase;background:#e9f9ee;color:#166534;border:1px solid #bbf7d0;border-radius:4px;padding:0 5px}
-  .honoured li.no .bt{background:#f4f5f7;color:#6b7280;border-color:var(--line)}
-  .honoured .why{flex-basis:100%;color:#4b5563;padding-left:18px}
-  .receipt-plain{padding:7px 13px 9px;font-size:11.5px;color:var(--muted);font-style:italic}
-  .receipt-note{padding:8px 13px 9px;font-size:11.5px;color:#9a3412}
+  .honoured li{font-size:11.5px;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;padding:4px 8px;border-radius:8px;background:var(--green-soft)}
+  .honoured li.no{background:var(--danger-soft)}
+  .honoured .mark{flex:none;font-weight:700;color:var(--green)}
+  .honoured li.no .mark{color:var(--danger)}
+  .honoured .rid{font:10.5px/1.5 var(--mono);color:var(--text)}
+  .honoured .bt{font-size:9.5px;font-weight:700;text-transform:uppercase;background:var(--paper);color:var(--green);border:1px solid #bfe3d5;border-radius:999px;padding:0 6px}
+  .honoured li.no .bt{background:var(--paper);color:var(--muted);border-color:var(--border)}
+  .honoured .why{flex-basis:100%;color:#526179;padding-left:18px}
+  .receipt-plain{padding:8px 14px 10px;font-size:11.5px;color:var(--muted);font-style:italic}
+  .receipt-note{padding:9px 14px 10px;font-size:11.5px;color:var(--amber)}
+
+  /* phone width: one column, tighter gutters, nothing wider than the screen */
+  @media(max-width:560px){
+    header{padding:12px 16px;gap:10px}
+    .sep,.brand p{display:none}
+    main{padding:16px 16px 32px}
+    .composer{padding:6px 6px 6px 10px;gap:8px;border-radius:14px}
+    .composer button{padding:0 12px}
+    .pane h2{padding:12px 14px;font-size:14px}
+    .pane .body{padding:14px}
+    .receipt-row .sub,.mdec-prop-hd .p,.bi-row .p{margin-left:0}
+  }
 </style>
 </head>
 <body>
 
 <header>
   <div class="brand">
-    <div class="logo">BL</div>
-    <div>
+    <div class="logo"><svg viewBox="0 0 246 237" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="BondLayer"><path d="M217.101 156.251L243.47 169.443C246.852 171.134 246.852 175.962 243.47 177.653L127.112 235.848C125.836 236.481 124.431 236.811 123.006 236.811C121.582 236.811 120.177 236.481 118.901 235.848L2.54327 177.653C1.78315 177.27 1.14434 176.683 0.697997 175.959C0.251658 175.234 0.0153225 174.399 0.0153225 173.548C0.0153225 172.697 0.251658 171.862 0.697997 171.138C1.14434 170.413 1.78315 169.826 2.54327 169.443L28.9268 156.251L110.676 197.133C118.44 201.008 127.588 201.008 135.337 197.133L217.086 156.236L217.101 156.251ZM118.901 0.963731C120.177 0.32986 121.582 0 123.006 0C124.431 0 125.836 0.32986 127.112 0.963731L243.47 59.1427C244.229 59.5283 244.867 60.1167 245.313 60.8427C245.758 61.5686 245.994 62.4038 245.994 63.2555C245.994 64.1073 245.758 64.9425 245.313 65.6684C244.867 66.3944 244.229 66.9827 243.47 67.3684L127.112 125.532C125.836 126.166 124.431 126.496 123.006 126.496C121.582 126.496 120.177 126.166 118.901 125.532L2.54327 67.3684C1.77912 66.9868 1.1364 66.3998 0.687176 65.6734C0.237954 64.9469 0 64.1097 0 63.2555C0 62.4014 0.237954 61.5642 0.687176 60.8377C1.1364 60.1113 1.77912 59.5243 2.54327 59.1427L118.901 0.963731Z" fill="url(#bl-logo-grad)"/><path d="M217.101 101.101L243.469 114.293C246.852 115.984 246.852 120.812 243.469 122.503L127.111 180.682C125.836 181.316 124.431 181.646 123.006 181.646C121.582 181.646 120.177 181.316 118.901 180.682L2.54322 122.503C1.7831 122.12 1.14429 121.533 0.697949 120.808C0.251609 120.084 0.015274 119.249 0.015274 118.398C0.015274 117.547 0.251609 116.712 0.697949 115.987C1.14429 115.263 1.7831 114.676 2.54322 114.293L28.9267 101.101L110.676 141.983C118.44 145.858 127.588 145.858 135.337 141.983L217.101 101.101Z" fill="#FF7A00"/><defs><linearGradient id="bl-logo-grad" x1="56.5063" y1="88.9951" x2="225.814" y2="236.811" gradientUnits="userSpaceOnUse"><stop stop-color="#FF8D31"/><stop offset="1" stop-color="#FFC27B"/></linearGradient></defs></svg></div>
+    <span class="wordmark">BondLayer</span>
+    <span class="sep" aria-hidden="true"></span>
+    <div class="titles">
       <h1>Buyer-agent stand-in — not a consumer product</h1>
       <p>compares Voltway, CityCircuit and NorthGear over real UCP, ranked by deterministic effective cost</p>
     </div>
   </div>
   <div class="health">
-    <span><i class="dot" id="d-m"></i><span id="t-m">merchant...</span></span>
-    <span><i class="dot" id="d-a"></i><span id="t-a">agent...</span></span>
+    <span class="hchip"><i class="dot" id="d-m"></i><span id="t-m">merchant...</span></span>
+    <span class="hchip"><i class="dot" id="d-a"></i><span id="t-a">agent...</span></span>
   </div>
 </header>
 
 <main>
   <div class="composer">
+    <span class="mark" aria-hidden="true">✦</span>
     <input id="q" type="text" placeholder="Ask for something - e.g. a laptop under $1,500 you can return easily" autocomplete="off">
     <button id="go">Compare</button>
   </div>
