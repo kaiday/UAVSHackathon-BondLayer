@@ -328,9 +328,7 @@ def test_body_is_validated(client):
 
 
 def test_quantity_beyond_published_stock_is_409(client, monkeypatch):
-    """The catalogue adapter does not carry the CSV ``stock`` column into
-    ``Sku.attributes``, so no seeded listing publishes a figure. The gate is
-    pinned by giving one seeded listing a stock attribute for this test."""
+    """The checkout gate accepts numeric stock and numeric-string stock."""
     sku = _first_laptop("voltway")
 
     def with_stock(value):
@@ -355,9 +353,12 @@ def test_quantity_beyond_published_stock_is_409(client, monkeypatch):
                      [{"sku_id": sku.sku_id, "quantity": 2}]).status_code == 409
 
 
-def test_a_listing_without_a_stock_figure_never_blocks(client):
+def test_a_listing_without_a_stock_figure_never_blocks(client, monkeypatch):
     sku = _first_laptop("voltway")
-    assert "stock" not in sku.attributes
+    monkeypatch.setitem(server._catalog, "voltway", [
+        dataclasses.replace(s, attributes={k: v for k, v in s.attributes.items() if k != "stock"})
+        if s.sku_id == sku.sku_id else s for s in server._catalog["voltway"]
+    ])
     r = _checkout(client, "voltway", FULL, [{"sku_id": sku.sku_id, "quantity": 50}])
     assert r.status_code == 200
 

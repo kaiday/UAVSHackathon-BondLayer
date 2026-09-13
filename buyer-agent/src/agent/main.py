@@ -27,10 +27,10 @@ from pathlib import Path
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from fastapi.responses import FileResponse, RedirectResponse
+from pydantic import BaseModel, Field, field_validator
 
 CHAT_APP = Path(__file__).resolve().parents[2]
 STATIC_DIR = Path(__file__).parent / "static"
@@ -62,8 +62,15 @@ app.add_middleware(
 
 
 class ShoppingQuery(BaseModel):
-    query: str
+    query: str = Field(min_length=1, max_length=4000)
     bondlayer_enabled: bool = True
+
+    @field_validator("query")
+    @classmethod
+    def nonblank_query(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("query must not be blank")
+        return value.strip()
 
 
 def _audit(run: AgentRun) -> list[dict]:
@@ -136,6 +143,11 @@ def index():
     return FileResponse(STATIC_DIR / "index.html")
 
 
+@app.get("/onboarding", include_in_schema=False)
+def onboarding():
+    return RedirectResponse(ucp_client.MERCHANT_BASE_URL.rstrip("/") + "/console/onboarding/")
+
+
 #: ``catalog.search`` defaults to 20 results and caps at 100. Twenty silently
 #: truncates a 149-row catalogue, and bundling is where that shows: "a work
 #: laptop and a dock" sends no category (two product nouns widen the filter, so
@@ -150,17 +162,23 @@ def index():
 PAGE = 100
 
 
-def _fetcher():
-    return ucp_client.make_fetcher(
-        httpx.Client(base_url=ucp_client.MERCHANT_BASE_URL, timeout=10,
-                     params={"limit": PAGE}),
-    )
+def _http_client():
+    return httpx.Client(base_url=ucp_client.MERCHANT_BASE_URL, timeout=10)
 
 
 @app.post("/query")
 def handle_query(request: ShoppingQuery) -> dict:
-    fetch = _fetcher()
-    verify = ucp_client.make_verifier()
+    try:
+        with _http_client() as http:
+            return _handle_query(request, http)
+    except httpx.HTTPError as exc:
+        raise HTTPException(503, "Merchant service is unavailable. Start it and retry.") from exc
+
+
+def _handle_query(request: ShoppingQuery, http: httpx.Client) -> dict:
+    merchants = ucp_client.discover_merchants(http)
+    fetch = ucp_client.make_fetcher(http)
+    verify = ucp_client.make_verifier(http, merchants=merchants)
 
     # ``run_request`` unchanged, then the shopper's sentence goes to every
     # merchant that negotiated ``org.bondlayer.intent_match`` and each one's
@@ -169,9 +187,9 @@ def handle_query(request: ShoppingQuery) -> dict:
     # ``ranked`` is computed from it.
     run = run_with_merchant_decode(
         request.query,
-        ucp_client.MERCHANTS,
+        merchants,
         fetch,
-        propose=ucp_client.make_proposer(),
+        propose=ucp_client.make_proposer(http),
         extension=request.bondlayer_enabled,
         verify=verify,
         policy=ucp_client.POLICY,
@@ -188,7 +206,7 @@ def handle_query(request: ShoppingQuery) -> dict:
     # A merchant that cannot be reached at checkout is recorded as a degraded
     # last step, never a 500: the ranking is not the checkout's to lose.
     try:
-        close_loop(run, checkout=ucp_client.make_checkout(), agent_ref="chat-app")
+        close_loop(run, checkout=ucp_client.make_checkout(http), agent_ref="chat-app")
     except httpx.HTTPError as exc:
         record_unreachable(run, exc)
 
@@ -196,7 +214,11 @@ def handle_query(request: ShoppingQuery) -> dict:
         {"phase": s.phase.value, "outcome": s.outcome.value, "summary": s.summary, "detail": s.detail}
         for s in run.steps
     ]
-    prose = llm.narrate(run)
+    prose = llm.narrate(run) if run.ranked else {
+        "text": ("No merchants have been onboarded. Add a merchant and upload a catalogue to start."
+                 if not merchants else "No merchant returned a matching, priced listing for this request."),
+        "source": "template", "note": "No ranked products; no model called.",
+    }
     steps.append({"phase": "prose", "outcome": prose["source"], "summary": prose["note"], "detail": {}})
 
     ranked = [
@@ -245,6 +267,7 @@ def handle_query(request: ShoppingQuery) -> dict:
 
     return {
         "user_query": request.query,
+        "onboarding_required": not merchants,
         "bondlayer_enabled": request.bondlayer_enabled,
         "ucp_agent_header": ucp_client.agent_header(request.bondlayer_enabled),
         "constraints": run.constraints,

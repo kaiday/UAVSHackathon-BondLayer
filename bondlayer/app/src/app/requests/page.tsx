@@ -83,8 +83,7 @@ export default function RequestsPage() {
         <div>
           <h1>Request console</h1>
           <p>
-            The 30 frozen evaluation requests, and why each merchant won or lost
-            one. From <code>GET /onboard/requests</code> and{" "}
+            Available request reports from <code>GET /onboard/requests</code> and{" "}
             <code>GET /onboard/requests/{"{id}"}</code>.
           </p>
         </div>
@@ -93,7 +92,9 @@ export default function RequestsPage() {
       {listError && <Failed what="the request list" error={listError} />}
       {!requests && !listError && <Loading what="the request list" />}
 
-      {requests && (
+      {requests?.length === 0 && <section className="panel"><div className="panel-heading"><div><h2>No request history</h2><p>This workspace has no saved request reports. The buyer-agent page shows live comparisons; recording them here is not yet connected.</p></div></div></section>}
+
+      {requests && requests.length > 0 && (
         <div className="request-console">
           <aside className="request-inbox">
             <header>
@@ -102,9 +103,9 @@ export default function RequestsPage() {
                   <span className="section-icon">
                     <ClipboardList size={17} strokeWidth={2.2} />
                   </span>
-                  Evaluation requests
+                  Request reports
                 </h2>
-                <p>{requests.length} frozen scenarios</p>
+                <p>{requests.length} reports</p>
               </div>
             </header>
             <div className="request-items">

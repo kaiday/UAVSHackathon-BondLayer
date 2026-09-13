@@ -12,12 +12,10 @@ export default function BenefitsPage() {
         </div>
         <div className="setting-list">
           <p>
-            The value each merchant&apos;s verified records credited, and the value an agent withheld, are on the{" "}
-            <a href="/console/requests/">Requests</a> page for every evaluation request.
+            Catalogue onboarding publishes your products and prices. No benefit records are created automatically.
           </p>
           <p>
-            The records themselves, with their signatures checked, are rendered by the buyer-agent chat page
-            (port 8001 by default) and by the <a href="/dashboard/">merchant dashboard</a>.
+            Publishing and managing your own signed benefit records is a separate integration. New catalogues are served as plain UCP until that integration is configured.
           </p>
         </div>
       </section>

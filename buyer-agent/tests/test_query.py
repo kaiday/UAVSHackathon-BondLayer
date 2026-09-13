@@ -54,6 +54,7 @@ def _mock_fetch(merchant: str, query: str, *, extension: bool) -> dict:
 
 
 def test_query_with_mocked_fetcher_and_no_key_returns_ranking_trace_and_prose(monkeypatch):
+    monkeypatch.setattr(ucp_client, "discover_merchants", lambda *a: ["voltway", "citycircuit", "northgear"])
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setattr(ucp_client, "make_fetcher", lambda *a, **k: _mock_fetch)
     monkeypatch.setattr(ucp_client, "make_verifier", lambda *a, **k: (lambda entry: True))
@@ -86,6 +87,7 @@ def test_query_returns_the_resolver_justification_for_every_offer(monkeypatch):
     renders it instead of deriving it. A marker on screen means a
     ``ResolvedConstraint`` said so.
     """
+    monkeypatch.setattr(ucp_client, "discover_merchants", lambda *a: ["voltway", "citycircuit", "northgear"])
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setattr(ucp_client, "make_fetcher", lambda *a, **k: _mock_fetch)
     monkeypatch.setattr(ucp_client, "make_verifier", lambda *a, **k: (lambda entry: True))

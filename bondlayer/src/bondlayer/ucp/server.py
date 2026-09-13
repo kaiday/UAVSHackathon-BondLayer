@@ -1,4 +1,4 @@
-"""The merchant service: one server, three merchants, one code path.
+"""The merchant service: uploaded merchants, one shared protocol implementation.
 
 The correctness property this file exists to hold:
 
@@ -10,8 +10,7 @@ The correctness property this file exists to hold:
 If that stops being true, the before/after comparison proves nothing and the
 headline result is worthless (assumption A2).
 
-Runs from seeded state with no outbound network call. Venue wifi is shared by
-twenty teams.
+Starts empty and restores uploaded catalogues without outbound network calls.
 """
 
 from __future__ import annotations
@@ -21,6 +20,8 @@ from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, Header, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from bondlayer.adapters import CsvCatalogAdapter
 from bondlayer.types import Sku
@@ -40,9 +41,9 @@ from bondlayer.ucp.profile import (
     load_merchants,
 )
 from bondlayer.ucp.records import bundles_for, for_sku, load_records
+from bondlayer.ucp.storage import UPLOADS, load_uploads, test_data_enabled
 
 CATALOG = DATA / "catalog" / "electronics.csv"
-UPLOADS = DATA / "uploads"
 
 router = APIRouter(tags=["ucp"])
 
@@ -52,44 +53,22 @@ _records: dict[str, list[dict]] = {}
 
 
 def seed() -> None:
-    """Load merchants, catalogues and published records once, at start-up."""
-    _merchants.update(load_merchants())
-    for path in UPLOADS.glob("*.csv"):
-        merchant_id = path.stem
-        if merchant_id not in _merchants:
-            _merchants[merchant_id] = Merchant(
-                id=merchant_id,
-                display_name=merchant_id.replace("-", " ").title(),
-                domain=f"{merchant_id}.example",
-                role="retailer",
-                publishes_benefit_extension=False,
-                signs_records=False,
-            )
-    for mid in _merchants:
-        source = UPLOADS / f"{mid}.csv"
-        _catalog[mid] = CsvCatalogAdapter(
-            source if source.exists() else CATALOG, merchant=mid
-        ).load()
-        _records[mid] = load_records(mid)
-
-
-def register_merchant(merchant_id: str) -> None:
-    """Register a catalogue-only retailer created by an upload."""
-    if merchant_id not in _merchants:
-        _merchants[merchant_id] = Merchant(
-            id=merchant_id,
-            display_name=merchant_id.replace("-", " ").title(),
-            domain=f"{merchant_id}.example",
-            role="retailer",
-            publishes_benefit_extension=False,
-            signs_records=False,
-        )
-        _records[merchant_id] = []
-
-
-def replace_catalogue(merchant_id: str, path: Path) -> None:
-    """Make a validated upload the live catalogue for an existing merchant."""
-    _catalog[merchant_id] = CsvCatalogAdapter(path, merchant=merchant_id).load()
+    """Restore only user uploads; the empty registry is a valid first start."""
+    _merchants.clear()
+    _catalog.clear()
+    _records.clear()
+    onboard._reports.clear()
+    if test_data_enabled():
+        for mid, merchant in load_merchants().items():
+            report = CsvCatalogAdapter(CATALOG, merchant=mid).analyse()
+            _merchants[mid], _catalog[mid] = merchant, report.skus
+            _records[mid] = load_records(mid)
+            onboard._reports[mid] = report
+    else:
+        for merchant, report in load_uploads(UPLOADS):
+            _merchants[merchant.id], _catalog[merchant.id] = merchant, report.skus
+            _records[merchant.id] = []
+            onboard._reports[merchant.id] = report
 
 
 def _merchant(merchant_id: str) -> Merchant:
@@ -197,8 +176,9 @@ def catalog_search(
     merchant_id: str,
     q: str | None = Query(default=None),
     category: str | None = Query(default=None),
-    max_price: float | None = Query(default=None),
-    limit: int = Query(default=20, le=100),
+    max_price: float | None = Query(default=None, ge=0, allow_inf_nan=False),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     ucp_agent: str | None = Header(default=None, alias="UCP-Agent"),
 ) -> dict:
     merchant = _merchant(merchant_id)
@@ -220,9 +200,11 @@ def catalog_search(
     # shopper actually said. Either names the intent well enough to compose
     # against, and neither carries a SERVICE or VALUES clause -- those are
     # withheld agent-side so no merchant can price against them.
-    return _respond(merchant, skus[:limit], negotiated,
-                    query=" ".join(p for p in (category, q) if p),
-                    max_price=max_price, bundles=True)
+    response = _respond(merchant, skus[offset:offset + limit], negotiated,
+                        query=" ".join(p for p in (category, q) if p),
+                        max_price=max_price, bundles=True)
+    response["next_offset"] = offset + limit if offset + limit < len(skus) else None
+    return response
 
 
 @router.get("/{merchant_id}/ucp/catalog/lookup")
@@ -248,13 +230,35 @@ DASHBOARD = Path(__file__).resolve().parents[3] / "app" / "dashboard"
 CONSOLE = Path(__file__).resolve().parents[3] / "app" / "out"
 
 
+class ConsoleFiles(StaticFiles):
+    """Resolve Next's page-segment requests against its nested static export."""
+
+    async def get_response(self, path: str, scope):
+        if Path(path).name.startswith("__next.") and path.endswith(".__PAGE__.txt"):
+            try:
+                response = await super().get_response(path.removesuffix(".__PAGE__.txt") + "/__PAGE__.txt", scope)
+                if response.status_code != 404:
+                    return response
+            except StarletteHTTPException as exc:
+                if exc.status_code != 404:
+                    raise
+        return await super().get_response(path, scope)
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="BondLayer merchant service")
+    @app.get("/health")
+    def health() -> dict:
+        return {"status": "ok", "service": "merchant", "merchants": len(_merchants)}
+
+    @app.get("/dashboard/", include_in_schema=False)
+    def legacy_dashboard():
+        return RedirectResponse("/console/")
     app.include_router(router)
     app.include_router(onboard.router)
     app.include_router(intent.router)
     app.include_router(checkout.router)
-    if DASHBOARD.is_dir():
+    if test_data_enabled() and DASHBOARD.is_dir():
         # React is vendored under app/dashboard/vendor and served from here.
         # No CDN: a script tag pointing at the internet is a live fetch at demo
         # time, on venue wifi shared by twenty teams.
@@ -266,7 +270,7 @@ def create_app() -> FastAPI:
     if CONSOLE.is_dir():
         # The Next.js console, exported to static files (bondlayer/app/out).
         # Built once with npm and committed, so the venue needs no Node.
-        app.mount("/console", StaticFiles(directory=CONSOLE, html=True), name="console")
+        app.mount("/console", ConsoleFiles(directory=CONSOLE, html=True), name="console")
     seed()
     onboard.seed()
     return app

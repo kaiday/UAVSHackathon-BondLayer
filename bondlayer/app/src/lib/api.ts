@@ -14,6 +14,8 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 
 export type MerchantSummary = {
   merchant: string;
+  display_name: string;
+  domain: string;
   rows_read: number;
   readiness: number;
   blockers: number;
@@ -102,10 +104,11 @@ function subscribe(listener: () => void) {
   };
 }
 
-export function setMerchant(merchant: string) {
+export function setMerchant(merchant: string | null) {
   selected = merchant;
   try {
-    window.localStorage.setItem(STORAGE_KEY, merchant);
+    if (merchant === null) window.localStorage.removeItem(STORAGE_KEY);
+    else window.localStorage.setItem(STORAGE_KEY, merchant);
   } catch {
     // Private windows and blocked site data: the selection just does not persist.
   }
@@ -140,40 +143,33 @@ export type Loadable<T> = {
 };
 
 function useEndpoint<T>(path: string | null): Loadable<T> {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(path !== null);
+  const [result, setResult] = useState<{ key: string; path: string; data: T | null; error: string | null } | null>(null);
   const [nonce, setNonce] = useState(0);
+  const key = `${path}:${nonce}`;
 
   useEffect(() => {
-    if (path === null) {
-      setData(null);
-      setLoading(false);
-      return;
-    }
+    if (path === null) return;
     let live = true;
-    setLoading(true);
-    setError(null);
     getJSON<T>(path)
       .then((payload) => {
         if (live) {
-          setData(payload);
-          setLoading(false);
+          setResult({ key, path, data: payload, error: null });
         }
       })
       .catch((cause: unknown) => {
         if (live) {
-          setError(cause instanceof Error ? cause.message : String(cause));
-          setLoading(false);
+          setResult({ key, path, data: null, error: cause instanceof Error ? cause.message : String(cause) });
         }
       });
     return () => {
       live = false;
     };
-  }, [path, nonce]);
+  }, [path, key]);
 
   const reload = useCallback(() => setNonce((n) => n + 1), []);
-  return { data, error, loading, reload };
+  const current = path !== null && result?.key === key ? result : null;
+  return { data: path !== null && result?.path === path ? result.data : null, error: current?.error ?? null,
+    loading: path !== null && current === null, reload };
 }
 
 /** `GET /onboard/merchants` — and it selects the first merchant if none is set. */
@@ -181,11 +177,41 @@ export function useMerchants(): Loadable<MerchantSummary[]> {
   const state = useEndpoint<MerchantSummary[]>("/onboard/merchants");
   const merchant = useSelectedMerchant();
   useEffect(() => {
-    if (merchant === null && state.data && state.data.length > 0) {
-      setMerchant(state.data[0].merchant);
+    if (!state.loading && state.data && !state.data.some((entry) => entry.merchant === merchant)) {
+      const next = state.data[0]?.merchant ?? null;
+      if (next !== merchant) setMerchant(next);
     }
-  }, [merchant, state.data]);
+  }, [merchant, state.data, state.loading]);
+  useEffect(() => {
+    window.addEventListener("bondlayer:merchants-changed", state.reload);
+    return () => window.removeEventListener("bondlayer:merchants-changed", state.reload);
+  }, [state.reload]);
   return state;
+}
+
+export function refreshMerchants() {
+  window.dispatchEvent(new Event("bondlayer:merchants-changed"));
+}
+
+export type CatalogueUpload = { merchant: string; display_name: string; report: MerchantReport; published: boolean };
+
+export async function uploadCatalogue(file: File, options: {
+  merchant?: string; displayName?: string; domain?: string; preview?: boolean; create?: boolean;
+} = {}): Promise<CatalogueUpload> {
+  const params = new URLSearchParams();
+  if (options.merchant) params.set("merchant", options.merchant);
+  if (options.preview) params.set("preview", "true");
+  if (options.create) params.set("create", "true");
+  const form = new FormData();
+  form.append("file", file);
+  if (options.displayName !== undefined) form.append("display_name", options.displayName);
+  if (options.domain !== undefined) form.append("domain", options.domain);
+  const response = await fetch(`/onboard/catalog?${params}`, { method: "POST", body: form });
+  const text = await response.text();
+  let body;
+  try { body = JSON.parse(text); } catch { throw new Error(`Catalogue service returned ${response.status}. Please retry.`); }
+  if (!response.ok) throw new Error(typeof body.detail === "string" ? body.detail : `Upload failed (${response.status})`);
+  return body as CatalogueUpload;
 }
 
 /** `GET /onboard/report/{merchant}` */

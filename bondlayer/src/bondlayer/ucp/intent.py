@@ -121,6 +121,8 @@ def verified_records(
     signature, a signature that does not check out, an unknown ``key_id`` or an
     expired window is dropped here, so it can never be cited as evidence.
     """
+    if not merchant.signs_records:
+        return []
     published = load_signed(records_dir / f"{merchant.id}.signed.json")
     verifiers = verifiers_for(merchant, keys_dir)
     if not verifiers:

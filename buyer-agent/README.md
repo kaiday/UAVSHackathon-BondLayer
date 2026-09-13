@@ -4,7 +4,7 @@ Not a consumer product. This is a stand-in for the agent side of the UCP
 protocol, so a judge can watch what a real shopping agent would see and do
 against `bondlayer/`'s merchant service.
 
-**There is one merchant, one dataset, one valuation library, and this process
+**There is one merchant service and one valuation library, and this process
 owns none of them.** They all live in `bondlayer/`. This app is a client: it
 declares capabilities over `UCP-Agent`, fetches `bondlayer`'s catalogue and
 benefit extension over real HTTP, and hands both to
@@ -59,6 +59,16 @@ python -m uvicorn src.agent.main:app --host 127.0.0.1 --port 8001
 ```
 
 Open `http://127.0.0.1:8001/`.
+
+The merchant registry starts empty on a fresh install. First visit
+`http://127.0.0.1:8000/console/onboarding/` to publish your own catalogue.
+Each query discovers the current registry through `GET /onboard/merchants`,
+including merchants added since the agent started. Existing uploads are restored.
+No bundled demo merchant is used in normal operation. An empty registry returns
+`onboarding_required: true`, no winner and a link to onboarding.
+
+Search follows catalogue pagination. A newly uploaded merchant is catalogue-only,
+so both comparison panes use its real shelf prices and credit no invented benefits.
 
 No API key, no wifi required: with `OPENAI_API_KEY` unset, `/query` still
 returns a full ranking, credited amounts and a template sentence explaining

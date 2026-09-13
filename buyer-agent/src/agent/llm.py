@@ -66,7 +66,7 @@ def _template(run: AgentRun) -> str:
         )
     return (
         f"{winner.merchant}'s {winner.title} ({winner.sku_id}) costs ${winner.shelf_price:.2f} "
-        f"on the shelf, ${winner.credited:.2f} more than {cheapest.merchant}'s cheapest "
+        f"on the shelf, ${winner.shelf_price - cheapest.shelf_price:.2f} more than {cheapest.merchant}'s cheapest "
         f"listing, but {winner.records_verified} verified benefit(s) bring its effective "
         f"cost to ${winner.effective_cost:.2f} -- below {cheapest.merchant}'s "
         f"${cheapest.shelf_price:.2f}. That is the flip: a signed, verifiable offer beating "
