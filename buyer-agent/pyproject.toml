@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bondlayer-chat-app"
+version = "0.2.0"
+description = "Buyer-agent stand-in that consumes the bondlayer merchant service over UCP -- not a consumer product."
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.0",
+    "python-multipart>=0.0.6",
+    "httpx>=0.27",
+    "python-dotenv>=1.0",
+    "openai>=1.40",
+    "cryptography>=41.0.0",
+    # bondlayer itself is a local sibling package: `pip install -e ../bondlayer`
+    # (see requirements.txt). Not listed here as a path dependency -- pip's
+    # handling of relative file: URLs in pyproject.toml is not reliable across
+    # versions, and the explicit two-step install is what root run.sh does.
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+]
+
+[tool.setuptools]
+packages = ["src"]

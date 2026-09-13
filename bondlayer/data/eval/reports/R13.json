@@ -1,0 +1,191 @@
+{
+  "request_id": "R13",
+  "utterance": "Laptop under $1,200, 16GB, and I want to be able to trade in my old one",
+  "bundle": false,
+  "expect_unsatisfied": false,
+  "constraints": [
+    {
+      "text": "Laptop under $1,200",
+      "kind": "hard"
+    },
+    {
+      "text": "16GB",
+      "kind": "hard"
+    },
+    {
+      "text": "trade in my old one",
+      "kind": "service"
+    }
+  ],
+  "metrics": {
+    "hard_precision": 1.0,
+    "gold_recall": 1.0,
+    "precision_at_gold": 1.0,
+    "citations": [
+      1,
+      1
+    ],
+    "clauses_answered": [
+      1,
+      1
+    ],
+    "clauses_answered_control": [
+      0,
+      1
+    ]
+  },
+  "unsatisfied": [
+    "trade in my old one"
+  ],
+  "bundle_composed": {
+    "bundle_id": "bnd-voltway-laptop-f6940c1a",
+    "merchant": "voltway",
+    "items": [
+      "VOL-0021"
+    ],
+    "roles": [
+      "laptop"
+    ],
+    "combined_shelf_price": "1194.96",
+    "in_gold": 1,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": true
+  },
+  "merchants": [
+    {
+      "request_id": "R13",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 14,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; voltway won on effective cost.",
+      "sku_id": "CIT-0022",
+      "shelf_price": "1114.50",
+      "effective_cost": "1114.50",
+      "unsatisfied": [
+        "trade in my old one"
+      ]
+    },
+    {
+      "request_id": "R13",
+      "merchant": "northgear",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 0.6667,
+      "value_credited_aud": "68.95",
+      "value_withheld_aud": "330",
+      "won": false,
+      "lost_because": "Published value the wire did not carry: $330 was withheld as unverified, unattested or out of scope, so voltway won on effective cost.",
+      "sku_id": "NOR-0023",
+      "shelf_price": "1149.00",
+      "effective_cost": "1080.05",
+      "unsatisfied": [
+        "trade in my old one"
+      ]
+    },
+    {
+      "request_id": "R13",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 1.0,
+      "value_credited_aud": "209.95",
+      "value_withheld_aud": "1310.00",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "VOL-0021",
+      "shelf_price": "1194.96",
+      "effective_cost": "985.01",
+      "unsatisfied": []
+    }
+  ],
+  "control": [
+    {
+      "request_id": "R13",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 14,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "CIT-0022",
+      "shelf_price": "1114.50",
+      "effective_cost": "1114.50",
+      "unsatisfied": [
+        "trade in my old one"
+      ]
+    },
+    {
+      "request_id": "R13",
+      "merchant": "northgear",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "398.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "NOR-0023",
+      "shelf_price": "1149.00",
+      "effective_cost": "1149.00",
+      "unsatisfied": [
+        "trade in my old one"
+      ]
+    },
+    {
+      "request_id": "R13",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "1519.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "VOL-0021",
+      "shelf_price": "1194.96",
+      "effective_cost": "1194.96",
+      "unsatisfied": [
+        "trade in my old one"
+      ]
+    }
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 3,
+    "gold_total": 3,
+    "parsed_total": 3,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "under $1,200",
+        "gold_kind": "HARD",
+        "parsed": "Laptop under $1,200",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "16GB",
+        "gold_kind": "HARD",
+        "parsed": "16GB",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "trade in my old one",
+        "gold_kind": "SERVICE",
+        "parsed": "trade in my old one",
+        "parsed_kind": "service"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
+}

@@ -1,0 +1,12 @@
+[
+  {
+    "kty": "EC",
+    "crv": "P-256",
+    "alg": "ES256",
+    "use": "sig",
+    "kid": "northgear-2026-09",
+    "key_id": "northgear-2026-09",
+    "x": "dxYPn8grKG7n_EJTi-nTJdZVmOD3sYCOOuLiy7Jkqyo",
+    "y": "SAH0EwHrQnI_EW8HQcdmFPyu5JTXP_L4H0hreBFV6zo"
+  }
+]

@@ -1,0 +1,212 @@
+{
+  "request_id": "R29",
+  "utterance": "Best value 14 inch laptop with 16GB, and I do care where it's made",
+  "bundle": false,
+  "expect_unsatisfied": false,
+  "constraints": [
+    {
+      "text": "Best value",
+      "kind": "soft"
+    },
+    {
+      "text": "14 inch",
+      "kind": "hard"
+    },
+    {
+      "text": "laptop",
+      "kind": "hard"
+    },
+    {
+      "text": "16GB",
+      "kind": "hard"
+    },
+    {
+      "text": "where it's made",
+      "kind": "values"
+    }
+  ],
+  "metrics": {
+    "hard_precision": 1.0,
+    "gold_recall": 1.0,
+    "precision_at_gold": 1.0,
+    "citations": [
+      0,
+      0
+    ],
+    "clauses_answered": [
+      0,
+      1
+    ],
+    "clauses_answered_control": [
+      0,
+      1
+    ]
+  },
+  "unsatisfied": [
+    "where it's made"
+  ],
+  "bundle_composed": {
+    "bundle_id": "bnd-citycircuit-laptop-c6b63d2d",
+    "merchant": "citycircuit",
+    "items": [
+      "CIT-0019"
+    ],
+    "roles": [
+      "laptop"
+    ],
+    "combined_shelf_price": "1211.50",
+    "in_gold": 1,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": null
+  },
+  "merchants": [
+    {
+      "request_id": "R29",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 14,
+      "legible_share": 0.8,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; voltway won on effective cost.",
+      "sku_id": "CIT-0019",
+      "shelf_price": "1211.50",
+      "effective_cost": "1211.50",
+      "unsatisfied": [
+        "where it's made"
+      ]
+    },
+    {
+      "request_id": "R29",
+      "merchant": "northgear",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 0.8,
+      "value_credited_aud": "68.95",
+      "value_withheld_aud": "330",
+      "won": false,
+      "lost_because": "Published value the wire did not carry: $330 was withheld as unverified, unattested or out of scope, so voltway won on effective cost.",
+      "sku_id": "NOR-0020",
+      "shelf_price": "1249.00",
+      "effective_cost": "1180.05",
+      "unsatisfied": [
+        "where it's made"
+      ]
+    },
+    {
+      "request_id": "R29",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 0.8,
+      "value_credited_aud": "209.95",
+      "value_withheld_aud": "1310.00",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "VOL-0018",
+      "shelf_price": "1298.96",
+      "effective_cost": "1089.01",
+      "unsatisfied": [
+        "where it's made"
+      ]
+    }
+  ],
+  "control": [
+    {
+      "request_id": "R29",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 14,
+      "legible_share": 0.8,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "CIT-0019",
+      "shelf_price": "1211.50",
+      "effective_cost": "1211.50",
+      "unsatisfied": [
+        "where it's made"
+      ]
+    },
+    {
+      "request_id": "R29",
+      "merchant": "northgear",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 0.8,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "398.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "NOR-0020",
+      "shelf_price": "1249.00",
+      "effective_cost": "1249.00",
+      "unsatisfied": [
+        "where it's made"
+      ]
+    },
+    {
+      "request_id": "R29",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 0.8,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "1519.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "VOL-0018",
+      "shelf_price": "1298.96",
+      "effective_cost": "1298.96",
+      "unsatisfied": [
+        "where it's made"
+      ]
+    }
+  ],
+  "decode": {
+    "precision": 0.8,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 4,
+    "gold_total": 4,
+    "parsed_total": 5,
+    "perfect": false,
+    "pairs": [
+      {
+        "gold": "14 inch",
+        "gold_kind": "HARD",
+        "parsed": "14 inch",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "16GB",
+        "gold_kind": "HARD",
+        "parsed": "16GB",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "best value",
+        "gold_kind": "SOFT",
+        "parsed": "Best value",
+        "parsed_kind": "soft"
+      },
+      {
+        "gold": "I care where it's made",
+        "gold_kind": "VALUES",
+        "parsed": "where it's made",
+        "parsed_kind": "values"
+      }
+    ],
+    "misses": [],
+    "extras": [
+      {
+        "text": "laptop",
+        "kind": "hard"
+      }
+    ],
+    "kind_confusions": []
+  }
+}
