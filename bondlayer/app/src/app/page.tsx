@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BannerCarousel } from "@/components/banner-carousel";
 import { ComparisonStrip } from "@/components/merchant-switcher";
 import { Failed, Loading } from "@/components/states";
 import { humanise, severityTone, useReport, useSelectedMerchant } from "@/lib/api";
@@ -13,6 +14,8 @@ export default function Home() {
 
   return (
     <div className="content">
+      <BannerCarousel />
+
       <div className="page-heading">
         <div>
           <h1>Catalogue readiness</h1>
