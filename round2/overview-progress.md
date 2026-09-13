@@ -1,232 +1,298 @@
 # Overview progress — Day 1
 
-*Revised 12/09 ~11:50 AEST. Supersedes the 11:10 version. Every status claim below was
-re-checked against `origin/round2/dev` rather than restated.*
+*Revised 12/09 13:05 AEST. Supersedes the 11:10 version. Every status claim re-checked
+against `origin/*` rather than restated.*
 
-> **The 12:00 integration checkpoint is ~10 minutes away and four of five branches
-> contain no code.** Read §3 first. Everything else can wait until after the checkpoint.
+> ## Two things at once
+>
+> **Code is landing.** Nguyen shipped 1,443 lines at 12:47–12:57; Hieu shipped the intent
+> parser at 12:59. `round2/dev` moved to `4e20af6`. That is the day turning around.
+>
+> **And the architecture changed.** `round2/system-architecture.md` re-cuts the product
+> into **two applications and three owners**. It does not match the five-owner split in
+> `WORKPLAN.md` that everyone is currently working from, and it leaves the top-weighted
+> judged criterion without an explicit owner. **§3 lists four questions that need answers
+> before 14:30.**
+>
+> **Bach and Minh have pushed no code** and Bach now owns the harder of the two apps.
 
 ---
 
 ## 1. Where the repo actually stands
 
-| Branch | Ahead of `round2/dev` | Contents | Verified |
+| Branch | Ahead | What has landed | Last push |
 |---|---|---|---|
-| `feat/nha-eval-data` | 0 — fully merged | Phase 0 landed 10:49–10:52 | ✅ |
-| `feat/hieu-interpreter` | 5 | `branches/hieu.md` only — no code | ✅ |
-| `feat/nguyen-ucp-head` | 5 | `branches/nguyen.md` only — no code | ✅ |
-| `feat/bach-records-signing` | 5 | `branches/bach.md` only — no code | ✅ |
-| `feat/minh-console` | 5 | `branches/minh.md` only — no code | ✅ |
+| `feat/nguyen-ucp-head` | 9 | **1,443 lines.** `adapters/catalog.py` (457) · `ucp/profile.py` · `ucp/capabilities.py` · `ucp/server.py` · `ucp/onboard.py` · `tests/test_catalog.py` (144) · `tests/test_ucp.py` (178) | **12:57** |
+| `feat/hieu-interpreter` | 6 | **346 lines.** `interpreter/parser.py` (169) · `interpreter/resolver.py` (stub) · `tests/test_interpreter.py`. Parses R01 | **12:59** |
+| `feat/nha-eval-data` | 1 | `docs/stage1-agent-ready-catalog.md` — **unmerged, see §4.1** | 12:32 |
+| `feat/bach-records-signing` | 5 | scope note only — **no code** | 10:52 |
+| `feat/minh-console` | 5 | scope note only — **no code** | 10:52 |
 
-**The gate is open** (`b5281f5`, 10:52). On `round2/dev` you have:
+`round2/dev` head: `4e20af6` (12:47) *"Package layout: bondlayer importable, pytest finds src"*.
 
-- `src/bondlayer/types.py` — 232 lines. **13 frozen dataclasses/enums and 5 protocols**
-  (`CatalogAdapter`, `PolicyConverter`, `Signer`, `ConstraintInterpreter`,
-  `ValuationLibrary`). *The earlier "6 protocols" was wrong — see §3.2, the missing
-  one is load-bearing.*
-- `data/eval/requests.json` — 30 requests, frozen, with `freeze_rule` and gold SKUs
-- `data/catalog/electronics.csv` — 148 SKUs across `VOL-` / `CIT-` / `NOR-`
-- `data/policies/` — three policy docs + `manifests.json`
+**On `round2/dev`:** `types.py` (232 lines — 13 frozen dataclasses/enums, **5** protocols) ·
+30 frozen eval requests · `electronics.csv` — **148 SKUs · 62 model keys · 53 shared across
+merchants · 10 missing GTINs** · three policy docs + `manifests.json`
+(`voltway` bondlayer · `citycircuit` control · `northgear` competitor).
 
-**Merchant count is settled at three** — `voltway` (bondlayer), `citycircuit` (control),
-`northgear` (competitor). This closes the open question in both Nguyen's and Minh's
-scope notes; neither needs to ask Nha before wiring.
+### Integration hazard, right now
 
-Everything downstream of the gate is unstarted. Day 1, with a 17:00 Day-2 deadline.
+**Hieu's branch is behind `round2/dev`.** His last merge was 10:52; the package-layout
+commit landed at 12:47. His branch is missing `pyproject.toml`, so *"pytest finds src"* is
+not true on his checkout. Nguyen merged it at 12:47 and is clean. **Hieu: merge
+`round2/dev` before your next push**, or the first integration attempt fails on imports
+rather than on logic.
 
 ---
 
-## 2. Three corrections to the written plan
+## 2. The architecture we are building
 
-These are drifts between the planning docs and the data that actually landed. Fix the
-docs, not the data.
+From `round2/system-architecture.md`. Two applications over three data models.
 
-### 2.1 The unsigned greenwashing claim is in **northgear**, not citycircuit
+### Data models
 
-`GAPS.md` gap 5 and `branches/minh.md` both say *"the control merchant's data."* The
-landed data puts it in `manifests.json → northgear.planted_unsigned`, and that placement
-is correct:
+`Catalogs` (product detail) · `Policy` (text) · `Promotions` (**undefined in the doc — see
+§3.4**).
+
+### Dashboard — the merchant app
+
+The app the merchant uses most. Manages catalog, policy and promotions.
+
+- **Onboarding by upload** — catalog as CSV, policy and promotions as txt
+- **Intelligent suggestions** on catalog and policy
+- **Analytics page — demo only, no data populated.** Label it as such *on the screen*, not
+  just in the script. An unlabelled empty analytics page reads to a judge as a broken
+  feature rather than a deliberate boundary
+
+### Demo Chat App — the integration proof
+
+> *"The onboarding step can be demoed easily via dashboard GUI. However, UCP integration is
+> harder to demo. Thus we need this demo chat app."*
+
+- A **mock shopping agent** whose system prompt is **neutral** and mirrors a real agent's
+  decision strategy — it must have no knowledge of us
+- A **BondLayer on/off switch**, showing the layer's effect on the merchant's ranking
+- **Detail logs as evidence:** UCP integration, loyalty layer, policies applied, user
+  identity fetched via UCP
+
+### Assignment
+
+| Owner | Scope |
+|---|---|
+| **Manh** | Dashboard |
+| **Hieu** | RAG for dashboard intelligence, and DAO |
+| **Bach** | Demo Chat App — including UCP integration and the loyalty layer |
+
+---
+
+## 3. Four questions the new split raises — answer before 14:30
+
+These are not objections. The two-app cut is clearer than the five-surface one and it
+matches what Nguyen has already built. But it changes ownership under people mid-flight,
+and four things are genuinely unresolved.
+
+### 3.1 Who owns intent matching — the #1 judged criterion?
+
+FPT weights **intention accuracy and semantic matching first**, ahead of architecture and
+conversion. In the new split it is named nowhere: Hieu has "RAG for dashboard intelligence
+and DAO", which is the *merchant-side* suggestion engine, not shopper-intent decoding.
+
+Meanwhile Hieu has spent the morning building exactly that — `interpreter/parser.py`,
+pushed 12:59. **Either the architecture doc is silent on work that is already underway, or
+Hieu is off-plan.** Those need different fixes, and the whole pitch rests on the answer.
+
+### 3.2 Bach now owns the heavier app, from zero
+
+He has no code at 13:05, and the new split gives him the Demo Chat App **plus** UCP
+integration **plus** the loyalty layer. Nguyen has already shipped a UCP head — profile,
+capabilities, server, negotiation, control parity.
+
+**Recommendation: Bach consumes Nguyen's UCP head, he does not rebuild it.** Otherwise two
+people implement the same protocol surface on Day 1 and neither finishes. His own branch's
+signing and valuation work — the trust invariants — is still his and still unstarted.
+
+### 3.3 Nha and Minh have no assignment
+
+Nha's Phase 0 landed and she owns the 25-point market-strategy work, the Problem Setter
+window and the Q&A rehearsal — none of which appear in a doc about applications, and all of
+which still need doing. Minh's three surfaces are absorbed into the two apps, which is
+sensible, but **the person is not.** A UX owner with no named surface on Day 1 is wasted
+capacity, and the dashboard is a UX-heavy app with 20 points attached.
+
+### 3.4 `Promotions` is declared and undefined
+
+It is listed as a data model with no description, and it does not exist in `types.py`,
+which models value as `BenefitRecord` with a `BenefitType` ontology. Either promotions
+*are* `BenefitRecord`s and the name should go, or they are a new type and someone must
+define the shape — **on `round2/dev`, channel first**, per the rule below.
+
+### Branch names now lie
+
+`feat/nguyen-ucp-head` is becoming the dashboard. `feat/bach-records-signing` is becoming
+the chat app. `feat/hieu-interpreter` is becoming RAG + DAO. Renaming branches at 13:00
+costs more than it saves — **leave them, and put the mapping in the README**, or a `git
+checkout` under time pressure sends someone to the wrong place.
+
+---
+
+## 4. Corrections that still stand
+
+### 4.1 Nha's Stage 1 spec is unmerged, and it resolves the signing question
+
+`bondlayer/docs/stage1-agent-ready-catalog.md`, pushed 12:32, still only on
+`feat/nha-eval-data`. **Merge it.** It is the sharpest document in the repo and it settles
+what this morning's version called the one hard blocker:
+
+> **ES256 (P-256/SHA-256) is mandatory.** All implementations MUST verify it. Do not reach
+> for Ed25519 — the Round 1 proposal said Ed25519, the spec says ES256, **and the spec wins.**
+
+Verified against `ucp.dev/2026-04-08/specification/signatures/`. **Bach is unblocked — this
+is not waiting on Ford.** Two riders:
+
+- Keys publish in `/.well-known/ucp` under `signing_keys[]` in **JWK format** (RFC 7517):
+  `kid`, `kty: "EC"`, curve, `x`, `y`. `kid` resolves there; no match → `key_not_found`.
+- **Before Bach reads the wrong source:** a widely-cited vendor blog claims
+  `/.well-known/jwks.json` is the canonical trust store and `signing_keys[]` is merely
+  informational. **ucp.dev does not say that.** Build against ucp.dev.
+
+Pitch it as an **adaptation** — we read the spec and changed — not as a correction. That
+scores under Adaptation (10).
+
+### 4.2 The unsigned greenwashing claim is in **northgear**, not citycircuit
+
+`GAPS.md` gap 5 and `branches/minh.md` both say *"the control merchant's data."* The landed
+data and the Stage 1 spec both put it in `northgear.planted_unsigned` — *"Australia's most
+sustainable electronics retailer"* — and that is right:
 
 - `citycircuit.expect_records` is `[]`, with `_why_empty`: the control publishes a plain
   feed, *"That is the status quo, not a strawman."* A control that publishes an unsigned
   claim has stopped being a control.
-- The northgear entry carries its own reason: *"R12 must not be won by this."* R12 is
-  *"I want the most sustainable phone you sell"* — the claim sits exactly where the eval
-  set needs it to.
+- northgear's entry says why: *"R12 must not be won by this."* R12 is *"I want the most
+  sustainable phone you sell."*
 
-**Action:** correct the wording in `GAPS.md` and `branches/minh.md`. Do not move the
-record. Nobody should act on the old wording.
+**Fix the wording in `GAPS.md` and `branches/minh.md`. Do not move the record.**
 
-### 2.2 Semantic matching means embeddings, and that has to stay visible
+### 4.3 `types.py` has pending additions, and nobody may make them on a branch
 
-`GAPS.md` gap 2 is Critical and exists *specifically* because a vaguer brief would let us
-rebuild substring matching — the analysis found the spike matching on title and brand,
-*"precisely the thing criterion 1 says to go beyond."* It is on `branches/hieu.md:92` and
-it belongs at the top of Hieu's task list, not in the tail of a scope note. See T-H1.
+`WORKPLAN.md`: *"a change goes to the channel first, then straight onto `round2/dev` as its
+own commit, then everyone rebases."* Batch these into **one** commit:
 
-### 2.3 The ES256 / Ed25519 conflict blocks **two** branches, not one
-
-| Source | Says |
-|---|---|
-| `branches/bach.md` | ES256, *"do not drift to Ed25519"* |
-| `WORKPLAN.md` Phase 2 | ES256 |
-| Handover §8, locked stack | PyNaCl / Ed25519 |
-| Alignment analysis §2 | credits Ed25519 as the existing asset |
-
-Bach cannot sign, **and Nguyen cannot finalise `/.well-known/ucp`'s `signing_keys[]`**,
-until Ford rules. Both branches are on the critical path.
+| # | Addition | For | Why |
+|---|---|---|---|
+| 1 | `Sku`: `gtin`, `model_key`, `variant_parent`, `availability` | Manh, Hieu | Stage 1 §9. The CSV already has these columns; burying identity in `attributes` breaks matching and the readiness score. `None` is a legitimate, scored state |
+| 2 | `ReadinessReport` | Manh | Stage 1 §4 — the dashboard's suggestion surface needs a shape |
+| 3 | `Promotions`, or a ruling that it is `BenefitRecord` | Manh, Bach | §3.4 |
+| 4 | **`Bundler` protocol** | Manh | `Bundle` exists as a dataclass; the seam that produces one does not |
 
 ---
 
-## 3. Blockers — clear these before anything else
+## 5. Technical task breakdown
 
-### 3.1 ES256 or Ed25519 — Ford's call, blocking Bach + Nguyen
+Re-cut against the two-application architecture. Each task names its dependency and a
+testable *done when*. ✅ = already landed.
 
-The only unresolved decision on the critical path. Ask now, in the channel, not in a
-standup. Default if Ford is unreachable by 12:15: **Ed25519/PyNaCl**, because it is the
-locked stack and the one the spike proved — and log the deviation from the submitted docx
-rather than stalling.
+Legend: 🔴 critical path · 🟡 needed for the demo · 🟢 stretch, cut at 14:30
 
-### 3.2 There is no `Bundler` protocol in `types.py` — blocking Nguyen's gap 4
+### Dashboard — Manh · `feat/nguyen-ucp-head`
 
-`Bundle` exists as a dataclass. The seam that produces one does not. `WORKPLAN.md`
-forbids editing `types.py` on a feature branch: *"a change goes to the channel first, then
-straight onto `round2/dev` as its own commit, then everyone rebases."* So this is a
-two-minute change with a mandated process, and it has to happen before Nguyen reaches
-bundling. See T-N5.
+| ID | Task | Dep | Done when |
+|---|---|---|---|
+| D1 ✅ | `adapters/catalog.py` — CSV → `Sku`, normalising the planted noise | — | **Landed 12:52.** Keep the repair count: *"repaired N malformed attributes across 148 SKUs"* is a slide, and the remediation log is the literal answer to FPT's question about what friction a machine meets on a human feed |
+| D2 ✅ | UCP head — profile, capabilities, server, negotiation, **control parity** | — | **Landed 12:57.** Control parity is the single most important correctness property in the repo: the control is the same server with enrichment off. If it were a different implementation the comparison proves nothing |
+| D3 ✅ | `ucp/onboard.py` — onboarding endpoints | — | **Landed 12:53.** This is the JSON the dashboard GUI renders |
+| D4 🔴 | Dashboard GUI: upload catalog CSV, policy txt, promotions txt | D3 | A merchant export with deliberate noise ingests with **zero manual edits**, and every repair shows in the log |
+| D5 🔴 | Render the remediation log — every repair with before, after, and the rule that fired | D1, D4 | Per the Problem Setter's note, **the log matters more than the bars looking good** |
+| D6 🟡 | Catalog / policy / promotions management views | D4, §3.4 | A merchant can see and correct what was ingested |
+| D7 🟡 | Intelligent-suggestion surface — renders Hieu's output | H2 | Names the **worst offenders by SKU id**. A list of twelve broken SKUs is actionable; "attribute completeness 78%" is not |
+| D8 🟡 | Readiness score — five dimensions **reported separately, never averaged** | §4.3 #2 | Identity · attribute completeness · semantic density · policy coverage · verifiability. One blended score hides the specific fixable problem |
+| D9 🟡 | Analytics page — **visibly labelled demo-only, no data** | D4 | A judge reads it as a deliberate boundary, not a broken feature |
+| D10 🟢 | Dynamic bundling (gap 4) — compose `Proposal`s into a `Bundle` | §4.3 #4 | Named twice in the problem statement. `rationale` says why items belong *together*. **A bundle of one is a valid degenerate case**, so it ships partially and still counts |
 
-### 3.3 Nobody has pushed code and the checkpoint is now
+### Dashboard intelligence — Hieu · `feat/hieu-interpreter`
 
-The rule in `WORKPLAN.md` is **"open a PR into `round2/dev` as soon as your stub runs"** —
-not when the feature is done. Stubs at 12:00 are worth more than features at 16:00, and a
-single large 16:00 push looks exactly like pre-written code, which is a disqualification
-condition. Push a failing stub rather than nothing.
+| ID | Task | Dep | Done when |
+|---|---|---|---|
+| H0 🔴 | **Merge `round2/dev` before your next push** | — | You are missing `pyproject.toml` from 12:47; pytest will not find `src` on your checkout (§1) |
+| H1 ✅ | `interpreter/parser.py` — intent parse, R01 | — | **Landed 12:59.** Extend to all 30 eval requests |
+| H2 🔴 | RAG over policy + catalog → improvement suggestions | D3 | Suggestions quote the text they came from. **A suggestion with no quotable source is not shown** |
+| H3 🔴 | DAO layer for catalogs, policy, promotions | §3.4 | One place owns persistence; the two apps do not each invent it |
+| H4 🔴 | **Settle §3.1**, then either finish the interpreter or hand it over | §3.1 | Whoever owns it, one person does, and they know by 14:30 |
+| H5 🟡 | Policy → draft `BenefitRecord`s, **every draft quoting `source_span`**, nothing published without a human approval click | H2 | **Demo the approval gate as a feature.** A draft with no quotable span is rejected, not published |
+| H6 🟡 | **Compare the quote loosely, the fact strictly** | H5 | Normalise markdown, whitespace and currency before comparing spans. *The spike rejected all ten drafts because the document wrote `**$12.95**` and the model quoted `$12.95`.* The check is for fabrication, not formatting — do not re-ship that bug |
+| H7 🟡 | Matching is **embeddings + attribute filters, not substring** (gap 2, Critical) | H4 | The 53 shared `model_key`s are the test case. Exact model/GTIN is the **declared MVP fallback**, not the plan |
+| H8 🟡 | Every resolved constraint carries a cited `evidence_record_id` **or** `evidence_attribute` **plus** a readable note; `unsatisfied` populated honestly | H4 | **FPT asked for justification prose, not a SKU list.** The eval set contains requests engineered to catch silent drops |
+
+### Demo Chat App — Bach · `feat/bach-records-signing`
+
+**Nothing has landed. This is the critical path now.**
+
+| ID | Task | Dep | Done when |
+|---|---|---|---|
+| B1 🔴 | **`tests/test_invariants.py` before any other code.** (1) tampered record fails verify; (2) unsigned record credits zero; (3) inflating `value_ceiling_aud` to $9,999 does not change ranking | — | Red, then green. **Test 3 is the one that survives Q&A** — the obvious attack is *"what stops a merchant claiming a $10,000 warranty"*, and the answer should be a test running on screen, not a paragraph |
+| B2 🔴 | Canonical JSON serialiser + round-trip test — **before the crypto** | — | Sorted keys, no insignificant whitespace, integers for minor units, UTF-8, no trailing newline. A signature over non-canonical JSON is worthless |
+| B3 🔴 | **ES256** detached per-record signature — settled, §4.1 | B2 | **Object-level, not RFC 9421 transport-level.** Asked at the Gala why not UCP message signing: theirs is ephemeral and authenticates a response in flight; ours survives the response, so an agent can cache it, re-verify it later and cite it. Hand the key to Manh as JWK — **do not publish it yourself** |
+| B4 🔴 | **Consume Manh's UCP head — do not rebuild it** (§3.2) | D2 | The chat app talks to the running server. Two protocol implementations on Day 1 means neither finishes |
+| B5 🔴 | Mock shopping agent with a **neutral** system prompt | B4 | It mirrors a real agent's decision strategy and **has no knowledge of our system.** That neutrality is what makes the before/after admissible evidence |
+| B6 🔴 | **The BondLayer on/off switch** | B4, D2 | Same query, same code path, visibly different ranking. **The "off" run is an agent that simply does not declare `org.bondlayer.benefit_value`, so negotiation prunes it — we never switch code paths to make the baseline lose.** This is the moment the pitch turns |
+| B7 🟡 | Detail logs: UCP negotiation · loyalty layer · policies applied · identity fetched via UCP | B4 | Reads as a chain of thought, not a log dump. **This is the surface FPT weights highest** — *visual polish of human-facing dashboards is lower priority than the logic of the machine-to-machine interaction* |
+| B8 🟡 | `valuation/`: `effective_cost()`, `credited = min(ceiling, shopper_policy_value)`, zero if unverified. **No model call in this file** | B3 | Returns the `CreditedBenefit` breakdown, not just a total. Write it as if someone hostile will read it, because that is the point of shipping it open |
+| B9 🟡 | **Three visually distinct record states** in the log: signed+priced → cited and credited · signed+unpriced → cited, visibly **$0** · unsigned → displayed, **never cited** | B7, B8 | Rows 2 and 3 both credit nothing and a viewer still sees instantly that one is trusted evidence and the other is not. **This is the demo moment** |
+| B10 🟡 | Plant the unsigned **"$50 agent bonus"** record | B1 | It visibly earns nothing on screen |
+| B11 🟡 | Loyalty layer: identity via UCP, consent-gated enrolment, records re-asserted at checkout | B8 | Values at discovery are **indicative, not binding** — say so; UCP enforces eligibility at checkout |
+| B12 🟢 | Close the API loop (gap 7) — checkout settles rather than sets a status flag | B11 | **Idempotent** and explicitly confirmed; replaying a confirmation must not double-credit. **No real payment flow** |
+
+### Unassigned — needs an owner today (§3.3)
+
+| ID | Task | Done when |
+|---|---|---|
+| U1 🔴 | **Market strategy into README + deck** — 25 pts, equal-highest, and where strong technical teams drop points | It exists in writing, not only in the Round 1 PDF |
+| U2 🔴 | **15:30–16:00 Problem Setter window** — lead with the §3.2 open questions | Something visibly changes afterwards (10 pts, Adaptation) |
+| U3 🟡 | Evaluation run on the frozen set: constraint-satisfaction rate and citation precision, against `citycircuit` as baseline | **Every number in the pitch comes from here.** Day 2 11:00–12:00 |
+| U4 🟡 | Q&A rehearsal; drill **Q2 (Talon.One / UIP)** | That answer exists only as rehearsal, nowhere in writing |
+| U5 🟡 | Retire jacket material; electronics examples throughout (gap 9) | No footwear examples in deck or README |
+| U6 🟡 | **Citation discipline** (Stage 1 §10) — no vendor-blog figure on a slide | If spoken: *"industry estimates suggest, and we have not verified this"* |
 
 ---
 
-## 4. Technical task breakdown
-
-Re-cut from the branch notes into ordered, independently-pushable units. Each task names
-its file, its dependency, and what "done" means. **T-x1 for every owner is a stub that
-compiles and is pushable by 12:00.**
-
-Legend: 🔴 critical path · 🟡 needed for the demo · 🟢 stretch
-
-### Nha — `feat/nha-eval-data` · Phase 0 complete, now PM
-
-Her build work is landed. What remains is the 25-point half of the scoreboard.
-
-| ID | Task | Dep | Done when |
-|---|---|---|---|
-| T-A1 🔴 | Get Ford's ruling on §3.1 and post it in the channel | — | Bach and Nguyen both unblocked |
-| T-A2 🔴 | Fix the citycircuit→northgear wording in `GAPS.md` + `branches/minh.md` (§2.1) | — | Committed on `round2/dev` |
-| T-A3 🔴 | Call the clock out loud: **12:00** integration · **14:30** fallback decision · Day 2 **12:00** freeze | — | Each called at the time, not after |
-| T-A4 🟡 | **Market strategy into README + deck** — 25 pts, equal-highest, and where strong technical teams drop points | — | It exists in writing, not just the Round 1 PDF |
-| T-A5 🟡 | Retire jacket material from all spoken/written output; electronics examples throughout (gap 9) | — | Deck + README carry no footwear/jacket examples |
-| T-A6 🟡 | **15:30–16:00 Problem Setter window** — lead with the §3.2 open questions | — | Something visibly changes afterwards (10 pts, Adaptation) |
-| T-A7 🟡 | Schedule the Q&A rehearsal; drill **Q2 (Talon.One / UIP)** | — | Day 2 15:00–16:30 booked. This answer exists only as rehearsal, nowhere in writing |
-| T-A8 🟢 | Carry the positioning line into the deck: *"In a room full of agents, we are building the thing agents read"* | T-A4 | It is in the pitch, not only in `docs/solution-bondlayer-summary.md` |
-
-### Hieu — `feat/hieu-interpreter` · Phase 1 · heaviest branch, #1 judged criterion
-
-`src/bondlayer/interpreter/` runs end to end **before** `converter/` opens.
-
-| ID | Task | Dep | Done when |
-|---|---|---|---|
-| T-H1 🔴 | **Matching is embeddings + attribute filters, not substring** (gap 2). Exact model/GTIN is the declared MVP fallback per handover §8 — a fallback, not the plan | gate | Near-duplicates in the catalogue are resolved by similarity, and you can say on stage why substring fails on them |
-| T-H2 🔴 | Constraint parse: utterance → `list[Constraint]` across HARD / SOFT / SERVICE / VALUES | gate | The 30-request eval set parses without exception |
-| T-H3 🔴 | `ConstraintInterpreter` stub returning fixture `Proposal`s — **push by 12:00** | — | Nguyen and Minh can import and wire |
-| T-H4 🔴 | Every `ResolvedConstraint` carries a cited `evidence_record_id` **or** `evidence_attribute` **plus** a human-readable `note` | T-H2 | No resolved constraint has an empty note. FPT asked for justification prose, not a SKU list |
-| T-H5 🔴 | Populate `Proposal.unsatisfied` honestly | T-H2 | The eval requests engineered to catch silent drops do catch them |
-| T-H6 🟡 | Resolve `ConstraintKind.VALUES` against `value_ceiling_aud = None` records (gap 5) | T-H4, T-B4 | *"From a brand that actually repairs things"* cites a signed `repairability` record. Cite them exactly like any other — only valuation cares about the ceiling |
-| T-H7 🟡 | **The pitch numbers:** constraint-satisfaction rate + citation precision, both against `citycircuit` as baseline | T-H2–H5 | Numbers come from the frozen set, reproducible on Day 2 11:00–12:00 |
-| T-H8 🟢 | Phase 2 `converter/`: every draft quotes `source_span`; nothing publishes without human approval | T-H1–H5 done | **Demo the approval gate as a feature**, not a limitation |
-
-**Not his:** bundling (Nguyen's, T-N5).
-
-### Nguyen — `feat/nguyen-ucp-head` · Phase 1
-
-| ID | Task | Dep | Done when |
-|---|---|---|---|
-| T-N1 🔴 | `/.well-known/ucp` profile + routing, against a 10-row fixture CSV of your own — **push by 12:00** | — | Resolves and returns a capability list |
-| T-N2 🔴 | `adapters/catalog.py` → `CatalogAdapter` over the 148-SKU CSV. **The noise is the deliverable** | gate | Normalises the planted noise, units and near-duplicate titles. Keep the repair count — *"repaired N malformed attributes across 148 SKUs"* is a slide |
-| T-N3 🔴 | **Capability negotiation — serve the intersection, with no special-case branch** | T-N1 | An agent with the extension and an agent without it get valid responses **from the same code path**. Someone will ask you to prove it; make it structurally true, not conditionally true |
-| T-N4 🔴 | Three merchant profiles from `manifests.json`; **the control is the same server with enrichment off** | T-N2 | This is the single most important correctness property on the branch — if the control is a different implementation, the comparison proves nothing |
-| T-N5 🟡 | `catalog.lookup` carries the benefit extension; `signing_keys[]` publishes **Bach's** key — never generate one | T-N3, §3.1 | A record of Bach's verifies end to end against the published key |
-| T-N6 🟢 | **Dynamic bundling** (gap 4) — compose Hieu's `Proposal`s into a `Bundle`. Needs the `Bundler` protocol on `round2/dev` first (§3.2) | T-N5, T-H4 | `rationale` says why items belong *together* — not why each matched, that is already in the notes. **A bundle of one is a valid degenerate case**, so this can ship partially and still count |
-
-**Constraint on every task:** runs from seeded state, zero network calls. Venue wifi is
-shared by twenty teams.
-
-### Bach — `feat/bach-records-signing` · Phase 2, then 3 · not gated, start cold
-
-| ID | Task | Dep | Done when |
-|---|---|---|---|
-| T-B1 🔴 | **`tests/test_invariants.py` before any other code.** (1) a tampered record fails verify; (2) an unsigned record credits zero; (3) inflating `value_ceiling_aud` to $9,999 does not change ranking | — | All three run red, then green. **Test 3 is the one that survives Q&A** — the obvious attack is *"what stops a merchant claiming a $10,000 warranty"*, and the answer should be a test running on screen, not a paragraph |
-| T-B2 🔴 | Canonical JSON serialiser in `records/` — **before the crypto** | — | Deterministic bytes for a `BenefitRecord`. A signature over non-canonical JSON is worthless |
-| T-B3 🔴 | Detached per-record object signing, algorithm per §3.1 | T-B2, §3.1 | **Object-level, not RFC 9421 transport-level.** If asked at the Gala why not UCP message signing: theirs is ephemeral and authenticates a response in flight; ours survives the response, so an agent can cache it, re-verify later, and cite it |
-| T-B4 🟡 | `valuation/`: `effective_cost()`, `credited = min(ceiling, shopper_policy_value)`, zero if unverified. **No model call anywhere in this file** | T-B3 | Returns the `CreditedBenefit` breakdown, not just a total — Minh renders the working and the agent cites it. Write it as if someone hostile will read it, because that is the point of shipping it open |
-| T-B5 🟡 | Values claims are `BenefitRecord`s with `value_ceiling_aud = None` — **do not special-case them** (gap 5) | T-B3 | They sign and verify through the existing path and contribute exactly zero. One extra invariant: a *signed* and an *unsigned* values claim both credit $0, but **only the signed one may be cited.** Verification and valuation are separate questions |
-| T-B6 🟡 | Plant the unsigned **"$50 agent bonus"** record in the demo data | T-B1 | It visibly earns nothing on screen. That single moment is the strongest thing in the pitch |
-| T-B7 🟢 | Phase 3 loyalty: member recognition via linked identity, consent-gated enrolment, records re-asserted at checkout | T-B4 | Values at discovery are **indicative, not binding** — say so; UCP requires eligibility enforcement at checkout |
-| T-B8 🟢 | **Close the API loop** (gap 7) — checkout settles rather than sets a status flag | T-B7 | **Idempotent** and explicitly confirmed; create and confirm are separate steps, and replaying a confirmation must not double-credit. **No real payment flow** — a simulated settlement is inside the stated boundaries. Do not let it grow |
-
-Day 2 09:15–11:00 is his polish pass.
-
-### Minh — `feat/minh-console` · Phase 1, then 2–3
-
-*Omitted from the previous version. He owns three surfaces, one of which
-`WORKPLAN.md` calls **"the one FPT weights highest."***
-
-| ID | Task | Dep | Done when |
-|---|---|---|---|
-| T-M1 🔴 | **Console log first** — the AI chain of thought, built against `Proposal` / `EffectiveCost` / `RequestReport` fixtures. Push a stub by 12:00 | — | Renders constraints parsed → records cited → arithmetic → ranking as a readable trace, not a log dump |
-| T-M2 🔴 | Keep the `← no catalogue attribute answers this` markers on SERVICE and VALUES constraints | T-M1 | **That marker is the product thesis rendered on screen. Do not let it get designed away** |
-| T-M3 🔴 | User chat, **labelled in the UI as the buyer-agent stand-in** | T-M1 | FPT put consumer-facing shopping assistants out of scope. Same pixels either way; the label is what keeps us in scope. A judge reading the screen must never think we built a shopping assistant |
-| T-M4 🟡 | **Three visually distinct record states** (gap 5): signed+priced → cited and credited · signed+unpriced → cited, visibly **$0** · unsigned → displayed, **never cited** | T-B5, T-H6 | Rows 2 and 3 both credit nothing and a viewer still sees instantly that one is trusted evidence and the other is not. **This is the demo moment** |
-| T-M5 🟡 | **The control/BondLayer toggle as the centrepiece** — two panes, one switch, same query, same code path | T-N4 | It is the moment the pitch turns. Design it as the centrepiece, not a control |
-| T-M6 🟡 | Merchant dashboard: exactly four figures per request — fields exposed · legible share of the real offer · verified value credited · value withheld by the wire — **plus why we lost** | T-B4 | *Why we lost* is the line an e-commerce lead actually buys: the retailer learns from a lost comparison rather than only from a lost sale |
-| T-M7 🟢 | Render a `Bundle` **as a set**, not three stacked search results (gap 4) | T-N6 | Combined price, the bundle's own `rationale`, each item keeping its cited notes underneath. If a bundle looks like a list on screen, we answered the criterion on the wire and lost it in the demo |
-| T-M8 🟡 | Three-way ranking layout — the merchant count is settled at three (§1), toggle sits **on top of** the ranking rather than replacing it | T-N4 | Laid out for three now, not re-laid-out at 15:00 |
-
-**Day 1 is for making it true, not pretty.** Day 2 09:15–11:00 is the UX pass. Round 2
-still scores UX at 20 — clean and consistent, never at the cost of the logic being visible.
-
----
-
-## 5. The clock
+## 6. The clock
 
 | Time | What | Owner |
 |---|---|---|
-| **12:00** | First integration. All five branches merge cleanly **even if three still return fixtures** | all |
-| 13:00–14:30 | Phase 1 on real data | Hieu, Nguyen, Minh |
+| **13:30** | Integration checkpoint. Hieu merges `round2/dev` (H0). Bach opens a PR even if it is a stub | all |
+| **14:30** | **Three decisions, out loud.** (1) §3.1 — who owns intent matching. (2) §3.3 — what Nha and Minh are doing. (3) Fallback: if policy extraction is weak, drop to a curated record set and keep the interpreter and the comparison as the demonstrated result | Nha |
 | 14:30–15:30 | Vertical slice, all hands: intent in → matched → cited → signed → effective cost → ranked → dashboard out | all |
-| **14:30** | **Fallback decision.** If policy extraction is weak, drop to a curated record set and keep interpreter + comparison as the demonstrated result. **Decide at 14:30, not 16:30** | Nha |
 | 15:30–16:00 | Problem Setter window | Nha |
 | 16:00–17:00 | Harden or extend, decided by what actually works at 16:00. Push. Write down tomorrow's scope | all |
 
-Day 2: 09:15–11:00 UX + docs · 11:00–12:00 **evaluation run on the frozen set — every
-number in the pitch comes from here** · **12:00 freeze** · 13:00–15:00 clean-clone test ·
-15:00–16:30 seed, rehearse twice, record a backup video · 16:30 submit with buffer.
+Day 2: 09:15–11:00 UX + docs · 11:00–12:00 **evaluation run on the frozen set** ·
+**12:00 freeze** · 13:00–15:00 clean-clone test · 15:00–16:30 seed, rehearse twice, record
+a backup video · 16:30 submit with buffer. **Hard deadline 17:00.**
+
+Everything runs from **seeded state, zero network calls** — venue wifi is shared by twenty
+teams and a live call will fail on stage.
 
 ---
 
-## 6. Risks, ranked
+## 7. Risks, ranked
 
-1. **Four branches with no code at the checkpoint.** The 12:00 integration is the plan's
-   entire early-warning mechanism, and it only works if people push stubs.
-2. **§3.1 unresolved past 12:15** — two branches idle on a decision nobody has made.
-3. **Hieu's branch is the heaviest and carries the top-weighted criterion.** Bundling was
-   moved to Nguyen for exactly this reason; resist moving anything else onto him.
-4. **Market strategy (25 pts) has no artefact yet.** It is equal-highest with technical
-   quality and it is currently a Round 1 PDF.
+1. **Bach owns the heavier app and has written nothing at 13:05.** Everything the pitch
+   turns on — the switch, the logs, the invariants — is on his branch.
+2. **The #1 judged criterion has no named owner in the new architecture** (§3.1), while the
+   person who was building it has shipped a parser that the new doc does not mention.
+3. **Two people could implement UCP.** Nguyen has a working head; the new split gives UCP
+   integration to Bach. Resolve by consumption, not by rebuilding (§3.2).
+4. **Hieu's branch cannot import `src`** until he merges `round2/dev` — an import failure
+   will masquerade as a logic failure at the checkpoint.
+5. **Market strategy (25 pts) still has no artefact** and, under the new split, no owner.
+6. **Commit small and often.** A single large 16:00 push looks exactly like pre-written
+   code, which is a **disqualification condition**.
 
-## 7. Deliberately not attempted
+## 8. Deliberately not attempted
 
 Real payment flows · production authentication · live merchant integration · protocol
 certification · the 100+ request eval set from proposal §6 Phase 4 (**we ship 30, frozen
 before the feed existed** — a smaller honest number with a method beats a larger one we
-cannot stand behind) · the negotiation/counter-offer protocol (gap 8 — Ford's call,
-default is that it stays dropped).
+cannot stand behind in Q&A) · the negotiation / counter-offer protocol (gap 8 — Ford's
+call, default is that it stays dropped).
 
-Say this out loud in the pitch. Scoping deliberately reads better than scoping accidentally.
+Say this out loud in the pitch. **Scoping deliberately reads better than scoping accidentally.**

@@ -1,0 +1,46 @@
+{
+  "_why": "Mocked shopper relationships, one roster per merchant. There is no OAuth here and the demo does not pretend otherwise -- what is being demonstrated is what an agent may do with a linked identity, not how the link is established. The roster is per-merchant on purpose: membership is not a global fact about a shopper, it is something each merchant knows about its own customers, which is why it belongs behind that merchant's signature and not in the agent's wallet.",
+  "_states": {
+    "member": "has an existing relationship -- earns the loyalty record",
+    "prospect": "known to the merchant, no orders yet -- earns the acquisition record",
+    "absent": "not in the roster at all -- sees only the universal records"
+  },
+  "members": {
+    "voltway": {
+      "shopper-001": {
+        "status": "member",
+        "display_name": "Mei",
+        "tier": "circle",
+        "joined": "2024-03-11",
+        "orders": 7
+      },
+      "shopper-002": {
+        "status": "prospect",
+        "display_name": "Dan",
+        "tier": null,
+        "joined": null,
+        "orders": 0
+      }
+    },
+    "northgear": {
+      "_why_empty": "NorthGear's 20%-off promotion is a public banner addressed to anyone, so it is published with shopper_id '*' and needs no roster entry. That is the point of the contrast: the offer that asks for none of the shopper's data is also the one that turns out to be worth nothing here.",
+      "shopper-001": {
+        "status": "prospect",
+        "display_name": null,
+        "tier": null,
+        "joined": null,
+        "orders": 0
+      },
+      "shopper-002": {
+        "status": "prospect",
+        "display_name": null,
+        "tier": null,
+        "joined": null,
+        "orders": 0
+      }
+    },
+    "citycircuit": {
+      "_why_empty": "The control keeps no agent-readable shopper relationship, the same way it publishes no benefit extension. Status quo, not a strawman."
+    }
+  }
+}

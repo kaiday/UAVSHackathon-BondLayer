@@ -1,0 +1,11 @@
+[
+  {
+    "kid": "northgear-2026-09",
+    "use": "sig",
+    "alg": "ES256",
+    "kty": "EC",
+    "crv": "P-256",
+    "x": "55LUv5-_YsFUnEjJS8Lh4qwJcmPWAHT8FtH-0Ve70ws",
+    "y": "4NPh6UD3FzokOKiVfzstHy49x2ZIanvISMDOf6MyICo"
+  }
+]

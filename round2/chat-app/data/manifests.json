@@ -1,0 +1,28 @@
+{
+  "protocol_version": "2026-04-08",
+  "merchants": {
+    "voltway": {
+      "display_name": "Voltway",
+      "domain": "voltway.example",
+      "role": "bondlayer",
+      "publishes_benefit_extension": true,
+      "signs_records": true
+    },
+    "citycircuit": {
+      "display_name": "CityCircuit",
+      "domain": "citycircuit.example",
+      "role": "control",
+      "publishes_benefit_extension": false,
+      "signs_records": false,
+      "_why_empty": "The control publishes a plain UCP feed. That is the status quo, not a strawman. It is served by the same routes and the same response builder; it simply does not declare the benefit extension in its manifest, so negotiation prunes it."
+    },
+    "northgear": {
+      "display_name": "NorthGear",
+      "domain": "northgear.example",
+      "role": "competitor",
+      "publishes_benefit_extension": true,
+      "signs_records": true,
+      "_why_unsigned": "NorthGear publishes one deliberately unsigned claim. It must reach the screen so it can visibly earn nothing."
+    }
+  }
+}
