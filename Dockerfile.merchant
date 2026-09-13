@@ -1,0 +1,35 @@
+# BondLayer merchant server (bondlayer/) for Fly.io. Build context: repo root.
+#
+# The source tree is copied as-is and put on PYTHONPATH rather than
+# pip-installed: the server finds data/, keys/ and app/out/ relative to its own
+# source files (Path(__file__).parents[3]), which a site-packages install would
+# break.
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONUTF8=1 \
+    PYTHONPATH=/app/bondlayer/src \
+    BONDLAYER_UPLOADS_DIR=/data/uploads
+
+WORKDIR /app
+
+COPY bondlayer/requirements.txt bondlayer/requirements.txt
+RUN pip install --no-cache-dir -r bondlayer/requirements.txt
+
+COPY bondlayer bondlayer
+
+RUN useradd --create-home app \
+    && mkdir -p /data/uploads \
+    && chown -R app /data bondlayer/data
+
+EXPOSE 8080
+# The server starts with no merchants; everything onboarded is saved under
+# BONDLAYER_UPLOADS_DIR. On Fly that is a persistent volume mounted at /data
+# (fly.merchant.toml), which arrives owned by root. So the container starts as
+# root only long enough to hand that directory to the app user, then runs the
+# server as that user.
+#
+# uvicorn directly, not run_server.py: that launcher binds 127.0.0.1, which
+# Fly's proxy cannot reach.
+CMD ["sh", "-c", "mkdir -p \"$BONDLAYER_UPLOADS_DIR\" && chown -R app \"$BONDLAYER_UPLOADS_DIR\" && exec setpriv --reuid=app --regid=app --init-groups uvicorn bondlayer.ucp.server:app --host 0.0.0.0 --port 8080 --proxy-headers --forwarded-allow-ips '*'"]

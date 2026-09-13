@@ -1,0 +1,26 @@
+# Build context for Dockerfile.merchant and Dockerfile.agent is the repo root.
+
+# Secrets never go into an image. Private signing keys are gitignored, but a
+# `fly deploy` from a laptop uploads the local folder, not the git tree.
+**/*.pem
+**/.env
+**/.env.*
+!**/.env.example
+
+# Local environments, caches and build inputs
+.git
+.venv
+venv
+.run
+**/node_modules
+**/.next
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+*.log
+
+# Not needed at runtime. The console ships pre-built in bondlayer/app/out.
+docs
+**/tests
+bondlayer/app/src
+bondlayer/data/uploads
