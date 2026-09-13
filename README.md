@@ -1,7 +1,10 @@
 <!-- Root README. Written 12-13/09/2026 against round2/dev, re-verified sentence by
      sentence against the running code at 339a7ed on 13/09 (WS-D2 truth pass). Every
      figure below is copied from bondlayer/docs/eval-results.md at that commit or was
-     reproduced by a command run in this worktree; nothing here is invented. Rulebook
+     reproduced by a command run in this worktree; nothing here is invented. The
+     merchant-decode, checkout and close-the-loop passages (WS-J / WS-K / WS-L) were
+     added on 13/09 against 66bb37c, each figure copied from a trace_run.py or
+     TestClient run at that commit. Rulebook
      section references are to docs/Hackathon-Rulebook-2026-Final-Updated-1.pdf
      section C (Round 2 - 16-Hour Hackathon). -->
 
@@ -40,6 +43,13 @@ shopper's valuation policy, benefit weights and the cross-merchant comparison ne
 agent — only decoding moves merchant-side; verification, valuation and ranking stay
 agent-side, so who wins is still the agent's own arithmetic.
 
+The loop then closes. Once the agent has ranked, it checks out the offer it ranked first on
+`dev.ucp.shopping.checkout` — base UCP, declared by every merchant — citing exactly the
+signed records it relied on. The merchant re-judges each cited record on its own side and
+binds the ones that hold into the order confirmation, as the same signed envelopes the
+catalogue served, so the transaction carries proof of the benefits it was chosen for.
+Payment is out of scope and the response says so: no funds move.
+
 > In a room full of agents, we are building the thing agents read.
 
 This is deliberately not a shopping assistant — the Problem Statement puts consumer-facing
@@ -62,10 +72,13 @@ flowchart TD
     Policy["Policy onboarding\npolicy.py, data/policies/*.md"]
     Data["Merchant data\ndata/catalog/electronics.csv, manifests.json"]
     Dash["Merchant dashboard (Requests tab)\napp/dashboard/, GET /onboard/requests*"]
+    Checkout["Checkout route\nucp/checkout.py -- dev.ucp.shopping.checkout"]
 
     Shopper --> Agent
     Agent -- "UCP-Agent header declares/omits\norg.bondlayer.benefit_value" --> UCP
     Agent -- "or negotiates org.bondlayer.intent_match\nsends the utterance verbatim" --> Intent
+    Agent -- "after ranking: checks out the winner\nciting the records it relied on" --> Checkout
+    Checkout --> Records
     Intent --> Interp
     UCP --> Adapter --> Data
     UCP --> Records
@@ -86,10 +99,13 @@ flowchart TD
 | Valuation | `credited = min(declared_ceiling, shopper_policy_value)`; zero for unsigned or unpriced claims | `bondlayer/src/bondlayer/valuation/` |
 | Intent interpreter | Parses HARD / SOFT / SERVICE / VALUES clauses; `resolve()` runs on the live path (not a stub) and justifies each clause against catalogue attributes or verified records with a cited reason; `interpreter/describe.py` renders that same decode as JSON for the wire | `bondlayer/src/bondlayer/interpreter/{parser,resolver,describe}.py` |
 | Merchant-side intent route | `POST /{merchant}/ucp/intent/propose` — the merchant receives the shopper's utterance verbatim, runs the same parser and resolver on its own wire, and returns `decoded_intent` plus `proposals` cited to its own verified records; negotiated as `org.bondlayer.intent_match`, declared only by a merchant that also publishes the benefit extension, 406 otherwise (and always on the control) | `bondlayer/src/bondlayer/ucp/intent.py` |
+| Checkout route | `POST /{merchant}/ucp/checkout` — turns the chosen offer into an order confirmation (`status: confirmed_awaiting_payment`, `payment: {status: out_of_scope}`); with the benefit extension negotiated, returns one `honoured_benefits` verdict per cited record id (honoured only if published by this merchant, signed, unexpired, verifying against its own key and applying to a line item — otherwise the failing test in plain words) and the signed envelope of every honoured record. The server holds public keys only, so `order_id` is a deterministic content hash, not a new signature. 406 without the capability, 404 unknown SKU, 409 over published stock, 422 for any extra body field such as `shopper_policy` | `bondlayer/src/bondlayer/ucp/checkout.py` |
+| Merchant decode, agent side | The buyer agent sends the same sentence to every merchant that negotiated `org.bondlayer.intent_match` and appends one trace step with each merchant's `decoded_intent`, its first five proposals and a clause-by-clause agreement check against the agent's own decode; never read by the ranking | `bondlayer/src/bondlayer/agent/merchant_decode.py` |
+| Close the loop, agent side | After ranking, checks out one unit of the winner, citing exactly the verified records that moved its effective cost or answered a clause, and appends the merchant's confirmation as the last trace step; never changes the ranking, never cites an unverified record | `bondlayer/src/bondlayer/agent/close_loop.py` |
 | Bundler | Composes already-matched proposals from one merchant into a set with a togetherness rationale; never re-matches, never crosses merchants; a bundle of one is the valid degenerate case | `bondlayer/src/bondlayer/bundle/compose.py` |
 | Composition root + trace | Wires interpreter, merchants, valuation and the bundler into one request; renders the AI reasoning trace including the `Phase.RESOLVE` and `Phase.BUNDLE` steps | `bondlayer/src/bondlayer/agent/{composition,trace}.py` |
 | Merchant dashboard | Onboarding screen, readiness (five dimensions, never averaged), a Requests tab rendering the four figures and "why we lost/won" per request from `/onboard/requests*` | `bondlayer/app/dashboard/` |
-| Buyer-agent stand-in | The demo harness: turns a shopper's sentence into a UCP request against the running merchant server; static page only, no separate build step | `round2/chat-app/src/agent/` |
+| Buyer-agent stand-in | The demo harness: turns a shopper's sentence into a UCP request against the running merchant server, shows the "Merchant's own reading" block between the trace and the ranking, and renders the checkout receipt last; static page only, no separate build step | `round2/chat-app/src/agent/` |
 
 `bondlayer/src/bondlayer/types.py` is the one shared contract every component above imports.
 It is frozen on feature branches; a change goes to the team before it lands.
@@ -152,6 +168,11 @@ for a `round2/chat-app/src/ui` Vite dev server and a `UI_PORT` (5173) to serve i
 directory does not exist in this build — the agent's own static page on :8001 is the only UI.
 Idempotent — re-running reuses `.venv` and leaves an already-serving port alone.
 
+**On Windows**, set `PYTHONUTF8=1` first (PowerShell: `$env:PYTHONUTF8 = "1"`). The trace
+prints `←` and `✓`, which a default cp1252 console cannot encode: without it
+`scripts/trace_run.py` raises `UnicodeEncodeError` and the eight tests that run it as a
+subprocess fail. With it, `bondlayer/`'s suite is 270 passed at `66bb37c`.
+
 **Manual path**, if you want the merchant server without the launcher:
 
 ```bash
@@ -201,6 +222,18 @@ values constraint — the four clause kinds in `bondlayer/data/eval/taxonomy.md`
      carry the marker `← no catalogue attribute answers this`. No merchant response in the log
      carries an `extensions` key. CityCircuit `CIT-0032` wins on shelf price alone at
      **$1,066.00** — cheapest shelf, no flip.
+   - **The merchant's own reading.** With the switch on, the trace's `merchant decode (POST
+     /ucp/intent/propose)` section shows what each merchant understood from the same
+     sentence: Voltway and NorthGear each decode 4 constraints and agree with the agent 4/4
+     (Voltway's first proposal answers 4/4 clauses; NorthGear's answers 3/4, unsatisfied on
+     the repairs clause), and CityCircuit did not negotiate `org.bondlayer.intent_match`, so
+     it decoded nothing. Off, the sentence is not sent at all. The ranking never reads this
+     block — it is what the merchants proposed, not what the agent decided.
+   - **The receipt.** The last section, `close the loop (POST /ucp/checkout)`, is the order
+     the winner became. On: Voltway `VOL-0031`, `confirmed_awaiting_payment`, subtotal
+     $1,142.96, **6/6 cited records honoured** and bound into the order (returns, warranty,
+     points, member price, delivery, repairability). Off: CityCircuit `CIT-0032`, subtotal
+     $1,066.00, a plain UCP order that binds no records. Both say payment is out of scope.
 
 4. **The bundle.** `bondlayer/scripts/trace_run.py "Everything I need to start a podcast, under
    $1,200 all up"` composes a five-item Voltway set — microphone, headphones, interface, XLR
@@ -229,7 +262,25 @@ values constraint — the four clause kinds in `bondlayer/data/eval/taxonomy.md`
    valuation policy, its benefit weights, or the cross-merchant comparison — those stay
    agent-side even here.
 
-6. **The tamper test.** Inflate an unsigned claim's declared value and re-run: ranking does
+6. **Closing the loop by hand.** Check out the R01 winner, citing two of the records that
+   answered its clauses plus one id Voltway never published:
+   ```bash
+   curl -X POST "localhost:8000/voltway/ucp/checkout" \
+        -H "UCP-Agent: dev.ucp.shopping.catalog.search;dev.ucp.shopping.catalog.lookup;dev.ucp.shopping.checkout;org.bondlayer.benefit_value" \
+        -H "Content-Type: application/json" \
+        -d '{"items": [{"sku_id": "VOL-0031", "quantity": 1}], "cited_record_ids": ["vw-returns-60", "vw-repairability-parts-5y", "made-up-id"]}'
+   ```
+   The response carries `order` (`order_id`, `status: confirmed_awaiting_payment`, subtotal
+   AUD 1142.96, `payment.status: out_of_scope`), `honoured_benefits` — `vw-returns-60` and
+   `vw-repairability-parts-5y` honoured with the reason they hold, `made-up-id` refused as
+   `not published by this merchant` — and `extensions` carrying the signed envelopes of the
+   two honoured records. The same body twice gives the same `order_id`. Drop
+   `dev.ucp.shopping.checkout` from the header and the call is **406**; add a
+   `shopper_policy` field to the body and it is **422**, because the merchant must never
+   receive it. The same call against CityCircuit returns a plain order with no
+   `honoured_benefits` or `extensions` key.
+
+7. **The tamper test.** Inflate an unsigned claim's declared value and re-run: ranking does
    not move, because an unsigned record is displayed and never credited, and a larger
    declared ceiling on a signed record is still only a ceiling — the shopper's own policy
    value caps it, so inflating it cannot buy rank either. Both are enforced as tests
@@ -328,7 +379,10 @@ records are displayed, never credited: a record that cannot be verified cannot m
 ranking. Public keys are published in `/.well-known/ucp`'s `signing_keys[]`; private keys
 never leave `bondlayer/keys/` and are gitignored. The shopper's valuation policy — what a
 benefit is worth to them, what premium they will tolerate — stays in the agent and is never
-sent to a merchant, so no merchant can price against it. No PII travels on the wire in this
+sent to a merchant, so no merchant can price against it. That holds at checkout too: the
+merchant receives SKU ids, quantities and the record ids the agent cited, and the request
+model rejects any extra field (a `shopper_policy` key is a 422, not a silently ignored leak).
+An order binds only records the merchant can re-verify against its own published key. No PII travels on the wire in this
 prototype: Round 2 uses synthetic member data only, matching assumption A7 in the submitted
 proposal.
 
@@ -342,7 +396,9 @@ independent of that window — are recorded there too, since both count toward t
 
 ## Deliberately not attempted
 
-Real payment flows · production authentication · live merchant integration · protocol
+Real payment flows (checkout confirms an order and binds its benefits, but
+`payment.status` is `out_of_scope` and no funds move; there is no order store, cart or order
+management) · production authentication · live merchant integration · protocol
 certification · the negotiation / counter-offer protocol (named as an illustrative direction,
 not a requirement; reversing the decision to drop it is Ford's call, not a technical one) ·
 the 100+ request evaluation set promised in the submitted proposal's §6 Phase 4 — we ship 30,
