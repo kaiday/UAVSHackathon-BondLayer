@@ -131,21 +131,23 @@ hard constraint can require `gpu_source == "published"` and reject it.
 
 ## Onboarding API
 
-The Dashboard's backend. Same process, its own router.
+The console's backend. Same process, its own router.
 
 | Route | Returns |
 |---|---|
 | `GET /onboard/merchants` | switcher + comparison strip |
 | `GET /onboard/report/{merchant}` | diagnostics, worst first, with readiness |
-| `POST /onboard/catalog?merchant=…` | a retailer's own export, UTF-8, fails loudly |
+| `POST /onboard/catalog[?merchant=…]` | a retailer's own CSV export (multipart `file`, UTF-8). `merchant` may be omitted when the CSV names exactly one; an id the server does not know is registered as a catalogue-only retailer. Analysed before it is published, stored in `data/uploads/{merchant}.csv` and reloaded on start. 400 with the reason for missing required columns (`sku, merchant, title, category, price`) or no rows for the merchant named |
 | `GET /onboard/requests` | the 30 frozen requests: id, utterance, per-merchant won/lost summary |
 | `GET /onboard/requests/{id}[?merchant=…]` | the `RequestReport` JSON for one request — every merchant row three-way, or just one with `merchant=` |
 | `GET /console/` | Minh's merchant console: static Next.js export from `app/out`, every figure fetched from the routes above |
 
 The console is committed pre-built, so the server needs no Node at the venue.
 After changing anything under `app/src`, rebuild and commit `app/out`:
-`cd bondlayer/app && npm install && npm run build`. The older no-build
-dashboard stays at `/dashboard/`.
+`cd bondlayer/app && npm install && npm run build`. The console's **Ask
+BondLayer** bar answers from `GET /onboard/report/{merchant}` alone
+(`app/src/lib/ask.ts`, no model). The older no-build dashboard stays at
+`/dashboard/` for compatibility but is no longer advertised.
 
 ## Intent route
 
