@@ -95,6 +95,7 @@ from bondlayer.types import SignedRecord, Sku
 from bondlayer.ucp.capabilities import BENEFIT_VALUE, CHECKOUT
 from bondlayer.ucp.intent import verified_records
 from bondlayer.ucp.profile import Merchant
+from bondlayer.ucp import traffic
 from bondlayer.ucp.records import RECORDS, load_records
 from bondlayer.valuation.effective_cost import _gating, _scope_of
 
@@ -357,6 +358,10 @@ def checkout(
             "agent_ref": body.agent_ref,
         },
     }
+    # Counted for the console's live traffic: the order id and how many cited
+    # records held -- never the body, never anything shopper-side.
+    traffic.LOG.order(merchant.id, response["order"]["order_id"],
+                      honoured=len(honoured_ids), cited=len(body.cited_record_ids))
     if BENEFIT_VALUE in negotiated:
         # Present iff the benefit extension survived negotiation; absent
         # otherwise. The envelopes are the same objects catalog.search serves,

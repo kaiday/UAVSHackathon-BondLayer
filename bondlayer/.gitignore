@@ -9,3 +9,4 @@ keys/*.pem
 build/
 dist/
 data/uploads/
+data/traffic/

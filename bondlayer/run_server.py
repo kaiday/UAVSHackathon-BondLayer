@@ -18,6 +18,7 @@ import sys
 
 import uvicorn
 
+from bondlayer.ucp import traffic
 from bondlayer.ucp.profile import load_merchants
 
 HOST = "127.0.0.1"
@@ -38,6 +39,9 @@ def free_port(preferred: int, tries: int = 20) -> int:
 def main() -> None:
     preferred = int(sys.argv[1] if len(sys.argv) > 1 else os.environ.get("PORT", 8000))
     port = free_port(preferred)
+    # Live traffic survives a restart during the demo. Only this launcher
+    # persists it, so running the test suite never writes into it.
+    traffic.LOG.persist_to(traffic.DEFAULT_PATH)
 
     print("BondLayer merchant service")
     for m in load_merchants().values():
@@ -49,6 +53,8 @@ def main() -> None:
         print()
     base = f"http://{HOST}:{port}"
     print(f"  dashboard {base}/dashboard/")
+    print(f"  console   {base}/console/")
+    print(f"  analytics {base}/console/analytics/")
     print(f"  profile   {base}/voltway/.well-known/ucp")
     print(f"  search    {base}/voltway/ucp/catalog/search?category=laptop")
     print(f"  onboard   {base}/onboard/report/voltway")
