@@ -140,6 +140,9 @@ The Dashboard's backend. Same process, its own router.
 | `POST /onboard/catalog?merchant=…` | a retailer's own export, UTF-8, fails loudly |
 | `GET /onboard/requests` | the 30 frozen requests: id, utterance, per-merchant won/lost summary |
 | `GET /onboard/requests/{id}[?merchant=…]` | the `RequestReport` JSON for one request — every merchant row three-way, or just one with `merchant=` |
+| `GET /onboard/analytics` | the benchmark, summed from the 30 request reports: wins per merchant (over the requests it appeared in), loss reasons grouped (amount and winner stripped), credited vs withheld, SERVICE + VALUES answered vs control, and the eval commit — `ucp/analytics.py` |
+| `GET /onboard/traffic[?merchant=…&bucket=minute\|hour&window=…]` | live traffic: the UCP calls this server actually received — per-bucket series by route, 406 count, share declaring the benefit extension, orders placed and records honoured. Counts only: never the utterance, query text or anything shopper-side, and never "won a comparison" — `ucp/traffic.py` |
+| `DELETE /onboard/traffic` | clear the live log before a demo run. Only `run_server.py` persists it (`data/traffic/events.jsonl`, gitignored), so the test suite never writes into it |
 | `GET /console/` | Minh's merchant console: static Next.js export from `app/out`, every figure fetched from the routes above |
 
 The console is committed pre-built, so the server needs no Node at the venue.
