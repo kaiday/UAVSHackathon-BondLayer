@@ -1,36 +1,24 @@
-const benefits = [
-  { name: "Free returns", scope: "All products", conditions: "30 days, unused", ceiling: "$45", signature: "Verified", expiry: "No expiry", tone: "success" },
-  { name: "Extended warranty", scope: "Laptops", conditions: "BondLayer members", ceiling: "$129", signature: "Verified", expiry: "31 Dec 2026", tone: "success" },
-  { name: "Trade-in credit", scope: "Selected devices", conditions: "Eligible serial number", ceiling: "$300", signature: "Review", expiry: "30 Sep 2026", tone: "warning" },
-  { name: "Member pricing", scope: "Accessories", conditions: "Signed member ID", ceiling: "12%", signature: "Verified", expiry: "No expiry", tone: "success" },
-];
-
 export default function BenefitsPage() {
   return (
     <div className="content">
       <div className="page-heading">
         <div><h1>Benefit records</h1><p>Signed offers agents can verify, compare and include in a recommendation.</p></div>
-        <div className="actions"><button className="primary" type="button">Create benefit</button></div>
       </div>
 
       <section className="panel">
-        <div className="panel-heading"><div><h2>Published benefits</h2><p>{benefits.length} active records</p></div><span className="pill success">Verified</span></div>
-        <div className="table-wrap">
-          <table>
-            <thead><tr><th>Benefit</th><th>Scope</th><th>Conditions</th><th>Value ceiling</th><th>Signature</th><th>Expiry</th></tr></thead>
-            <tbody>
-              {benefits.map((benefit) => (
-                <tr key={benefit.name}>
-                  <td><strong>{benefit.name}</strong></td>
-                  <td>{benefit.scope}</td>
-                  <td>{benefit.conditions}</td>
-                  <td>{benefit.ceiling}</td>
-                  <td><span className={`pill ${benefit.tone}`}>{benefit.signature}</span></td>
-                  <td>{benefit.expiry}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="panel-heading">
+          <div><h2>Where the records are shown</h2><p>This console does not list records yet: the onboarding API does not return them.</p></div>
+          <span className="pill neutral">Not in this prototype</span>
+        </div>
+        <div className="setting-list">
+          <p>
+            The value each merchant&apos;s verified records credited, and the value an agent withheld, are on the{" "}
+            <a href="/console/requests/">Requests</a> page for every evaluation request.
+          </p>
+          <p>
+            The records themselves, with their signatures checked, are rendered by the buyer-agent chat page
+            (port 8001 by default) and by the <a href="/dashboard/">merchant dashboard</a>.
+          </p>
         </div>
       </section>
     </div>

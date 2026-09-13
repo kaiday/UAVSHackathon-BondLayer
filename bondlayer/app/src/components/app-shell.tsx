@@ -43,7 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <main className="app-shell">
       <aside className="sidebar">
-        <Link className="brand" href="/"><span className="brand-mark"><Image src="/bondlayer-logo.svg" alt="" width={246} height={237} priority /></span><span>BondLayer</span></Link>
+        <Link className="brand" href="/"><span className="brand-mark"><Image src="/console/bondlayer-logo.svg" alt="" width={246} height={237} priority /></span><span>BondLayer</span></Link>
         <p className="nav-label">Workspace</p>
         <Navigation links={workspaceLinks} />
         <p className="nav-label">Manage</p>
@@ -52,7 +52,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <section className="workspace">
         <header className="topbar">
           <label className="search"><span aria-hidden="true">⌕</span><input aria-label="Search" placeholder="Search requests or products" /></label>
-          <div className="topbar-tools"><button className="icon-button" type="button" aria-label="Help" title="Help"><CircleHelp size={17} strokeWidth={2} /></button><button className="icon-button notification-button" type="button" aria-label="Notifications" title="Notifications"><Bell size={17} strokeWidth={2} /><i aria-hidden="true" /></button><div className="account"><span className="avatar"><Image src="/bondlayer-logo.svg" alt="" width={34} height={34} sizes="34px" /></span><div className="account-copy"><strong>Harbor Tech</strong><span>merchant@harbortech.com</span></div><ChevronDown size={15} strokeWidth={2} aria-hidden="true" /> </div></div>
+          <div className="topbar-tools"><button className="icon-button" type="button" aria-label="Help" title="Help"><CircleHelp size={17} strokeWidth={2} /></button><button className="icon-button notification-button" type="button" aria-label="Notifications" title="Notifications"><Bell size={17} strokeWidth={2} /></button><div className="account"><span className="avatar"><Image src="/console/bondlayer-logo.svg" alt="" width={34} height={34} sizes="34px" /></span><div className="account-copy"><strong>Merchant console</strong><span>Seeded demo merchants</span></div><ChevronDown size={15} strokeWidth={2} aria-hidden="true" /> </div></div>
         </header>
         <div className="page-transition" key={pathname}>{children}</div>
         <form className="prompt-bar" onSubmit={(event) => event.preventDefault()}>

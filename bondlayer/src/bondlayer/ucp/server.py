@@ -211,6 +211,7 @@ def catalog_lookup(
 
 
 DASHBOARD = Path(__file__).resolve().parents[3] / "app" / "dashboard"
+CONSOLE = Path(__file__).resolve().parents[3] / "app" / "out"
 
 
 def create_app() -> FastAPI:
@@ -228,6 +229,10 @@ def create_app() -> FastAPI:
             StaticFiles(directory=DASHBOARD, html=True),
             name="dashboard",
         )
+    if CONSOLE.is_dir():
+        # The Next.js console, exported to static files (bondlayer/app/out).
+        # Built once with npm and committed, so the venue needs no Node.
+        app.mount("/console", StaticFiles(directory=CONSOLE, html=True), name="console")
     seed()
     onboard.seed()
     return app
