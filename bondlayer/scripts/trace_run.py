@@ -670,15 +670,16 @@ def main() -> None:
     args = parser.parse_args()
 
     client = TestClient(create_app())
+    merchants = [row["merchant"] for row in client.get("/onboard/merchants").json()]
     extension = not args.control
 
     run = run_with_merchant_decode(
         args.utterance,
-        MERCHANTS,
+        merchants,
         make_fetcher(client),
         propose=make_proposer(client),
         extension=extension,
-        verify=make_verifier(client, MERCHANTS),
+        verify=make_verifier(client, merchants),
         policy=POLICY,
         bundler=CategoryBundler(),
         **_interpret_kwargs(parse_utterance),

@@ -1,4 +1,4 @@
-"""The merchant service: one server, three merchants, one code path.
+"""The merchant service: uploaded merchants, one shared protocol implementation.
 
 The correctness property this file exists to hold:
 
@@ -10,8 +10,7 @@ The correctness property this file exists to hold:
 If that stops being true, the before/after comparison proves nothing and the
 headline result is worthless (assumption A2).
 
-Runs from seeded state with no outbound network call. Venue wifi is shared by
-twenty teams.
+Starts empty and restores uploaded catalogues without outbound network calls.
 """
 
 from __future__ import annotations
@@ -21,18 +20,23 @@ from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, Header, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from bondlayer.adapters import CsvCatalogAdapter
 from bondlayer.types import Sku
 from bondlayer.ucp import checkout, intent, onboard
+from bondlayer.ucp import identity as identity_routes
 from bondlayer.ucp.capabilities import (
     BENEFIT_VALUE,
     CATALOG_LOOKUP,
     CATALOG_SEARCH,
+    IDENTITY_LINKING,
     Negotiated,
     negotiate,
     parse_agent_header,
 )
+from bondlayer.ucp.membership import load_rosters, resolve_shopper
 from bondlayer.ucp.profile import (
     DATA,
     Merchant,
@@ -40,56 +44,39 @@ from bondlayer.ucp.profile import (
     load_merchants,
 )
 from bondlayer.ucp.records import bundles_for, for_sku, load_records
+from bondlayer.ucp.storage import UPLOADS, load_uploads, test_data_enabled
 
 CATALOG = DATA / "catalog" / "electronics.csv"
-UPLOADS = DATA / "uploads"
 
 router = APIRouter(tags=["ucp"])
 
 _merchants: dict[str, Merchant] = {}
 _catalog: dict[str, list[Sku]] = {}
 _records: dict[str, list[dict]] = {}
+#: Merchant id -> its own roster of shoppers. Loaded once, never published:
+#: a roster is only ever consulted for an id the shopper's agent supplied.
+_rosters: dict[str, dict] = {}
 
 
 def seed() -> None:
-    """Load merchants, catalogues and published records once, at start-up."""
-    _merchants.update(load_merchants())
-    for path in UPLOADS.glob("*.csv"):
-        merchant_id = path.stem
-        if merchant_id not in _merchants:
-            _merchants[merchant_id] = Merchant(
-                id=merchant_id,
-                display_name=merchant_id.replace("-", " ").title(),
-                domain=f"{merchant_id}.example",
-                role="retailer",
-                publishes_benefit_extension=False,
-                signs_records=False,
-            )
-    for mid in _merchants:
-        source = UPLOADS / f"{mid}.csv"
-        _catalog[mid] = CsvCatalogAdapter(
-            source if source.exists() else CATALOG, merchant=mid
-        ).load()
-        _records[mid] = load_records(mid)
-
-
-def register_merchant(merchant_id: str) -> None:
-    """Register a catalogue-only retailer created by an upload."""
-    if merchant_id not in _merchants:
-        _merchants[merchant_id] = Merchant(
-            id=merchant_id,
-            display_name=merchant_id.replace("-", " ").title(),
-            domain=f"{merchant_id}.example",
-            role="retailer",
-            publishes_benefit_extension=False,
-            signs_records=False,
-        )
-        _records[merchant_id] = []
-
-
-def replace_catalogue(merchant_id: str, path: Path) -> None:
-    """Make a validated upload the live catalogue for an existing merchant."""
-    _catalog[merchant_id] = CsvCatalogAdapter(path, merchant=merchant_id).load()
+    """Restore only user uploads; the empty registry is a valid first start."""
+    _merchants.clear()
+    _catalog.clear()
+    _records.clear()
+    _rosters.clear()
+    _rosters.update(load_rosters())
+    onboard._reports.clear()
+    if test_data_enabled():
+        for mid, merchant in load_merchants().items():
+            report = CsvCatalogAdapter(CATALOG, merchant=mid).analyse()
+            _merchants[mid], _catalog[mid] = merchant, report.skus
+            _records[mid] = load_records(mid)
+            onboard._reports[mid] = report
+    else:
+        for merchant, report in load_uploads(UPLOADS):
+            _merchants[merchant.id], _catalog[merchant.id] = merchant, report.skus
+            _records[merchant.id] = []
+            onboard._reports[merchant.id] = report
 
 
 def _merchant(merchant_id: str) -> Merchant:
@@ -117,12 +104,17 @@ def _product(sku: Sku) -> dict:
     }
 
 
-def _benefit_block(merchant: Merchant, sku: Sku) -> dict:
+def _benefit_block(merchant: Merchant, sku: Sku,
+                   shopper_id: str | None = None) -> dict:
     """The extension payload: Bach's published records, for this listing.
 
     ``issuer`` is the merchant **domain**, which is what a record's own
     ``issuer`` field carries and what ``signing_keys[]`` is published under.
     Merchant-wide records (``sku_id: null``) attach to every listing.
+
+    ``shopper_id`` is the shopper this merchant *resolved*, never the one the
+    agent asserted, so a record scoped to a member cannot be drawn out by
+    naming them.
 
     Unsigned records are served, flagged ``signed: false``, and never filtered
     out here. Deciding what an unsigned claim is worth is the valuation
@@ -132,7 +124,7 @@ def _benefit_block(merchant: Merchant, sku: Sku) -> dict:
     return {
         "sku_id": sku.sku_id,
         "issuer": merchant.domain,
-        "records": for_sku(_records.get(merchant.id, []), sku.sku_id),
+        "records": for_sku(_records.get(merchant.id, []), sku.sku_id, shopper_id),
     }
 
 
@@ -157,9 +149,29 @@ def _bundles_block(skus: list[Sku], query: str | None,
     return {"sku_id": None, "kind": "bundles", "bundles": bundles}
 
 
+def _identity(merchant: Merchant, negotiated: Negotiated,
+              shopper_id: str | None) -> dict | None:
+    """What this merchant says about the id the agent sent, or ``None``.
+
+    Gated on ``identity_linking`` surviving negotiation, for the same reason
+    the benefit block is gated on ``benefit_value``: an agent that did not
+    declare the capability gets a response built without it, rather than one
+    built with it and then stripped.
+
+    ``None`` -- no block at all -- is the answer when no id was sent, and it is
+    a different answer from ``linked: false``. "You did not tell me who this
+    is" leaves the agent's own default attestation standing; "I do not know
+    who that is" withholds this merchant's member benefits. Collapsing the two
+    would make every anonymous request look like a rejected member.
+    """
+    if IDENTITY_LINKING not in negotiated or not shopper_id:
+        return None
+    return resolve_shopper(_rosters, merchant.id, shopper_id)
+
+
 def _respond(merchant: Merchant, skus: list[Sku], negotiated: Negotiated,
              *, query: str | None = None, max_price: float | None = None,
-             bundles: bool = False) -> dict:
+             bundles: bool = False, identity: dict | None = None) -> dict:
     """The single response builder. There is no second one.
 
     Note what is *not* here: any test of the merchant's role, name or
@@ -169,6 +181,12 @@ def _respond(merchant: Merchant, skus: list[Sku], negotiated: Negotiated,
 
     ``bundles`` is set by ``catalog.search`` and not by ``catalog.lookup``: a
     lookup is one listing, and a set of one adds nothing to it.
+
+    ``identity`` rides the benefit extension rather than the plain response,
+    because what the merchant knows about a shopper only matters to an agent
+    that can price the records it unlocks. The control merchant never serves
+    it, for the same structural reason it never serves a record. ``None``
+    means no id was offered, and then no block is emitted at all.
     """
     body: dict = {
         "business": {"id": merchant.id, "name": merchant.display_name},
@@ -178,12 +196,15 @@ def _respond(merchant: Merchant, skus: list[Sku], negotiated: Negotiated,
         "products": [_product(s) for s in skus],
     }
     if BENEFIT_VALUE in negotiated:
-        blocks = [_benefit_block(merchant, s) for s in skus]
+        linked_id = (identity or {}).get("shopper_id") if (identity or {}).get("linked") else None
+        blocks = [_benefit_block(merchant, s, linked_id) for s in skus]
         if bundles:
             block = _bundles_block(skus, query, max_price)
             if block is not None:
                 blocks.append(block)
         body["extensions"] = {BENEFIT_VALUE: blocks}
+        if identity is not None:
+            body["shopper"] = identity
     return body
 
 
@@ -197,8 +218,10 @@ def catalog_search(
     merchant_id: str,
     q: str | None = Query(default=None),
     category: str | None = Query(default=None),
-    max_price: float | None = Query(default=None),
-    limit: int = Query(default=20, le=100),
+    max_price: float | None = Query(default=None, ge=0, allow_inf_nan=False),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    shopper_id: str | None = Query(default=None),
     ucp_agent: str | None = Header(default=None, alias="UCP-Agent"),
 ) -> dict:
     merchant = _merchant(merchant_id)
@@ -220,15 +243,19 @@ def catalog_search(
     # shopper actually said. Either names the intent well enough to compose
     # against, and neither carries a SERVICE or VALUES clause -- those are
     # withheld agent-side so no merchant can price against them.
-    return _respond(merchant, skus[:limit], negotiated,
-                    query=" ".join(p for p in (category, q) if p),
-                    max_price=max_price, bundles=True)
+    response = _respond(merchant, skus[offset:offset + limit], negotiated,
+                        query=" ".join(p for p in (category, q) if p),
+                        max_price=max_price, bundles=True,
+                        identity=_identity(merchant, negotiated, shopper_id))
+    response["next_offset"] = offset + limit if offset + limit < len(skus) else None
+    return response
 
 
 @router.get("/{merchant_id}/ucp/catalog/lookup")
 def catalog_lookup(
     merchant_id: str,
     sku_id: str = Query(...),
+    shopper_id: str | None = Query(default=None),
     ucp_agent: str | None = Header(default=None, alias="UCP-Agent"),
 ) -> dict:
     """The call an agent already makes while comparing merchants -- which is
@@ -241,20 +268,44 @@ def catalog_lookup(
     matches = [s for s in _catalog[merchant_id] if s.sku_id == sku_id]
     if not matches:
         raise HTTPException(404, f"unknown sku {sku_id!r}")
-    return _respond(merchant, matches, negotiated)
+    return _respond(merchant, matches, negotiated,
+                    identity=_identity(merchant, negotiated, shopper_id))
 
 
 DASHBOARD = Path(__file__).resolve().parents[3] / "app" / "dashboard"
 CONSOLE = Path(__file__).resolve().parents[3] / "app" / "out"
 
 
+class ConsoleFiles(StaticFiles):
+    """Resolve Next's page-segment requests against its nested static export."""
+
+    async def get_response(self, path: str, scope):
+        if Path(path).name.startswith("__next.") and path.endswith(".__PAGE__.txt"):
+            try:
+                response = await super().get_response(path.removesuffix(".__PAGE__.txt") + "/__PAGE__.txt", scope)
+                if response.status_code != 404:
+                    return response
+            except StarletteHTTPException as exc:
+                if exc.status_code != 404:
+                    raise
+        return await super().get_response(path, scope)
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="BondLayer merchant service")
+    @app.get("/health")
+    def health() -> dict:
+        return {"status": "ok", "service": "merchant", "merchants": len(_merchants)}
+
+    @app.get("/dashboard/", include_in_schema=False)
+    def legacy_dashboard():
+        return RedirectResponse("/console/")
     app.include_router(router)
     app.include_router(onboard.router)
     app.include_router(intent.router)
     app.include_router(checkout.router)
-    if DASHBOARD.is_dir():
+    app.include_router(identity_routes.router)
+    if test_data_enabled() and DASHBOARD.is_dir():
         # React is vendored under app/dashboard/vendor and served from here.
         # No CDN: a script tag pointing at the internet is a live fetch at demo
         # time, on venue wifi shared by twenty teams.
@@ -266,7 +317,7 @@ def create_app() -> FastAPI:
     if CONSOLE.is_dir():
         # The Next.js console, exported to static files (bondlayer/app/out).
         # Built once with npm and committed, so the venue needs no Node.
-        app.mount("/console", StaticFiles(directory=CONSOLE, html=True), name="console")
+        app.mount("/console", ConsoleFiles(directory=CONSOLE, html=True), name="console")
     seed()
     onboard.seed()
     return app

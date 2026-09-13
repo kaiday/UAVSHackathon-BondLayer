@@ -91,7 +91,7 @@ export function AskBar() {
         </section>
       )}
 
-      <form className="prompt-bar" onSubmit={submit}>
+      <form className="prompt-bar" data-tour="prompt" onSubmit={submit}>
         <span className="prompt-mark" aria-hidden="true">✦</span>
         <input
           aria-label="Ask BondLayer"

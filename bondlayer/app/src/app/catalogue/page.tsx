@@ -2,13 +2,13 @@
 
 import { ChangeEvent, useState } from "react";
 import { Failed, Loading } from "@/components/states";
-import { humanise, severityTone, useReport, useSelectedMerchant } from "@/lib/api";
+import { humanise, refreshMerchants, severityTone, uploadCatalogue, useReport, useSelectedMerchant } from "@/lib/api";
 
 const FILTERS = ["all", "blocker", "degrades_match", "cosmetic", "info"] as const;
 
 export default function CataloguePage() {
   const merchant = useSelectedMerchant();
-  const { data: report, error } = useReport(merchant);
+  const { data: report, error, reload } = useReport(merchant);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -18,26 +18,24 @@ export default function CataloguePage() {
     report?.diagnostics.filter((d) => filter === "all" || d.severity === filter) ?? [];
 
   async function upload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const input = event.target;
+    const file = input.files?.[0];
+    if (!file || !merchant) return;
     setUploading(true);
     setUploadError(null);
     setUploadMessage(null);
-    const form = new FormData();
-    form.append("file", file);
     try {
-      const response = await fetch("/onboard/catalog", { method: "POST", body: form });
-      const body = (await response.json()) as { merchant?: string; detail?: string };
-      if (!response.ok) throw new Error(body.detail ?? `Upload failed (${response.status})`);
+      const body = await uploadCatalogue(file, { merchant });
       setUploadMessage(
         `Published ${file.name} for ${body.merchant}. Readiness and agent search are now using it.`,
       );
-      window.location.reload();
+      reload();
+      refreshMerchants();
     } catch (cause) {
       setUploadError(cause instanceof Error ? cause.message : String(cause));
     } finally {
       setUploading(false);
-      event.target.value = "";
+      input.value = "";
     }
   }
 
@@ -53,8 +51,8 @@ export default function CataloguePage() {
           </p>
         </div>
         <label className="upload-button">
-          <input type="file" accept=".csv,text/csv" onChange={upload} disabled={uploading} />
-          {uploading ? "Processing…" : "Upload catalogue"}
+          <input type="file" aria-label="Replace catalogue" accept=".csv,text/csv" onChange={upload} disabled={uploading || !merchant} />
+          {uploading ? "Processing…" : "Replace catalogue"}
         </label>
       </div>
 

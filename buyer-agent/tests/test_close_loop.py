@@ -61,6 +61,7 @@ class FakeCheckout:
 
 
 def _patch(monkeypatch, checkout):
+    monkeypatch.setattr(ucp_client, "discover_merchants", lambda *a: ["voltway", "citycircuit", "northgear"])
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setattr(ucp_client, "make_fetcher", lambda *a, **k: _mock_fetch)
     monkeypatch.setattr(ucp_client, "make_verifier", lambda *a, **k: (lambda entry: True))
@@ -68,7 +69,8 @@ def _patch(monkeypatch, checkout):
     monkeypatch.setattr(ucp_client, "make_checkout", lambda *a, **k: checkout)
 
 
-def test_toggle_on_returns_the_order_with_every_cited_record_honoured(monkeypatch):
+def test_toggle_on_returns_the_order_with_every_cited_record_honoured(monkeypatch, stub_model):
+    stub_model()
     fake = FakeCheckout()
     _patch(monkeypatch, fake)
     body = TestClient(main.app).post("/query", json={
@@ -104,7 +106,8 @@ def test_toggle_on_returns_the_order_with_every_cited_record_honoured(monkeypatc
     assert len(steps) == 1 and steps[0]["phase"] == "ranking" and steps[0]["outcome"] == "ok"
 
 
-def test_toggle_off_returns_a_plain_order_with_no_verdicts(monkeypatch):
+def test_toggle_off_returns_a_plain_order_with_no_verdicts(monkeypatch, stub_model):
+    stub_model()
     fake = FakeCheckout()
     _patch(monkeypatch, fake)
     body = TestClient(main.app).post("/query", json={
@@ -125,7 +128,8 @@ def test_toggle_off_returns_a_plain_order_with_no_verdicts(monkeypatch):
     assert merchant == body["winner"]["merchant"] and extension is False
 
 
-def test_an_unreachable_merchant_at_checkout_is_a_degraded_step_not_a_500(monkeypatch):
+def test_an_unreachable_merchant_at_checkout_is_a_degraded_step_not_a_500(monkeypatch, stub_model):
+    stub_model()
     import httpx
 
     def down(merchant, body, *, extension):
@@ -183,18 +187,42 @@ def test_the_header_still_declares_exactly_what_it_did_and_checkout_rides_the_ro
 
 
 def test_a_provider_error_never_reaches_the_screen(monkeypatch):
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-not-a-real-key")
+    """A provider failure is a 502 naming the type, never the provider's text.
 
-    def boom(prompt: str) -> str:
+    The model is load-bearing now, so this can no longer fall back to a
+    template -- there is no ranking to narrate. What it must still not do is
+    put the upstream body, which can carry the prompt or a key fragment, onto a
+    screen that is being projected.
+    """
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-not-a-real-key")
+    monkeypatch.setattr(ucp_client, "discover_merchants",
+                        lambda *a: ["voltway", "citycircuit", "northgear"])
+
+    def boom(label, system, prompt):
         raise RuntimeError("secret provider text")
 
-    monkeypatch.setattr(llm, "_complete", boom)
-    run = AgentRun(utterance="a laptop", extension_enabled=True, steps=[], ranked=[])
-    out = llm.narrate(run)
-    assert out["source"] == "template"
-    assert "RuntimeError" in out["note"]
-    assert "secret provider text" not in out["note"]
-    assert out["text"], "the template sentence still comes back"
+    monkeypatch.setattr(llm, "complete_json", boom)
+
+    response = TestClient(main.app).post(
+        "/query", json={"query": "a laptop", "bondlayer_enabled": True})
+
+    assert response.status_code == 502
+    detail = response.json()["detail"]
+    assert "RuntimeError" in detail
+    assert "secret provider text" not in detail
+
+
+def test_no_model_key_is_a_503_not_an_answer_the_model_never_gave(monkeypatch):
+    """With the model deciding, no key means no run -- and it says so."""
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setattr(ucp_client, "discover_merchants",
+                        lambda *a: ["voltway", "citycircuit", "northgear"])
+
+    response = TestClient(main.app).post(
+        "/query", json={"query": "a laptop", "bondlayer_enabled": True})
+
+    assert response.status_code == 503
+    assert "OPENAI_API_KEY" in response.json()["detail"]
 
 
 def test_the_page_renders_the_receipt_and_never_derives_it():

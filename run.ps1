@@ -144,7 +144,7 @@ if (Port-Busy $MerchantPort) {
     -WorkingDirectory (Join-Path $Root "bondlayer") -PassThru -NoNewWindow `
     -RedirectStandardOutput (Join-Path $LogDir "merchant.log") `
     -RedirectStandardError (Join-Path $LogDir "merchant.err.log")
-  if (Wait-For "http://127.0.0.1:$MerchantPort/voltway/.well-known/ucp") {
+  if (Wait-For "http://127.0.0.1:$MerchantPort/health") {
     Write-Host "   up (log: .run\merchant.log)"
   } else {
     Write-Host "   FAILED to start; see .run\merchant.err.log"
@@ -158,7 +158,21 @@ if (Port-Busy $MerchantPort) {
 # is bondlayer's server, and nothing else is started on :8000.
 $AgentMain = Join-Path $ChatApp "src\agent\main.py"
 if ($StartAgent -and (Test-Path $AgentMain)) {
-  Say "buyer-agent stand-in (buyer-agent: src.agent.main) on :$AgentPort"
+  Say "shopping agent (buyer-agent: src.agent.main) on :$AgentPort"
+  # The model decides the ranking, so a missing key is no longer a cosmetic
+  # downgrade to a template sentence -- it is a 503 on every search. Say so
+  # here rather than letting the page fail in front of an audience.
+  $EnvFile = Join-Path $ChatApp ".env"
+  $HasKey = $false
+  if ($env:OPENAI_API_KEY -and -not $env:OPENAI_API_KEY.StartsWith("sk-your")) {
+    $HasKey = $true
+  } elseif (Test-Path $EnvFile) {
+    if ((Get-Content $EnvFile -Raw) -match 'OPENAI_API_KEY\s*=\s*sk-(?!your)\S+') { $HasKey = $true }
+  }
+  if (-not $HasKey) {
+    Write-Host "   WARNING: no OPENAI_API_KEY in the environment or buyer-agent\.env."
+    Write-Host "            The model decides the ranking, so /query and /chat answer 503."
+  }
   if (Port-Busy $AgentPort) {
     Write-Host "   :$AgentPort already serving -- leaving it alone (.\run.ps1 -Restart loads new code)"
   } else {
@@ -205,8 +219,8 @@ if ($StartAgent -and $StartUi -and (Test-Path (Join-Path $UiDir "package.json"))
 
 # ------------------------------------------------------------------ URLs ----
 Say "ready"
-Write-Host "   merchant profile   http://127.0.0.1:$MerchantPort/voltway/.well-known/ucp"
-Write-Host "   plain UCP search   http://127.0.0.1:$MerchantPort/voltway/ucp/catalog/search?category=laptop&max_price=1500"
+Write-Host "   merchant health    http://127.0.0.1:$MerchantPort/health"
+Write-Host "   add a merchant     http://127.0.0.1:$MerchantPort/console/onboarding/"
 Write-Host "   merchant console   http://127.0.0.1:$MerchantPort/console/"
 Write-Host "   onboarding API     http://127.0.0.1:$MerchantPort/onboard/merchants"
 Write-Host "   API docs           http://127.0.0.1:$MerchantPort/docs"

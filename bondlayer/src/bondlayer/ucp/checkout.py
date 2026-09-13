@@ -90,12 +90,11 @@ from fastapi import APIRouter, Header, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from bondlayer.records import load_signed
+from bondlayer.records.serialise import signed_from_json
 from bondlayer.types import SignedRecord, Sku
 from bondlayer.ucp.capabilities import BENEFIT_VALUE, CHECKOUT
 from bondlayer.ucp.intent import verified_records
 from bondlayer.ucp.profile import Merchant
-from bondlayer.ucp.records import RECORDS, load_records
 from bondlayer.valuation.effective_cost import _gating, _scope_of
 
 router = APIRouter(tags=["ucp"])
@@ -336,8 +335,8 @@ def checkout(
     verdicts = judge(
         body.cited_record_ids,
         skus,
-        published=load_records(merchant.id),
-        parsed=load_signed(RECORDS / f"{merchant.id}.signed.json"),
+        published=srv._records.get(merchant.id, []),
+        parsed=[signed_from_json(entry) for entry in srv._records.get(merchant.id, [])],
         verified_ids=frozenset(r.record.record_id for r in verified_records(merchant)),
     )
     honoured_ids = [v["record_id"] for v in verdicts if v["honoured"]]
@@ -361,7 +360,7 @@ def checkout(
         # Present iff the benefit extension survived negotiation; absent
         # otherwise. The envelopes are the same objects catalog.search serves,
         # re-verifiable against signing_keys[] in the profile.
-        envelopes = {e["record"]["record_id"]: e for e in load_records(merchant.id)}
+        envelopes = {e["record"]["record_id"]: e for e in srv._records.get(merchant.id, [])}
         response["honoured_benefits"] = verdicts
         response["extensions"] = {
             BENEFIT_VALUE: [envelopes[rid] for rid in honoured_ids]

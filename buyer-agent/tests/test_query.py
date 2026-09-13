@@ -1,9 +1,9 @@
-"""``/query`` with a mocked fetcher and no model key.
+"""``/query`` and ``/chat`` with a mocked fetcher and a stubbed model.
 
-The one test the brief asks for: no live merchant, no network, no
-``OPENAI_API_KEY`` -- and the endpoint still returns a ranking, the trace, and
-a prose string. Ranking must come from ``run_request``'s arithmetic, never
-from a model; with no key, the prose is the deterministic template.
+No live merchant and no network. The model is stubbed rather than absent,
+because it now decides the ranking: see ``conftest.stub_model``, which by
+default answers in the order it was asked, so a stubbed run reproduces
+``run_request``'s winner and the older assertions still bite.
 """
 
 from __future__ import annotations
@@ -53,7 +53,9 @@ def _mock_fetch(merchant: str, query: str, *, extension: bool) -> dict:
     }
 
 
-def test_query_with_mocked_fetcher_and_no_key_returns_ranking_trace_and_prose(monkeypatch):
+def test_query_with_mocked_fetcher_and_no_key_returns_ranking_trace_and_prose(monkeypatch, stub_model):
+    stub_model()
+    monkeypatch.setattr(ucp_client, "discover_merchants", lambda *a: ["voltway", "citycircuit", "northgear"])
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setattr(ucp_client, "make_fetcher", lambda *a, **k: _mock_fetch)
     monkeypatch.setattr(ucp_client, "make_verifier", lambda *a, **k: (lambda entry: True))
@@ -67,17 +69,22 @@ def test_query_with_mocked_fetcher_and_no_key_returns_ranking_trace_and_prose(mo
     assert body["ranked"], "no ranking returned"
     assert any(s["phase"] == "ranking" for s in body["steps"]), "no trace in the response"
     assert isinstance(body["recommendation"], str) and body["recommendation"]
-    prose_step = next(s for s in body["steps"] if s["phase"] == "prose")
-    assert prose_step["outcome"] == "template"
-    assert "no model key" in prose_step["summary"]
 
-    # Ranking is the arithmetic, not the model: voltway's credited record
-    # brings it below the cheaper, record-less competitors.
+    # Both model calls are on the trace, in the order they happened: the decode
+    # that drove the search, then the ranking that decided the order.
+    phases = [s["phase"] for s in body["steps"]]
+    assert phases[0] == "intent_parse"
+    assert phases[-1] == "rank"
+    assert body["intent"], "the model's decode is not in the response"
+
+    # The stub ranks in the order it was given, which is run_request's, so the
+    # winner is still voltway -- and the credited figure is still computed and
+    # still reported, even though it is no longer what ordered the list.
     assert body["winner"]["merchant"] == "voltway"
     assert float(body["winner"]["credited_aud"]) > 0
 
 
-def test_query_returns_the_resolver_justification_for_every_offer(monkeypatch):
+def test_query_returns_the_resolver_justification_for_every_offer(monkeypatch, stub_model):
     """``/query`` carries WHY, not just what and how much.
 
     The UI used to guess the clause-to-record binding from a keyword table,
@@ -85,7 +92,12 @@ def test_query_returns_the_resolver_justification_for_every_offer(monkeypatch):
     response carries the resolver's own ``resolved[]`` per offer and the page
     renders it instead of deriving it. A marker on screen means a
     ``ResolvedConstraint`` said so.
+
+    The resolver still runs, and still explains every clause, even though the
+    model now decides the order. The justification is not the ranking.
     """
+    stub_model()
+    monkeypatch.setattr(ucp_client, "discover_merchants", lambda *a: ["voltway", "citycircuit", "northgear"])
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setattr(ucp_client, "make_fetcher", lambda *a, **k: _mock_fetch)
     monkeypatch.setattr(ucp_client, "make_verifier", lambda *a, **k: (lambda entry: True))
@@ -140,3 +152,101 @@ def test_the_page_renders_the_marker_and_never_guesses_it():
     # The three record states stay visually distinct.
     for state in ("rec-priced", "rec-unpriced", "rec-unsigned"):
         assert state in page
+
+
+def _patch_common(monkeypatch):
+    monkeypatch.setattr(ucp_client, "discover_merchants",
+                        lambda *a: ["voltway", "citycircuit", "northgear"])
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setattr(ucp_client, "make_fetcher", lambda *a, **k: _mock_fetch)
+    monkeypatch.setattr(ucp_client, "make_verifier", lambda *a, **k: (lambda entry: True))
+
+
+def test_the_model_decides_the_winner_not_the_arithmetic(monkeypatch, stub_model):
+    """The point of the change: the model's order is the order.
+
+    ``VOL-1`` wins on effective cost -- it is the only listing with a credited
+    record, which is what the deterministic path ranks on. Here the model puts
+    the record-less ``NORTHGEAR-1`` first anyway. If the response still leads
+    with voltway, the model's ranking is decorative and this whole path is a
+    narration of arithmetic rather than a decision.
+    """
+    stub_model(order=["NORTHGEAR-1", "VOL-1", "CITYCIRCUIT-1"])
+    _patch_common(monkeypatch)
+
+    body = TestClient(main.app).post(
+        "/query", json={"query": "a laptop", "bondlayer_enabled": True},
+    ).json()
+
+    assert [r["sku_id"] for r in body["ranked"]][0] == "NORTHGEAR-1"
+    assert body["winner"]["merchant"] == "northgear"
+    # The deterministic figure is still computed and still reported for the
+    # offer the model demoted -- shown beside the decision, not driving it.
+    demoted = next(r for r in body["ranked"] if r["sku_id"] == "VOL-1")
+    assert float(demoted["credited_aud"]) > 0
+    assert body["winner"]["reasoning"]
+
+
+def test_an_offer_the_model_omits_is_kept_not_dropped(monkeypatch, stub_model):
+    """A model that forgets an offer must not disappear a merchant's listing."""
+    stub_model(order=["NORTHGEAR-1"])
+    _patch_common(monkeypatch)
+
+    body = TestClient(main.app).post(
+        "/query", json={"query": "a laptop", "bondlayer_enabled": True},
+    ).json()
+
+    skus = [r["sku_id"] for r in body["ranked"]]
+    assert skus[0] == "NORTHGEAR-1"
+    assert set(skus) == {"NORTHGEAR-1", "VOL-1", "CITYCIRCUIT-1"}
+
+
+def test_the_rank_prompt_is_never_shown_the_effective_cost(monkeypatch, stub_model):
+    """The model judges terms, so it must not be handed the arithmetic's answer."""
+    seen = {}
+
+    def capture(label, system, prompt):
+        seen[label] = prompt
+        if label == "intent_parse":
+            return {"summary": "s", "category": None, "max_price_aud": None, "must_have": []}
+        return {"ranking": [], "recommendation": "r"}
+
+    _patch_common(monkeypatch)
+    monkeypatch.setattr(main.llm, "complete_json", capture)
+
+    TestClient(main.app).post("/query", json={"query": "a laptop", "bondlayer_enabled": True})
+
+    prompt = seen["rank"]
+    assert "shelf_price_aud" in prompt, "the model must see the price it is judging"
+    assert "effective_cost" not in prompt
+    assert "credited" not in prompt
+
+
+def test_chat_asks_a_question_instead_of_searching_when_it_cannot(stub_model):
+    """The conversation the one-shot box could not have."""
+    stub_model(route={"action": "reply", "reply": "What will you use it for?"})
+
+    body = TestClient(main.app).post("/chat", json={
+        "messages": [{"role": "user", "content": "I need a new laptop"}],
+    }).json()
+
+    assert body["action"] == "reply"
+    assert body["reply"] == "What will you use it for?"
+    assert body["utterance"] is None
+
+
+def test_chat_folds_the_conversation_into_one_sentence_to_send(stub_model):
+    """When it does search, it searches for the whole conversation."""
+    stub_model(route={"action": "search",
+                      "utterance": "a laptop under $1,500 for video editing"})
+
+    body = TestClient(main.app).post("/chat", json={
+        "messages": [
+            {"role": "user", "content": "I need a new laptop"},
+            {"role": "assistant", "content": "What will you use it for?"},
+            {"role": "user", "content": "video editing, under $1,500"},
+        ],
+    }).json()
+
+    assert body["action"] == "search"
+    assert body["utterance"] == "a laptop under $1,500 for video editing"

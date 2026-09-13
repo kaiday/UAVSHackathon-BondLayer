@@ -163,7 +163,7 @@ else
   ( cd "$ROOT/bondlayer" && exec "$VPY" run_server.py "$MERCHANT_PORT" ) \
     >"$LOG_DIR/merchant.log" 2>&1 &
   PIDS+=("$!")
-  if wait_for "http://127.0.0.1:$MERCHANT_PORT/voltway/.well-known/ucp"; then
+  if wait_for "http://127.0.0.1:$MERCHANT_PORT/health"; then
     echo "   up (log: .run/merchant.log)"
   else
     echo "   FAILED to start; tail of .run/merchant.log:" >&2
@@ -228,8 +228,8 @@ fi
 
 # ------------------------------------------------------------------ URLs ----
 say "ready"
-echo "   merchant profile   http://127.0.0.1:$MERCHANT_PORT/voltway/.well-known/ucp"
-echo "   plain UCP search   http://127.0.0.1:$MERCHANT_PORT/voltway/ucp/catalog/search?category=laptop&max_price=1500"
+echo "   merchant health    http://127.0.0.1:$MERCHANT_PORT/health"
+echo "   add a merchant     http://127.0.0.1:$MERCHANT_PORT/console/onboarding/"
 echo "   merchant console   http://127.0.0.1:$MERCHANT_PORT/console/"
 echo "   onboarding API     http://127.0.0.1:$MERCHANT_PORT/onboard/merchants"
 echo "   API docs           http://127.0.0.1:$MERCHANT_PORT/docs"

@@ -1,74 +1,109 @@
 "use client";
 
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { Check, ChevronRight, CircleAlert, Clock3, Upload } from "lucide-react";
+import { Check, Upload } from "lucide-react";
+import { refreshMerchants, setMerchant, uploadCatalogue, type CatalogueUpload } from "@/lib/api";
 import styles from "./onboarding-wizard.module.css";
 
-type Step = "welcome" | "profile" | "files" | "data" | "catalogue" | "readiness" | "policies" | "membership" | "review";
-
-const STEPS: { id: Step; label: string }[] = [
-  { id: "welcome", label: "Welcome" }, { id: "profile", label: "Business profile" },
-  { id: "files", label: "Business files" }, { id: "data", label: "Data import" },
-  { id: "catalogue", label: "Catalogue" }, { id: "readiness", label: "Catalogue review" }, { id: "policies", label: "Policies" },
-  { id: "membership", label: "Membership" }, { id: "review", label: "Review" },
-];
-
-type Draft = { business: string; registration: string; contact: string; verification: string; data: string; catalogue: string; policies: Record<string, string>; membershipOffer: string; accepted: boolean; submitted: boolean };
-const emptyDraft: Draft = { business: "", registration: "", contact: "", verification: "", data: "", catalogue: "", policies: {}, membershipOffer: "", accepted: false, submitted: false };
-const draftKey = "bondlayer-onboarding-draft";
-const nameOf = (event: ChangeEvent<HTMLInputElement>) => event.target.files?.[0]?.name ?? "";
-
-function FilePicker({ title, hint, file, required, onPick }: { title: string; hint: string; file: string; required?: boolean; onPick: (value: string) => void }) {
-  return <label className={`${styles.filePicker} ${file ? styles.uploaded : ""}`}>
-    <input type="file" aria-label={`Upload ${title}`} onChange={(event) => onPick(nameOf(event))} />
-    <span className={styles.uploadIcon}><Upload size={16} strokeWidth={2.25} /></span><span><strong>{file || title}</strong><small>{file ? "Selected - click to replace" : hint}</small></span>
-    {file ? <em>Uploaded</em> : required ? <em className={styles.required}>Required</em> : null}
-  </label>;
-}
+const STEPS = ["Business details", "Upload catalogue", "Review and publish"];
 
 export function OnboardingWizard() {
-  const [step, setStep] = useState<Step>("welcome");
-  const [draft, setDraft] = useState<Draft>(() => {
-    if (typeof window === "undefined") return emptyDraft;
-    const saved = window.sessionStorage.getItem(draftKey);
-    if (!saved) return emptyDraft;
-    try { return { ...emptyDraft, ...JSON.parse(saved) }; } catch { window.sessionStorage.removeItem(draftKey); return emptyDraft; }
-  });
-  const index = STEPS.findIndex((item) => item.id === step);
-  const patch = (value: Partial<Draft>) => setDraft((previous) => ({ ...previous, ...value }));
+  const [step, setStep] = useState(0);
+  const [name, setName] = useState("");
+  const [merchant, setId] = useState("");
+  const [domain, setDomain] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<CatalogueUpload | null>(null);
+  const [published, setPublished] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { window.sessionStorage.setItem(draftKey, JSON.stringify(draft)); }, [draft]);
+  async function send(publish: boolean) {
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await uploadCatalogue(file, {
+        merchant, displayName: name.trim(), domain: domain.trim(), preview: !publish, create: true,
+      });
+      setPreview(result);
+      if (publish) {
+        setMerchant(result.merchant);
+        refreshMerchants();
+        setPublished(true);
+      } else setStep(2);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not upload catalogue. Please retry.");
+    } finally { setBusy(false); }
+  }
 
-  const requirements = useMemo(() => [
-    { label: "Business profile", complete: Boolean(draft.business && draft.registration && draft.contact), to: "profile" as Step },
-    { label: "Business verification file", complete: Boolean(draft.verification), to: "files" as Step },
-    { label: "Product catalogue", complete: Boolean(draft.catalogue), to: "catalogue" as Step },
-    { label: "Shipping, returns and privacy policies", complete: ["Shipping policy", "Returns policy", "Privacy policy"].every((policy) => draft.policies[policy]), to: "policies" as Step },
-    { label: "Customer member offer", complete: Boolean(draft.membershipOffer.trim()), to: "membership" as Step },
-  ], [draft]);
-  const complete = requirements.every((item) => item.complete);
-  const next = () => setStep(STEPS[Math.min(index + 1, STEPS.length - 1)].id);
-  const back = () => setStep(STEPS[Math.max(index - 1, 0)].id);
+  function details(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setStep(1);
+  }
 
-  if (draft.submitted) return <section className={styles.complete}><span><Check size={27} strokeWidth={2.5} /></span><p>Draft complete</p><h1>Submitting is not in this prototype.</h1><div>Nothing was sent or saved to a server; this draft lives only in this browser tab.</div><Link href="/">Return to dashboard</Link></section>;
+  if (published && preview) return (
+    <section className={styles.complete}>
+      <span><Check size={27} /></span><p>Merchant published</p>
+      <h1>{preview.display_name} is ready to browse.</h1>
+      <div>{preview.report.skus} products saved. Readiness: {preview.report.readiness}%.</div>
+      <p className="state-note">Your catalogue and business details are saved on the server and will load again after a restart.</p>
+      <Link href="/catalogue/">Open your catalogue</Link>
+    </section>
+  );
 
-  return <main className={styles.page}>
-    <header className={styles.header}><Link className={styles.brand} href="/"><span>B</span>BondLayer</Link><div><p>Merchant setup</p><h1>Set up your BondLayer workspace</h1></div><aside><small><Clock3 size={13} /> About 5 minutes</small><Link href="/">Save and exit</Link></aside></header>
-    <div className={styles.layout}>
-      <aside className={styles.steps} aria-label="Onboarding steps">{STEPS.map((item, itemIndex) => <button key={item.id} className={step === item.id ? styles.active : itemIndex < index ? styles.done : ""} onClick={() => setStep(item.id)}><i>{itemIndex < index ? <Check size={13} strokeWidth={3} /> : itemIndex + 1}</i><span>{item.label}</span></button>)}</aside>
-      <section className={styles.card} key={step}>
-        {step === "welcome" && <div className={`${styles.stage} ${styles.welcome}`}><p>Welcome to BondLayer</p><h2>Make your catalogue ready for the next generation of shopping.</h2><div>Complete a few essentials so agents can discover your products, understand your policies and represent your business accurately.</div><ol><li><b>Bring your data</b><small>Upload files or your product catalogue when ready.</small></li><li><b>Set clear policies</b><small>Help customers and agents know what to expect.</small></li><li><b>Submit with confidence</b><small>Review requirements before assessment.</small></li></ol><footer><Link href="/">Save for later</Link><button onClick={next}>Start setup</button></footer></div>}
-        {step === "profile" && <div className={styles.stage}><p>Step 1 of 7</p><h2>Tell us about your business</h2><div>These details identify your merchant workspace and catalogue.</div><div className={styles.form}><label>Business name<input value={draft.business} onChange={(e) => patch({ business: e.target.value })} /></label><label>Registration or ABN<input placeholder="e.g. 51 824 753 556" value={draft.registration} onChange={(e) => patch({ registration: e.target.value })} /></label><label>Primary contact<input placeholder="Full name" value={draft.contact} onChange={(e) => patch({ contact: e.target.value })} /></label><label>Business category<select defaultValue="Consumer electronics"><option>Consumer electronics</option><option>Home and lifestyle</option><option>Health and beauty</option><option>Other</option></select></label></div><Footer back={back} next={next} /></div>}
-        {step === "files" && <div className={styles.stage}><p>Step 2 of 7</p><h2>Verify your business</h2><div>Upload a registration document or other supporting file. You can add more later.</div><div className={styles.grid}><FilePicker title="Business registration document" hint="PDF, JPG or PNG - up to 10 MB" required file={draft.verification} onPick={(verification) => patch({ verification })} /><FilePicker title="Brand logo" hint="Optional - PNG, JPG or SVG" file="" onPick={() => undefined} /></div><small className={styles.note}>Uploading files is not in this prototype: the file name is kept in this browser tab only.</small><Footer back={back} next={next} /></div>}
-        {step === "data" && <div className={styles.stage}><p>Step 3 of 7</p><h2>Bring in your data</h2><div>Start with a CSV or XLSX file. You will map fields before import.</div><aside className={styles.callout}><span><b>Need a starting point?</b><small>Download the template with recommended product fields.</small></span><button>Download template</button></aside><FilePicker title="Upload data file" hint="CSV or XLSX - up to 25 MB" file={draft.data} onPick={(data) => patch({ data })} /><Footer back={back} next={next} /></div>}
-        {step === "catalogue" && <div className={styles.stage}><p>Step 4 of 8</p><h2>Add your catalogue</h2><div>Upload products now or add them individually after onboarding.</div><FilePicker title="Upload product catalogue" hint="CSV or XLSX - one or more products" required file={draft.catalogue} onPick={(catalogue) => patch({ catalogue })} /><div className={styles.or}>or</div><button className={styles.manual}><i>+</i><span><b>Add your first product manually</b><small>Name, SKU, price, stock and category</small></span><ChevronRight size={18} /></button><Footer back={back} next={next} /></div>}
-        {step === "readiness" && <div className={styles.stage}><p>Step 5 of 8</p><h2>Review catalogue readiness</h2><div>We will prepare your catalogue for agent discovery. Review the items that need your attention before publishing.</div>{draft.catalogue ? <><section className={styles.readinessIssues}><h3>Readiness for a file chosen here</h3><button onClick={() => setStep("catalogue")}><span><CircleAlert size={14} strokeWidth={2.4} /></span><p><b>Not in this prototype</b><small>This wizard does not upload the file. The real readiness report for each seeded merchant is on the Catalogue page.</small></p><i><ChevronRight size={18} /></i></button><aside><b>See a real report</b><small><Link href="/catalogue/">Open the catalogue readiness report</Link></small></aside></section></> : <section className={styles.emptyReview}><span><Upload size={18} /></span><h3>Upload a catalogue to see readiness results.</h3><p>Once your import is processed, this step will show recognised products, mapped fields and anything that needs your review.</p><button onClick={() => setStep("catalogue")}>Go to catalogue upload</button></section>}<Footer back={back} next={next} /></div>}        {step === "policies" && <div className={styles.stage}><p>Step 6 of 8</p><h2>Publish your merchant policies</h2><div>Clear policies make buying more reliable for customers and agents.</div><div className={styles.policyList}>{["Shipping policy", "Returns policy", "Privacy policy", "Terms of sale"].map((policy, i) => <FilePicker key={policy} title={policy} hint={i < 3 ? "PDF or policy text" : "Optional - PDF or policy text"} required={i < 3} file={draft.policies[policy] ?? ""} onPick={(file) => patch({ policies: { ...draft.policies, [policy]: file } })} />)}</div><Footer back={back} next={next} /></div>}
-        {step === "membership" && <div className={styles.stage}><p>Step 7 of 8</p><h2>Describe your customer membership offer</h2><div>Tell agents what shoppers receive when they join your loyalty or member programme.</div><article className={styles.policy}><h3>Customer membership offer</h3><div>Include the benefits, eligibility and any important conditions. This information can be shown alongside eligible products.</div></article><label className={styles.offerField}>Membership or loyalty offer<textarea value={draft.membershipOffer} onChange={(e) => patch({ membershipOffer: e.target.value })} placeholder="e.g. Members receive free shipping and 2× points on electronics." rows={4} /></label><Footer back={back} next={next} /></div>}
-        {step === "review" && <div className={styles.stage}><p>Step 8 of 8</p><h2>Review your setup</h2><div>Resolve outstanding requirements before submitting your merchant information.</div><div className={styles.review}>{requirements.map((item) => <button key={item.label} onClick={() => setStep(item.to)}><i className={item.complete ? styles.checked : ""}>{item.complete ? <Check size={12} strokeWidth={3} /> : null}</i><span><b>{item.label}</b><small>{item.complete ? "Complete" : "Required before submission"}</small></span><ChevronRight size={18} /></button>)}</div><Footer back={back} next={() => patch({ submitted: true })} label="Submit for review" disabled={!complete} /></div>}
-      </section>
-    </div>
-  </main>;
+  return (
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <Link className={styles.brand} href="/"><span>B</span>BondLayer</Link>
+        <div><p>Merchant onboarding</p><h1>Add your business</h1></div>
+        <aside><Link href="/">Back to console</Link></aside>
+      </header>
+      <div className={styles.layout}>
+        <nav className={styles.steps} aria-label="Onboarding steps">
+          {STEPS.map((label, i) => <button key={label} disabled={busy || i > step} className={i === step ? styles.active : i < step ? styles.done : ""} onClick={() => { setStep(i); setError(null); }}><i>{i < step ? <Check size={13} /> : i + 1}</i><span>{label}</span></button>)}
+        </nav>
+        <section className={styles.card}>
+          {error && <p className="state-error" role="alert">{error}</p>}
+          {step === 0 && <form className={styles.stage} onSubmit={details}>
+            <p>Step 1 of 3</p><h2>Your business details</h2>
+            <div>Start with your own business and product export. Your merchant becomes available after you review and publish the catalogue.</div>
+            <div className={styles.form}>
+              <label>Business name<input required maxLength={120} value={name} onChange={e => setName(e.target.value)} /></label>
+              <label>Merchant ID<input required pattern="[a-z0-9][a-z0-9_-]{0,63}" title="Lowercase letters, numbers, hyphens and underscores" value={merchant} onChange={e => setId(e.target.value.toLowerCase())} /><small>Used in your API URL. Use the merchant value in your CSV, if it has one.</small></label>
+              <label>Business website (optional)<input value={domain} placeholder="Your business domain" onChange={e => setDomain(e.target.value)} /></label>
+            </div>
+            <footer className={styles.footer}><span /><button type="submit">Continue to catalogue</button></footer>
+          </form>}
+          {step === 1 && <section className={styles.stage}>
+            <p>Step 2 of 3</p><h2>Upload your product catalogue</h2>
+            <div>UTF-8 CSV, up to 10 MB. Required columns: <code>sku, title, category, price</code>. Prices are in AUD. The merchant column is optional; if present, it must include <strong>{merchant}</strong>.</div>
+            <p className="state-note">Optional: currency, brand, stock, ram, storage, weight_kg and other product attributes.</p>
+            <a href="/onboard/catalog/template" download>Download empty CSV template</a>
+            <label className={styles.filePicker}>
+              <input aria-label="Upload product catalogue" type="file" accept=".csv,text/csv" disabled={busy} onChange={e => { setFile(e.target.files?.[0] ?? null); setPreview(null); setError(null); }} />
+              <span className={styles.uploadIcon}><Upload size={18} /></span>
+              <span><strong>{file?.name ?? "Choose your CSV"}</strong><small>{file ? "Selected — validate to preview" : "Only your uploaded products will be published"}</small></span>
+            </label>
+            <footer className={styles.footer}><button className={styles.quiet} disabled={busy} onClick={() => setStep(0)}>Back</button><button disabled={busy || !file} onClick={() => send(false)}>{busy ? "Validating…" : "Validate catalogue"}</button></footer>
+          </section>}
+          {step === 2 && preview && <section className={styles.stage}>
+            <p>Step 3 of 3</p><h2>Review {name}</h2>
+            <div>This preview was calculated from <strong>{file?.name}</strong>. Publishing saves the business profile and catalogue and makes these products available to agents.</div>
+            <div className={styles.readinessSummary}>
+              <article><strong>{preview.report.skus}</strong><small>Products accepted</small></article>
+              <article><strong>{preview.report.rows_rejected}</strong><small>Rows rejected</small></article>
+              <article><strong>{preview.report.readiness}%</strong><small>Catalogue readiness</small></article>
+            </div>
+            {preview.report.rows_rejected > 0 && <p className="state-note">Rejected rows will not be served. Go back to choose a corrected file, or publish the accepted products.</p>}
+            <div className="table-wrap"><table><thead><tr><th>Row</th><th>SKU</th><th>Diagnostic</th></tr></thead><tbody>{preview.report.diagnostics.slice(0, 12).map((d, i) => <tr key={i}><td>{d.row}</td><td>{d.sku_id}</td><td>{d.message}</td></tr>)}</tbody></table></div>
+            <p className="state-note">This publishes catalogue data. Benefits will only appear when you publish your own benefit records.</p>
+            <footer className={styles.footer}><button className={styles.quiet} disabled={busy} onClick={() => setStep(1)}>Back</button><button disabled={busy} onClick={() => send(true)}>{busy ? "Publishing…" : "Publish merchant"}</button></footer>
+          </section>}
+        </section>
+      </div>
+    </main>
+  );
 }
-
-function Footer({ back, next, label = "Save and continue", disabled = false }: { back: () => void; next: () => void; label?: string; disabled?: boolean }) { return <footer className={styles.footer}><button className={styles.quiet} onClick={back}>Back</button><button disabled={disabled} onClick={next}>{label}</button></footer>; }

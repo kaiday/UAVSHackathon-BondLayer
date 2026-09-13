@@ -28,7 +28,7 @@
   body{
     margin:0;background:radial-gradient(circle at 96% 0%,rgba(255,122,0,.055),transparent 24%) var(--canvas);color:var(--text);
     font:14px/1.55 var(--font-body);
-    display:flex;flex-direction:column;min-height:100vh;
+    display:flex;flex-direction:column;height:100vh;overflow:hidden;
   }
   h1,h2,h3,h4{font-family:var(--font-display)}
   button,input{font:inherit}
@@ -56,11 +56,103 @@
   .dot.ok{background:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
   .dot.bad{background:var(--danger);box-shadow:0 0 0 3px var(--danger-soft)}
 
-  main{
-    flex:1;width:100%;max-width:1320px;margin:0 auto;padding:30px 30px 44px;
+  /* App shell: the page itself never scrolls. The conversation scrolls, the
+     evidence widget scrolls independently, and the prompt bar stays put. */
+  main{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 420px;overflow:hidden;min-height:0}
+  .chatcol{display:flex;flex-direction:column;overflow:hidden;min-width:0}
+  .scroller{flex:1;overflow-y:auto;padding:26px 30px 10px}
+  .scroller .inner{max-width:900px;margin:0 auto}
+  /* Last child of the flex column, so it sits on the bottom edge and never
+     scrolls away with the conversation. */
+  .composerwrap{
+    border-top:1px solid var(--border);background:var(--paper);padding:12px 30px 14px;
+    box-shadow:0 -2px 14px rgba(23,32,51,.05);
+  }
+  .composerwrap .inner{max-width:900px;margin:0 auto}
+
+  .side{overflow-y:auto;border-left:1px solid var(--border);background:var(--paper);padding:0 0 28px}
+  .side .sempty{padding:24px 18px;color:var(--muted);font-size:12.5px;text-align:center}
+  .sidehdr{
+    position:sticky;top:0;z-index:2;background:var(--paper);
+    border-bottom:1px solid var(--border);padding:12px 16px;
+  }
+  .sidehdr h2{margin:0 0 9px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .shopperpick{
+    display:flex;align-items:center;gap:8px;margin:8px 2px 0;
+    font-size:11.5px;color:var(--muted);
+  }
+  .shopperpick span{letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+  .shopperpick select{
+    flex:1;min-width:0;padding:5px 8px;font:inherit;font-size:11.5px;color:var(--text);
+    border:1px solid var(--border);border-radius:8px;background:var(--quiet);
+  }
+  .runtoggle{display:flex;gap:6px}
+  .runtoggle button{
+    flex:1;padding:6px 10px;font-size:11.5px;font-weight:600;cursor:pointer;
+    border:1px solid var(--border);border-radius:8px;background:var(--quiet);color:var(--muted);
+  }
+  .runtoggle button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .sec{border-bottom:1px solid var(--border)}
+  .sec>summary{
+    padding:11px 16px;cursor:pointer;font-size:11.5px;font-weight:700;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--accent);list-style:none;
+    display:flex;justify-content:space-between;align-items:center;font-family:var(--font-display);
+  }
+  .sec>summary::-webkit-details-marker{display:none}
+  .sec>summary::after{content:'+';font-size:15px;color:var(--muted)}
+  .sec[open]>summary::after{content:'\2212'}
+  .sec>summary:hover{background:var(--quiet)}
+  .secbody{padding:4px 16px 16px}
+  .kv{font-size:12px;margin:0 0 5px;display:flex;gap:8px}
+  .kv b{color:var(--muted);font-weight:600;min-width:92px;flex:none}
+  .logcall{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden}
+  .logcall>summary{padding:7px 10px;font-size:11px;cursor:pointer;background:var(--quiet);
+    display:flex;gap:8px;align-items:center}
+  .logcall pre{
+    margin:0;padding:8px 10px;font:10.5px/1.5 var(--mono);white-space:pre-wrap;
+    word-break:break-word;max-height:240px;overflow:auto;border-top:1px solid var(--border);
+  }
+  .logcall pre.out{background:var(--green-soft)}
+  .lbl{font-weight:700;color:var(--accent)}
+  .ms{margin-left:auto;color:var(--muted)}
+
+  /* the conversation */
+  .thread{display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:76%;padding:11px 15px;border-radius:15px;font-size:14px;line-height:1.55;
+    white-space:pre-wrap;word-wrap:break-word}
+  .msg.user{align-self:flex-end;background:var(--brand-orange-gradient);color:#fff;
+    border-bottom-right-radius:5px}
+  .msg.agent{align-self:flex-start;background:var(--paper);border:1px solid var(--border);
+    border-bottom-left-radius:5px}
+  .msg.note{align-self:center;background:transparent;color:var(--muted);font-size:12px;
+    font-style:italic;max-width:92%;text-align:center;padding:2px 0}
+  .msg.err{align-self:flex-start;background:var(--danger-soft);border:1px solid #f3c9ce;color:var(--danger)}
+  .msg.result{align-self:stretch;max-width:100%;background:transparent;padding:0;white-space:normal}
+  .msg .who{display:block;font-size:10px;letter-spacing:.07em;text-transform:uppercase;
+    opacity:.72;margin-bottom:3px;font-weight:700}
+
+  /* the model's own account of an offer */
+  .take{background:var(--quiet);border-left:3px solid var(--brand-orange);border-radius:0 8px 8px 0;
+    padding:8px 12px;margin:9px 0}
+  .take p{margin:0;font-size:12.5px;line-height:1.55;color:var(--text)}
+  .tterms{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px}
+  .tterm{font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#fff3e6;
+    color:#a85c00;border:1px solid #ffd9b0;border-radius:999px;padding:2px 8px}
+  .tterm.none{background:var(--quiet);color:var(--muted);border-color:var(--border);font-weight:600}
+
+  .detailsbtn{display:none}
+  @media(max-width:980px){
+    main{grid-template-columns:minmax(0,1fr)}
+    .side{position:fixed;inset:0 0 0 auto;width:min(92vw,420px);z-index:20;
+      box-shadow:-8px 0 28px rgba(23,32,51,.2);transform:translateX(100%);
+      transition:transform .18s ease}
+    body.show-side .side{transform:translateX(0)}
+    .detailsbtn{display:inline-block;padding:6px 12px;border:1px solid var(--border);
+      border-radius:999px;background:var(--quiet);font-size:12px;cursor:pointer;color:var(--text)}
+    .scroller,.composerwrap{padding-left:18px;padding-right:18px}
   }
 
-  /* composer: the console's prompt bar, in the flow of the page */
+  /* composer: the console's prompt bar, pinned to the bottom edge */
   .composer{
     display:flex;align-items:center;gap:11px;min-height:60px;margin-bottom:12px;padding:8px 9px 8px 14px;
     border:1px solid #cbd5e1;border-radius:18px;background:var(--paper);
@@ -79,7 +171,7 @@
   }
   .composer button:hover{filter:brightness(.95)}
   .composer button:disabled{opacity:.5;cursor:not-allowed;filter:none}
-  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:9px}
   .chip{
     background:var(--paper);border:1px solid var(--border);border-radius:999px;padding:6px 12px;
     font-size:12px;color:#435066;cursor:pointer;
@@ -351,39 +443,56 @@
     <span class="wordmark">BondLayer</span>
     <span class="sep" aria-hidden="true"></span>
     <div class="titles">
-      <h1>Buyer-agent stand-in — not a consumer product</h1>
-      <p>compares Voltway, CityCircuit and NorthGear over real UCP, ranked by deterministic effective cost</p>
+      <h1>Shopping Agent</h1>
+      <p>compares your onboarded merchants over UCP — the model reads the signed terms and decides what they are worth</p>
     </div>
   </div>
   <div class="health">
     <span class="hchip"><i class="dot" id="d-m"></i><span id="t-m">merchant...</span></span>
     <span class="hchip"><i class="dot" id="d-a"></i><span id="t-a">agent...</span></span>
+    <button class="detailsbtn" id="toggle-side">Evidence</button>
   </div>
 </header>
 
 <main>
-  <div class="composer">
-    <span class="mark" aria-hidden="true">✦</span>
-    <input id="q" type="text" placeholder="Ask for something - e.g. a laptop under $1,500 you can return easily" autocomplete="off">
-    <button id="go">Compare</button>
+  <div class="chatcol">
+    <div class="scroller" id="scroller">
+      <div class="inner"><div class="thread" id="thread"></div></div>
+    </div>
+    <div class="composerwrap">
+      <div class="inner">
+        <div class="chips" id="chips"></div>
+        <div class="composer">
+          <span class="mark" aria-hidden="true">✦</span>
+          <input id="q" type="text" placeholder="Tell me what you're shopping for — I'll ask if I need more" autocomplete="off">
+          <button id="go">Send</button>
+        </div>
+        <!-- Shopping as. "Not signed in" is not a filter applied to the
+             answer: it means no id goes on the request at all, and no
+             merchant is asked who this is. -->
+        <label class="shopperpick">
+          <span>Shopping as</span>
+          <select id="shopper">
+            <option value="">Not signed in</option>
+            <option value="shopper-001">shopper-001 — Voltway Circle member</option>
+            <option value="shopper-002">shopper-002 — NorthGear Plus member</option>
+          </select>
+        </label>
+      </div>
+    </div>
   </div>
-  <div class="chips" id="chips"></div>
-  <p class="switchline">
-    One query, one switch: the <b>only</b> difference between the two panes is whether this agent
-    declares <code>org.bondlayer.benefit_value</code> and <code>org.bondlayer.intent_match</code> in
-    <code>UCP-Agent</code>. Same merchants, same fetcher, same ranking arithmetic.
-  </p>
 
-  <div class="panes">
-    <div class="pane control">
-      <h2><span>Control — no extension declared</span></h2>
-      <div class="body" id="left"><p class="empty">Ask something above to compare.</p></div>
+  <aside class="side" id="side">
+    <div class="sidehdr">
+      <h2>Evidence</h2>
+      <div class="runtoggle">
+        <button id="tab-bl" class="on">BondLayer</button>
+        <button id="tab-ctrl">Control</button>
+      </div>
     </div>
-    <div class="pane bondlayer">
-      <h2><span>BondLayer — extension declared</span></h2>
-      <div class="body" id="right"><p class="empty">Ask something above to compare.</p></div>
-    </div>
-  </div>
+    <div id="sidebody"><p class="sempty">Ask for something, and the trace, the decode, the
+      signed records and the model's own calls appear here.</p></div>
+  </aside>
 </main>
 
 <script>
@@ -453,21 +562,46 @@ function constraintsHtml(resolved) {
   return '<ul class="constraints"><li class="chd">why this matches, clause by clause</li>' + rows + '</ul>';
 }
 
-function offerHtml(r, i, win) {
+/* The model's own account of this offer: the verified terms it says moved the
+   decision, and its sentence. Rendered from `decisive_terms`/`reasoning` as the
+   model returned them -- this layer never infers which term was decisive. */
+function modelTakeHtml(r) {
+  const terms = (r.decisive_terms || []).filter(Boolean);
+  const reasoning = (r.reasoning || '').trim();
+  if (!terms.length && !reasoning) return '';
+  return '<div class="take">' +
+    (terms.length
+      ? '<div class="tterms">' + terms.map(t => '<span class="tterm">' + esc(t) + '</span>').join('') + '</div>'
+      : '<div class="tterms"><span class="tterm none">price alone decided it</span></div>') +
+    (reasoning ? '<p>' + esc(reasoning) + '</p>' : '') +
+  '</div>';
+}
+
+/* `compact` is the conversation's copy: the answer, and the model's reason for
+   it. The records and the clause-by-clause resolution are evidence, and evidence
+   lives in the side widget -- so they render only when compact is false. */
+function offerHtml(r, i, win, compact) {
   const shelf = Number(r.shelf_price_aud || 0);
   const credited = Number(r.credited_aud || 0);
-  const records = (r.citations || []).map(recordLi).join('');
+  const records = compact ? '' : (r.citations || []).map(recordLi).join('');
   return '<div class="offer' + (win ? ' win' : '') + '">' +
     '<h3>#' + (i + 1) + ' ' + esc(r.title) + '</h3>' +
     '<p class="mt">' + esc(r.merchant) + ' &middot; ' + esc(r.sku_id) + '</p>' +
     '<div class="prices">' +
-      '<span class="net">' + money(r.effective_cost_aud) + '</span>' +
+      '<span class="net">' + money(shelf) + '</span>' +
+      // The deterministic effective cost is still computed and still shown, but
+      // as a reference beside the model's choice rather than as the thing that
+      // ordered this list. Where the two disagree, that disagreement is the point.
       (credited > 0.004
-        ? '<span class="shelf struck">' + money(shelf) + '</span><span class="save">' + money(credited) + ' credited</span>'
-        : '<span class="shelf">shelf ' + money(shelf) + '</span>') +
+        ? '<span class="shelf">arithmetic ref: ' + money(r.effective_cost_aud) +
+          '</span><span class="save">' + money(credited) + ' creditable</span>'
+        : '<span class="shelf">no creditable records</span>') +
     '</div>' +
-    (records ? '<ul class="records">' + records + '</ul>' : '<p class="mt">' + esc(r.withheld_note || 'no records published') + '</p>') +
-    constraintsHtml(r.resolved) +
+    modelTakeHtml(r) +
+    (compact ? '' :
+      (records ? '<ul class="records">' + records + '</ul>'
+               : '<p class="mt">' + esc(r.withheld_note || 'no records published') + '</p>') +
+      constraintsHtml(r.resolved)) +
   '</div>';
 }
 
@@ -692,40 +826,102 @@ function closeLoopHtml(o, winner) {
   return html + '</section>';
 }
 
-function paneHtml(d, header) {
+/* ---------- the conversation's copy: the answer ---------- */
+
+const TOP_N = 4;
+
+function resultCardsHtml(d) {
   if (d.error) return '<p class="err">' + esc(d.error) + '</p>';
-  let html = '<div class="hdrline">UCP-Agent: ' + esc(header) + '</div>';
-  html += traceHtml(d.steps);
-  // The merchant's own reading sits between the trace (where the agent's
-  // decode step is) and the ranking, and renders whether or not anything was
-  // ranked: "nobody could decode it" is a finding too.
-  html += merchantDecodeHtml(d.merchant_decodes);
   if (!d.ranked || !d.ranked.length) {
-    html += '<p class="empty">No merchant returned a matching, priced listing.</p>';
-    return html;
+    return d.onboarding_required
+      ? '<p class="empty">No merchants yet. <a href="/onboarding">Onboard your first merchant</a> and upload a catalogue.</p>'
+      : '<p class="empty">No merchant returned a matching, priced listing.</p>';
   }
-  html += bundleHtml(d.bundles, d.ranked);
-  // The justification rides on each offer now (r.resolved), not on the
-  // request-level constraint list: the same clause gets a different answer on
-  // a different shelf, and that difference is the demo.
-  html += d.ranked.map((r, i) => offerHtml(r, i, i === 0)).join('');
+  let html = bundleHtml(d.bundles, d.ranked);
+  html += d.ranked.slice(0, TOP_N).map((r, i) => offerHtml(r, i, i === 0, true)).join('');
+  if (d.ranked.length > TOP_N) {
+    html += '<p class="mt">+' + (d.ranked.length - TOP_N) +
+      ' more, with every record and clause, in the evidence panel.</p>';
+  }
   html += d.flipped
-    ? '<div class="flip">FLIP: ' + esc(d.winner.merchant) + ' wins on effective cost despite ' +
-      esc(d.cheapest_shelf.merchant) + ' having the cheaper shelf price.</div>'
-    : '<div class="flip noflip">No flip: the effective-cost winner is also the cheapest shelf price.</div>';
-  html += '<div class="prose">' + esc(d.recommendation) + '<span class="src">' +
-    (d.steps.find(s => s.phase === 'prose') || {}).summary + '</span></div>';
-  // Last, because it is the outcome of the ranking: the winning offer as the
-  // merchant confirmed it, with the verdict on every record the agent cited.
-  html += closeLoopHtml(d.order, d.winner);
+    ? '<div class="flip">FLIP: the model preferred ' + esc(d.winner.merchant) + ' over ' +
+      esc(d.cheapest_shelf.merchant) + ', which has the cheaper shelf price.</div>'
+    : '<div class="flip noflip">No flip: the model preferred the cheapest shelf price.</div>';
   return html;
 }
 
+/* ---------- the side widget: everything that is not the answer ---------- */
+
+function sec(title, body, open) {
+  if (!body) return '';
+  return '<details class="sec"' + (open ? ' open' : '') + '><summary>' + esc(title) +
+    '</summary><div class="secbody">' + body + '</div></details>';
+}
+
+function intentHtml(d) {
+  const it = d.intent || {};
+  const row = (k, v) => '<p class="kv"><b>' + esc(k) + '</b><span>' +
+    esc(v === null || v === undefined || v === '' ? '—' : v) + '</span></p>';
+  return '<div class="hdrline">UCP-Agent: ' + esc(d.ucp_agent_header || '') + '</div>' +
+    row('summary', it.summary) +
+    row('category', it.category === null ? 'null (no match — the interpreter’s plan stands)' : it.category) +
+    row('max price', it.max_price_aud) +
+    row('must have', (it.must_have || []).join(', ')) +
+    '<p class="mt">“must have” is never sent to a merchant: it would filter titles by ' +
+    'substring, and it is the SERVICE clause the agent withholds so nobody can price ' +
+    'against it.</p>';
+}
+
+function logsHtml(d) {
+  const calls = d.transcript || [];
+  if (!calls.length) return '<p class="mt">No model calls recorded on this run.</p>';
+  return calls.map(c =>
+    '<details class="logcall"><summary><span class="lbl">' + esc(c.label) + '</span>' +
+    '<span>' + esc(c.model) + '</span>' +
+    '<span class="ms">' + esc(c.latency_ms) + ' ms</span></summary>' +
+    '<pre>' + esc(c.prompt) + '</pre>' +
+    '<pre class="out">' + esc(c.completion) + '</pre></details>'
+  ).join('');
+}
+
+function evidenceHtmlAll(d) {
+  if (!d.ranked || !d.ranked.length) return '<p class="mt">No offers to evidence.</p>';
+  return d.ranked.map((r, i) => offerHtml(r, i, i === 0, false)).join('');
+}
+
+function sideHtml(d) {
+  if (!d) return '<p class="sempty">Nothing yet for this run.</p>';
+  if (d.error) return '<p class="err" style="margin:16px">' + esc(d.error) + '</p>';
+  return sec('Intent — the model’s decode', intentHtml(d), true) +
+    sec('Trace — what actually happened', traceHtml(d.steps), true) +
+    // Renders whether or not anything was ranked: "nobody could decode it" is
+    // a finding too.
+    sec('Intent match — each merchant’s own reading', merchantDecodeHtml(d.merchant_decodes)) +
+    sec('UCP evidence — records and clauses', evidenceHtmlAll(d)) +
+    sec('Order — the loop closed', closeLoopHtml(d.order, d.winner)) +
+    sec('Model calls — request and response', logsHtml(d));
+}
+
+//: The two runs behind the last search, and which one the side widget shows.
+let runs = {bl: null, ctrl: null};
+let sideTab = 'bl';
+
+function renderSide() {
+  $('sidebody').innerHTML = sideHtml(runs[sideTab]);
+  $('tab-bl').className = sideTab === 'bl' ? 'on' : '';
+  $('tab-ctrl').className = sideTab === 'ctrl' ? 'on' : '';
+}
+
 async function query(text, bondlayerEnabled) {
+  // No selection means the key is absent from the body, not sent as null:
+  // the request is anonymous all the way down to the merchant's query string.
+  const body = {query: text, bondlayer_enabled: bondlayerEnabled};
+  const shopper = $('shopper') && $('shopper').value;
+  if (shopper) body.shopper_id = shopper;
   const r = await fetch('/query', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({query: text, bondlayer_enabled: bondlayerEnabled}),
+    body: JSON.stringify(body),
   });
   if (!r.ok) {
     const body = await r.text();
@@ -734,30 +930,100 @@ async function query(text, bondlayerEnabled) {
   return r.json();
 }
 
-async function ask(text) {
+/* The conversation, in the shape /chat wants it. The whole thread goes back
+   every turn, so a budget mentioned three messages ago still reaches the
+   merchants: the router folds the conversation into one sentence to send. */
+const history = [];
+
+function pushMsg(role, text, cls) {
+  const el = document.createElement('div');
+  el.className = 'msg ' + (cls || role);
+  el.innerHTML = (cls === 'note' || cls === 'err' ? '' :
+    '<span class="who">' + (role === 'user' ? 'You' : 'Agent') + '</span>') + esc(text);
+  $('thread').appendChild(el);
+  el.scrollIntoView({behavior: 'smooth', block: 'end'});
+  return el;
+}
+
+/* The ranked offers, full width in the conversation rather than in a bubble:
+   they are the answer, not a remark about it. */
+function pushResult(html) {
+  const el = document.createElement('div');
+  el.className = 'msg result';
+  el.innerHTML = html;
+  $('thread').appendChild(el);
+  el.scrollIntoView({behavior: 'smooth', block: 'end'});
+}
+
+async function route(messages) {
+  const r = await fetch('/chat', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({messages: messages, bondlayer_enabled: true}),
+  });
+  if (!r.ok) {
+    const body = await r.text();
+    throw new Error('HTTP ' + r.status + ' - ' + body.slice(0, 300));
+  }
+  return r.json();
+}
+
+async function send(text) {
   if (busy || !text.trim()) return;
   busy = true;
   $('go').disabled = true;
-  $('left').innerHTML = '<p class="empty">Querying merchants…</p>';
-  $('right').innerHTML = '<p class="empty">Querying merchants…</p>';
+  $('q').value = '';
+  pushMsg('user', text);
+  history.push({role: 'user', content: text});
+  const thinking = pushMsg('agent', 'thinking…', 'note');
 
   try {
+    const d = await route(history);
+    thinking.remove();
+
+    if (d.action !== 'search') {
+      // The model wants something more before it will shop. The evidence panel
+      // keeps what it last showed; a clarifying question is not a new result.
+      pushMsg('agent', d.reply);
+      history.push({role: 'assistant', content: d.reply});
+      return;
+    }
+
+    pushMsg('agent', 'Searching merchants for: "' + d.utterance + '"', 'note');
+    $('sidebody').innerHTML = '<p class="sempty">Querying merchants…</p>';
+
+    // Both runs, always: the A/B is the same sentence asked twice, once with
+    // the extension declared and once without. The conversation shows the
+    // BondLayer answer; the evidence panel lets you switch to the control.
     const [ctrl, bl] = await Promise.all([
-      query(text, false),
-      query(text, true),
+      query(d.utterance, false),
+      query(d.utterance, true),
     ]);
-    $('left').innerHTML = paneHtml(ctrl, ctrl.ucp_agent_header || '');
-    $('right').innerHTML = paneHtml(bl, bl.ucp_agent_header || '');
+    runs = {bl: bl, ctrl: ctrl};
+    renderSide();
+
+    // The reply is the model's own recommendation from the BondLayer run --
+    // the same paragraph the evidence panel accounts for, not a second one
+    // written about it.
+    const reply = bl.recommendation || ctrl.recommendation ||
+      (bl.error || ctrl.error || 'No merchant returned a matching listing.');
+    pushMsg('agent', reply);
+    pushResult(resultCardsHtml(bl));
+    history.push({role: 'assistant', content: reply});
   } catch (e) {
-    $('left').innerHTML = '<p class="err">' + esc(e.message) + '</p>';
-    $('right').innerHTML = '<p class="err">' + esc(e.message) + '</p>';
+    thinking.remove();
+    pushMsg('agent', e.message, 'err');
   } finally {
     busy = false;
     $('go').disabled = false;
+    $('q').focus();
   }
 }
 
 const STARTERS = [
+  // Deliberately underspecified: the agent should come back with one question
+  // rather than guessing, which is the conversation the one-shot box could not have.
+  'I need a new laptop',
   'A laptop under $1,500 I can return easily if it turns out not to suit my work, from a brand that actually repairs things',
   'A phone under $900 with a decent trade-in offer',
   // The problem statement's own worked example, and the one that shows a set
@@ -769,14 +1035,14 @@ const STARTERS = [
 function chips() {
   $('chips').innerHTML = STARTERS.map(s => '<span class="chip">' + esc(s) + '</span>').join('');
   $('chips').querySelectorAll('.chip').forEach(c =>
-    c.addEventListener('click', () => { $('q').value = c.textContent; ask(c.textContent); }));
+    c.addEventListener('click', () => send(c.textContent)));
 }
 
 async function health() {
   try {
     const j = await (await fetch('/merchant-health')).json();
     $('d-m').className = 'dot ' + (j.reachable ? 'ok' : 'bad');
-    $('t-m').textContent = j.reachable ? 'merchant up' : 'merchant down';
+    $('t-m').textContent = j.reachable ? (j.merchants ? 'merchant up' : 'no merchants — start onboarding') : 'merchant down';
   } catch (e) {
     $('d-m').className = 'dot bad';
     $('t-m').textContent = 'merchant down';
@@ -791,8 +1057,11 @@ async function health() {
   }
 }
 
-$('go').addEventListener('click', () => ask($('q').value));
-$('q').addEventListener('keydown', e => { if (e.key === 'Enter') ask($('q').value); });
+$('go').addEventListener('click', () => send($('q').value));
+$('q').addEventListener('keydown', e => { if (e.key === 'Enter') send($('q').value); });
+$('tab-bl').addEventListener('click', () => { sideTab = 'bl'; renderSide(); });
+$('tab-ctrl').addEventListener('click', () => { sideTab = 'ctrl'; renderSide(); });
+$('toggle-side').addEventListener('click', () => document.body.classList.toggle('show-side'));
 
 chips();
 health();

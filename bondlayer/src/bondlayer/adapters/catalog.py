@@ -22,6 +22,8 @@ ignored; showing the merchant what is *right* is what earns trust in the rest.
 from __future__ import annotations
 
 import csv
+import io
+import math
 import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
@@ -134,7 +136,10 @@ def _parse_price(raw: str) -> Decimal:
         # Quantized so money leaves the adapter in one shape. "1455", "1455.0"
         # and "$1,455.00" all arrive as 1455.00 -- otherwise the inconsistency
         # the merchant published simply moves onto the wire.
-        return Decimal(cleaned).quantize(Decimal("0.01"))
+        price = Decimal(cleaned).quantize(Decimal("0.01"))
+        if price < 0:
+            raise ValueError("price must not be negative")
+        return price
     except InvalidOperation as exc:  # pragma: no cover - guarded by the regex
         raise ValueError(f"unparseable price {raw!r}") from exc
 
@@ -173,9 +178,13 @@ class CsvCatalogAdapter:
     ``analyse()``, which is the same pass with its working shown.
     """
 
-    def __init__(self, path: Path | str, merchant: str | None = None) -> None:
-        self.path = Path(path)
+    def __init__(self, path: Path | str | None, merchant: str | None = None,
+                 *, text: str | None = None, strict_columns: bool = True) -> None:
+        self.path = Path(path) if path is not None else None
         self.merchant = merchant
+        self.text = text
+        self.strict_columns = strict_columns
+        self._row_diagnostics: list[Diagnostic] = []
 
     # -- protocol ----------------------------------------------------------
 
@@ -217,7 +226,7 @@ class CsvCatalogAdapter:
                 gtin_merchants[r["gtin"]].add(r["merchant"])
 
         skus: list[Sku] = []
-        diagnostics: list[Diagnostic] = []
+        diagnostics: list[Diagnostic] = list(self._row_diagnostics)
         rejected = 0
 
         for line, row in enumerate(rows, start=2):  # line 1 is the header
@@ -255,8 +264,48 @@ class CsvCatalogAdapter:
     # -- internals ---------------------------------------------------------
 
     def _read_rows(self) -> list[dict[str, str]]:
-        with self.path.open(encoding="utf-8", newline="") as fh:
-            return [dict(r) for r in csv.DictReader(fh)]
+        self._row_diagnostics = []
+        source = (io.StringIO(self.text) if self.text is not None
+                  else self.path.open(encoding="utf-8-sig", newline=""))
+        with source as fh:
+            reader = csv.DictReader(fh)
+            header = reader.fieldnames or []
+            required = {"sku", "title", "category", "price"}
+            if self.merchant is None:
+                required.add("merchant")
+            missing = required - set(header)
+            if missing:
+                raise ValueError(f"missing required columns: {sorted(missing)}")
+            if len(header) != len(set(header)):
+                raise ValueError("duplicate column names")
+            rows = []
+            identities = set()
+            for line, raw in enumerate(reader, start=2):
+                if None in raw or any(value is None for value in raw.values()):
+                    if self.strict_columns:
+                        raise ValueError(f"row {line}: column count does not match the header")
+                    if self.merchant is None or raw.get("merchant") == self.merchant:
+                        self._row_diagnostics.append(Diagnostic(
+                            line, raw.get("sku", "?"), "csv", "column_count", Severity.BLOCKER,
+                            "Uneven row", "", "Legacy upload has a different number of cells than its header. Re-upload a corrected CSV; missing cells are empty.", False,
+                        ))
+                row = {key: value or "" for key, value in raw.items() if key is not None}
+                row.setdefault("merchant", self.merchant or "")
+                row["merchant"] = row["merchant"].strip()
+                if any(not row.get(key, "").strip() for key in required | {"merchant"}):
+                    raise ValueError(f"row {line}: required cells must not be blank")
+                identity = (row["merchant"], row["sku"])
+                if identity in identities:
+                    raise ValueError(f"row {line}: duplicate SKU {row['sku']!r} for {row['merchant']!r}")
+                identities.add(identity)
+                for key in ("brand", "condition", "cpu", "ram", "storage", "screen_in",
+                            "weight_kg", "battery_wh", "gtin", "stock"):
+                    row.setdefault(key, "")
+                row["model_key"] = row.get("model_key") or f"{row['merchant']}:{row['sku']}"
+                if row.get("currency", "AUD").upper() not in {"", "AUD"}:
+                    raise ValueError(f"row {line}: only AUD catalogues are supported")
+                rows.append(row)
+            return rows
 
     @staticmethod
     def _modal(rows, key, group, clean=None) -> dict[str, str]:
@@ -346,6 +395,8 @@ class CsvCatalogAdapter:
         if raw_screen:
             inches = _parse_screen(raw_screen)
             if inches is not None:
+                if not math.isfinite(inches) or inches < 0:
+                    raise ValueError("screen_in must be finite and nonnegative")
                 attributes["screen_in"] = inches
                 # Only a value that is not already numeric is a defect. "14"
                 # and "14.0" both parse; '14"' does not, and it is the one that
@@ -365,6 +416,8 @@ class CsvCatalogAdapter:
         raw_weight = row["weight_kg"].strip()
         if raw_weight:
             attributes["weight_kg"] = float(raw_weight)
+            if not math.isfinite(attributes["weight_kg"]) or attributes["weight_kg"] < 0:
+                raise ValueError("weight_kg must be finite and nonnegative")
         elif category in _PHYSICAL:
             note(
                 "weight_kg",
@@ -382,6 +435,8 @@ class CsvCatalogAdapter:
         raw_wh = row["battery_wh"].strip()
         if raw_wh:
             attributes["battery_wh"] = float(raw_wh)
+            if not math.isfinite(attributes["battery_wh"]) or attributes["battery_wh"] < 0:
+                raise ValueError("battery_wh must be finite and nonnegative")
         elif category not in _BATTERY:
             note(
                 "battery_wh",
@@ -493,6 +548,24 @@ class CsvCatalogAdapter:
         for extra in ("cpu",):
             if row[extra].strip():
                 attributes[extra] = row[extra].strip()
+
+        if row["stock"]:
+            raw_stock = row["stock"].strip()
+            if raw_stock.lower() in {"available", "in_stock", "limited_stock", "out_of_stock", "unavailable"}:
+                attributes["availability"] = raw_stock.lower()
+                if raw_stock.lower() in {"out_of_stock", "unavailable"}:
+                    attributes["stock"] = 0
+            else:
+                try:
+                    stock = int(raw_stock)
+                    if stock < 0:
+                        raise ValueError()
+                    attributes["stock"] = stock
+                except ValueError:
+                    if self.strict_columns:
+                        raise ValueError("stock must be a nonnegative integer or availability status")
+                    note("stock", "stock_format", Severity.DEGRADES_MATCH, raw_stock, "",
+                         "Stock is unreadable; availability is unknown. Re-upload a corrected CSV.", autofixed=False)
 
         # Publish the canonical spelling, not the one this row happened to use.
         # Two spellings of one product compete against each other in the same
