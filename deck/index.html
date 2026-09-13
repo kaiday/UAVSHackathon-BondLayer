@@ -148,47 +148,127 @@ body{background:var(--paper); color:var(--ink); font-family:var(--body); overflo
 .step:last-child::after{content:""}
 #s5 .note{margin-top:26px; display:flex; gap:16px; align-items:center}
 
-/* ---------- slide 6 (demo) ---------- */
-#s6 .demo{display:grid; grid-template-columns:600px 1fr; gap:26px; height:585px}
-#s6 .panel{background:var(--white); border:3px solid var(--ink); border-radius:6px; box-shadow:8px 8px 0 var(--green); padding:18px 20px; overflow:hidden; display:flex; flex-direction:column}
-#s6 .switch-wrap{display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:14px}
 .switch{position:relative; width:260px; height:60px; border:3px solid var(--ink); border-radius:6px; background:var(--mint); cursor:pointer; box-shadow:5px 5px 0 var(--ink); user-select:none; flex:none}
 .switch .knob{position:absolute; top:4px; left:4px; width:122px; height:46px; border-radius:4px; background:var(--green); transition:left .3s cubic-bezier(.2,.8,.2,1), background .3s}
 .switch .lab{position:absolute; top:0; height:100%; width:50%; display:grid; place-items:center; font-family:var(--head); font-weight:800; font-size:15px; letter-spacing:.6px; text-transform:uppercase; color:var(--mute); z-index:1}
 .switch .lab.r{right:0}
 .switch.on{background:var(--peach)} .switch.on .knob{left:calc(100% - 126px - 4px); background:var(--orange)}
 .switch.on .lab.r{color:var(--white)} .switch.on .lab.l{color:var(--mute)} .switch:not(.on) .lab.l{color:var(--white)}
-#s6 .hdr{font-family:ui-monospace,Menlo,monospace; font-size:13.5px; background:var(--paper); border:2px solid var(--line); border-radius:4px; padding:8px 10px; line-height:1.45; word-break:break-all; margin-bottom:12px}
-#s6 .hdr .ext{color:var(--orange); font-weight:700}
-#s6 .hdr .ext.off{color:#B9C7BF; text-decoration:line-through}
-#s6 .utt{font-size:16px; line-height:1.35; font-style:italic; margin:0 0 8px; color:var(--ink)}
-#s6 .cl{display:grid; grid-template-columns:104px 1fr; gap:10px; align-items:start; padding:6px 0; border-top:2px dashed var(--line)}
-#s6 .cl .pill{font-size:11.5px; padding:4px 8px; box-shadow:2px 2px 0 var(--ink)}
-#s6 .cl .q{font-size:16px; line-height:1.3; font-weight:600}
-#s6 .cl .ev{font-family:var(--head); font-weight:600; font-size:13.5px; margin-top:3px; transition:color .3s}
-#s6 .cl .ev.no{color:var(--red)} #s6 .cl .ev.yes{color:var(--green)}
-#s6 .sum{margin-top:auto; font-family:ui-monospace,Menlo,monospace; font-weight:700; font-size:14px; padding:10px 12px; border:3px solid var(--ink); border-radius:4px; background:var(--paper)}
-#s6 .sum.ok{background:var(--mint)} #s6 .sum.deg{background:#FDE8E8}
-#s6 .rank{display:flex; flex-direction:column; gap:12px; position:relative}
-#s6 .rk{display:grid; grid-template-columns:52px 1fr 250px; gap:14px; align-items:center; border:3px solid var(--ink); border-radius:6px; background:var(--white); padding:12px 16px; box-shadow:4px 4px 0 var(--ink); transition:transform .5s cubic-bezier(.2,.8,.2,1), background .3s, border-color .3s}
-#s6 .rk.win{background:var(--peach); border-color:var(--orange); box-shadow:4px 4px 0 var(--orange)}
-#s6 .rk .pos{font-family:var(--head); font-weight:800; font-size:30px; color:var(--green)}
-#s6 .rk.win .pos{color:var(--orange)}
-#s6 .rk .who{font-size:18px; line-height:1.3}
-#s6 .rk .who b{font-family:var(--head); font-weight:800; font-size:18px; letter-spacing:.3px}
-#s6 .rk .who .sku{font-family:ui-monospace,Menlo,monospace; font-size:14px; color:var(--mute)}
-#s6 .rk .price{text-align:right}
-#s6 .rk .shelf{font-size:14.5px; color:var(--mute)}
-#s6 .rk .eff{font-family:var(--head); font-weight:800; font-size:28px; margin-top:0; letter-spacing:-.5px; font-variant-numeric:tabular-nums}
-#s6 .rk.win .eff{color:var(--orange)}
-#s6 .rk .why{grid-column:2 / span 2; font-size:14px; color:var(--mute); line-height:1.35; border-top:2px dashed var(--line); padding-top:6px; margin-top:2px}
-#s6 .rk .why .rec{font-family:ui-monospace,Menlo,monospace; color:var(--orange); font-weight:700}
-#s6 .rk.dim{opacity:.75; background:var(--paper)}
-#s6 .receipt{margin-top:auto; border:3px solid var(--ink); border-radius:6px; background:var(--ink); color:var(--white); padding:12px 16px; font-family:ui-monospace,Menlo,monospace; font-size:14px; line-height:1.5}
-#s6 .receipt .k{color:var(--green-2)} #s6 .receipt .ok{color:#7BE3A6; font-weight:700} #s6 .receipt .o{color:var(--orange-3)}
-#s6 .cue{position:absolute; left:96px; right:96px; bottom:54px; display:flex; justify-content:space-between; align-items:center; gap:16px}
-#s6 .cue .live{font-family:var(--head); font-weight:800; font-size:16px; letter-spacing:.5px; text-transform:uppercase; background:var(--orange); color:var(--white); border:3px solid var(--ink); border-radius:6px; box-shadow:4px 4px 0 var(--ink); padding:10px 16px}
-#s6 .tagdemo{font-family:var(--head); font-weight:600; font-size:13px; color:var(--mute); letter-spacing:.3px; text-transform:uppercase}
+
+/* ================= merchant console mockup (after bondlayer/app, feat/minh-console) ================= */
+#s6 .h2,#s6b .h2{font-size:38px; margin-bottom:14px}
+.browser{position:absolute; left:96px; right:96px; top:150px; height:665px; background:var(--white); border:3px solid var(--ink); border-radius:10px; box-shadow:10px 10px 0 var(--green); overflow:hidden; display:flex; flex-direction:column}
+.browser-bar{height:36px; display:flex; align-items:center; gap:8px; padding:0 14px; background:#EEF3F0; border-bottom:2px solid var(--line); flex:none}
+.browser-bar i{width:11px;height:11px;border-radius:50%;background:#D8E2DC} .browser-bar i:nth-child(1){background:#FF7A00} .browser-bar i:nth-child(2){background:#FFC27B} .browser-bar i:nth-child(3){background:#2FB56E}
+.browser-bar .url{margin-left:12px; flex:1; max-width:520px; height:22px; border-radius:6px; background:var(--white); border:1px solid var(--line); font-size:11.5px; color:var(--mute); display:flex; align-items:center; padding:0 10px; font-family:ui-monospace,Menlo,monospace}
+.browser-bar .mock{margin-left:auto; font-size:10.5px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--orange); border:1.5px solid var(--orange); border-radius:4px; padding:2px 7px; background:var(--peach)}
+.con{flex:1; display:grid; grid-template-columns:186px minmax(0,1fr); min-height:0; --ct:#172033; --cm:#68768A; --cb:#E3E8EF; --cq:#F8FAFC; --ca:#1F8A55; --cas:#E6F6EE; --cgrad:linear-gradient(135deg,#1F8A55 0%,#2FB56E 60%,#7BE3A6 100%); --cog:linear-gradient(135deg,#FF7A00 0%,#FF8D31 52%,#FFC27B 100%); --amb:#A9690B; --ambs:#FFF5E2; --dng:#A33C49; --dngs:#FFF0F1; color:var(--ct); font-size:13px}
+.con *{box-sizing:border-box}
+.c-side{background:var(--white); border-right:1px solid var(--cb); padding:18px 12px}
+.c-brand{display:flex; align-items:center; gap:8px; padding:0 8px 18px; font-weight:800; font-size:15px}
+.c-brand svg{width:24px;height:23px}
+.c-navlab{margin:12px 8px 6px; color:#96A0AF; font-size:9.5px; font-weight:800; letter-spacing:.12em; text-transform:uppercase}
+.c-nav{display:flex; align-items:center; gap:8px; margin:2px 0; padding:8px 10px; border-radius:8px; color:#66758A; font-size:12.5px; font-weight:600}
+.c-nav.on{color:var(--ca); background:var(--cas)}
+.c-nav b{width:15px; text-align:center; font-weight:400; font-size:13px; opacity:.9}
+.c-work{min-width:0; display:flex; flex-direction:column; background:#F6F8FB}
+.c-top{height:54px; display:flex; align-items:center; gap:14px; padding:0 22px; background:var(--white); border-bottom:1px solid var(--cb); flex:none}
+.c-search{width:300px; display:flex; align-items:center; gap:8px; padding:7px 11px; border:1px solid var(--cb); border-radius:8px; color:var(--cm); background:var(--cq); font-size:12px}
+.c-acct{margin-left:auto; display:flex; align-items:center; gap:8px; padding:4px 10px 4px 5px; border:1px solid var(--cb); border-radius:999px; font-size:11px; color:var(--cm); background:var(--white)}
+.c-acct .av{width:26px;height:26px;border-radius:50%;background:var(--peach);border:1px solid #F1C59F; display:grid; place-items:center}
+.c-acct .av svg{width:15px;height:15px}
+.c-acct b{display:block; color:var(--ct); font-size:12px}
+.c-body{padding:14px 22px 12px; flex:1; min-height:0; background:radial-gradient(circle at 96% 0%, rgba(255,122,0,.07), transparent 24%), #F6F8FB; display:flex; flex-direction:column; gap:14px}
+.c-head{display:flex; align-items:flex-end; justify-content:space-between; gap:20px}
+.c-head h1{margin:0; font-size:24px; font-weight:600; letter-spacing:-.03em; line-height:1.05}
+.c-head p{margin:5px 0 0; color:var(--cm); font-size:12.5px}
+.c-acts{display:flex; gap:8px}
+.c-btn{min-height:32px; padding:6px 12px; border:1px solid var(--cb); border-radius:8px; color:var(--ct); background:var(--white); font-size:12px; font-weight:650; display:inline-flex; align-items:center}
+.c-btn.pri{color:#fff; border-color:var(--ca); background:var(--cgrad)}
+.c-metrics{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px}
+.c-metric{padding:10px 14px; border:1px solid var(--cb); border-radius:12px; background:var(--white); position:relative; overflow:hidden}
+.c-metric.hi{border-color:#C5E8D4; box-shadow:0 8px 22px rgba(31,138,85,.08)}
+.c-metric.hi::before{content:""; position:absolute; top:0; left:0; right:0; height:3px; background:var(--cgrad)}
+.c-metric.og::before{content:""; position:absolute; top:0; left:0; right:0; height:3px; background:var(--cog)}
+.c-metric p{margin:0; color:var(--cm); font-size:11.5px}
+.c-metric strong{display:block; margin:3px 0 2px; font-size:24px; font-weight:700; letter-spacing:-.03em; line-height:1}
+.c-metric strong small{color:var(--cm); font-size:.6em; font-weight:600}
+.c-trend{display:flex; align-items:center; gap:6px}
+.c-trend span{display:inline-flex; padding:2px 6px; border-radius:999px; font-size:10px; font-weight:800}
+.c-trend span.up{color:#0B7A5D; background:#E8F7F2} .c-trend span.down{color:#B5474F; background:#FFF0F1}
+.c-trend small{color:var(--cm); font-size:10px}
+.c-grid{display:grid; grid-template-columns:minmax(0,1.6fr) minmax(250px,.6fr); gap:14px; flex:1; min-height:0}
+.c-col{display:flex; flex-direction:column; gap:14px; min-width:0}
+.c-panel{border:1px solid var(--cb); border-radius:12px; background:var(--white); overflow:hidden; min-width:0}
+.c-ph{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 15px; border-bottom:1px solid var(--cb)}
+.c-ph h2{margin:0; font-size:14px; font-weight:650} .c-ph p{margin:2px 0 0; color:var(--cm); font-size:11px}
+.c-pill{display:inline-flex; padding:3px 8px; border-radius:999px; color:var(--ca); background:var(--cas); font-size:10px; font-weight:800; white-space:nowrap}
+.c-pill.ok{color:#148C68; background:#E9F7F1} .c-pill.warn{color:var(--amb); background:var(--ambs)} .c-pill.bad{color:var(--dng); background:var(--dngs)}
+.c-table{width:100%; border-collapse:collapse; font-size:12px}
+.c-table th{padding:8px 13px; color:var(--cm); background:var(--cq); font-size:10px; font-weight:700; text-align:left; white-space:nowrap}
+.c-table td{padding:7px 13px; border-top:1px solid var(--cb); white-space:nowrap; vertical-align:middle}
+.c-table td small{display:block; margin-top:2px; color:var(--cm); font-size:10.5px}
+.c-table code{padding:2px 6px; border:1px solid var(--cb); border-radius:5px; color:#40516A; background:var(--cq); font-family:ui-monospace,Menlo,monospace; font-size:10px}
+.c-prod{display:flex; align-items:center; gap:10px} .c-prod strong{font-size:12.5px}
+.c-thumb{width:32px;height:32px; border:1px solid var(--cb); border-radius:7px; background:var(--cq); display:grid; place-items:center; font-size:16px; flex:none}
+.c-q{min-width:110px; display:grid; grid-template-columns:minmax(60px,1fr) auto; align-items:center; gap:7px}
+.c-q span{height:6px; overflow:hidden; border-radius:999px; background:var(--cb)} .c-q i{display:block; height:100%; background:var(--ca); border-radius:inherit}
+.c-q strong{font-size:11px}
+.c-chart{padding:10px 15px 8px} .c-chart svg{width:100%; height:auto; display:block; overflow:visible}
+.c-axis{display:flex; justify-content:space-between; margin-top:4px; color:var(--cm); font-size:10px}
+.c-ready{padding:14px 15px 10px}
+.c-stack{display:flex; height:10px; overflow:hidden; border-radius:999px; background:var(--cb)} .c-stack i{display:block; height:100%}
+.c-ready ul{display:grid; gap:6px; margin:12px 0 0; padding:0; list-style:none; color:var(--cm); font-size:11px}
+.c-ready li{display:flex; align-items:center; gap:7px} .c-ready li i{width:8px;height:8px;border-radius:50%}
+.k-ready{background:var(--ca)} .k-data{background:#F0A03E} .k-avail{background:#CE6572} .k-pol{background:#8B7CC8}
+.c-reasons{padding:10px 15px 12px}
+.c-reasons > div{display:flex; gap:9px; padding:7px 0} .c-reasons > div > span{width:20px;height:20px;flex:none;display:grid;place-items:center;border-radius:50%;background:#E9F7F1;color:#148C68;font-size:10.5px;font-weight:800}
+.c-reasons p{margin:0; font-size:12px} .c-reasons p strong{font-size:12.5px} .c-reasons small{display:block; color:var(--cm); font-size:10.5px; margin-top:1px}
+.c-reasons aside{margin-top:8px; padding:9px 11px; border-left:3px solid var(--amb); border-radius:5px; background:var(--ambs); font-size:11px} .c-reasons aside p{color:var(--cm); font-size:11px; margin-top:2px}
+.c-prompt{position:absolute; left:50%; bottom:10px; transform:translateX(-50%); width:520px; height:46px; display:flex; align-items:center; gap:10px; padding:6px 7px 6px 14px; border:1px solid #CBD5E1; border-radius:16px; background:#fff; box-shadow:0 4px 8px rgba(23,32,51,.08), 0 18px 42px rgba(23,32,51,.16); font-size:12px; color:var(--cm)}
+.c-prompt .mk{width:24px;height:24px;border-radius:7px;background:var(--cog);color:#fff;display:grid;place-items:center;font-size:13px;flex:none}
+.c-prompt .go{margin-left:auto;width:32px;height:32px;border-radius:9px;background:var(--cgrad);color:#fff;display:grid;place-items:center;font-weight:800;flex:none}
+
+/* request console */
+.c-req{display:grid; grid-template-columns:minmax(280px,.68fr) minmax(0,1.32fr); gap:14px; flex:1; min-height:0}
+.c-inbox,.c-detail{border:1px solid var(--cb); border-radius:12px; background:var(--white); overflow:hidden; box-shadow:0 6px 18px rgba(23,32,51,.035); display:flex; flex-direction:column; min-height:0}
+.c-inbox > header,.c-detail > header{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 16px; border-bottom:1px solid var(--cb)}
+.c-inbox h2,.c-detail h2{margin:0; font-size:14px; font-weight:650; display:flex; align-items:center; gap:8px}
+.c-inbox h2 i,.c-detail h2 i{width:24px;height:24px;border-radius:7px;background:var(--cas);color:var(--ca);display:grid;place-items:center;font-style:normal;font-size:13px}
+.c-inbox header p,.c-detail header p{margin:4px 0 0; color:var(--cm); font-size:11px}
+.c-item{display:grid; gap:7px; padding:13px 14px; border-bottom:1px solid var(--cb); text-align:left}
+.c-item.sel{padding-left:11px; border-left:3px solid var(--ca); background:var(--cas)}
+.c-item .r{display:flex; justify-content:space-between; align-items:baseline} .c-item .r strong{font-size:13.5px} .c-item .r small,.c-item .s{color:var(--cm); font-size:11px}
+.c-dbody{padding:14px 18px 16px; flex:1; min-height:0; display:flex; flex-direction:column; gap:12px}
+.c-trow{display:flex; align-items:flex-start; justify-content:space-between; gap:16px}
+.c-trow h3{margin:0; font-size:14px; font-weight:650} .c-trow p{margin:3px 0 0; color:var(--cm); font-size:11px} .c-trow code{color:#53627A; font-size:10px; font-family:ui-monospace,Menlo,monospace}
+.c-quote{margin:0; padding:11px 13px; border-radius:9px; background:var(--cas); font-size:13px; font-weight:600; line-height:1.5}
+.c-tags{display:flex; flex-wrap:wrap; gap:6px} .c-tags span{padding:5px 8px; border:1px solid var(--cb); border-radius:7px; color:#586A82; background:var(--cq); font-size:10.5px}
+.c-tags span.hot{border-color:var(--orange); color:#9A5A08; background:#FFF4DC}
+.c-stages{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px}
+.c-stages article{display:grid; align-content:start; gap:8px; padding:10px 11px; border-top:3px solid var(--ca); background:var(--cq); transition:border-color .3s}
+.c-stages article.off{border-top-color:#CBD5E1}
+.c-stages small{color:var(--cm); font-size:10px; text-transform:uppercase; letter-spacing:.04em}
+.c-stages strong{display:inline-flex; width:fit-content; padding:3px 7px; border-radius:6px; font-size:11px; font-weight:700; line-height:1.4}
+.c-stages strong.data{color:var(--ca); background:var(--cas)} .c-stages strong.money{color:#9A5A08; background:#FFF4DC} .c-stages strong.grey{color:#586A82; background:#EEF2F6} .c-stages strong.bad{color:var(--dng); background:var(--dngs)}
+.c-notes{display:grid; grid-template-columns:1fr 1fr; gap:12px; flex:1; min-height:0}
+.c-notes article{padding:12px 14px; border:1px solid var(--cb); border-radius:9px; min-height:0}
+.c-notes h3{margin:0 0 8px; font-size:12.5px; font-weight:650}
+.c-notes ul{margin:0; padding:0; list-style:none; font-size:11.5px; line-height:1.5; color:var(--cm); display:grid; gap:6px}
+.c-notes li{display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:7px; transition:background .3s}
+.c-notes li .dot{width:5px;height:5px;border-radius:50%;background:var(--ca);flex:none}
+.c-notes li .nm{flex:1; color:var(--ct)} .c-notes li .pr{color:#9A5A08; background:#FFF4DC; padding:2px 6px; border-radius:6px; font-weight:700; font-size:11px; white-space:nowrap}
+.c-notes li.win{background:#FFF3E5; border:1px solid var(--orange-3)} .c-notes li.win .pr{background:var(--orange); color:#fff}
+.c-notes li.win .nm::after{content:" · ranked #1"; color:var(--orange); font-weight:700}
+.c-notes li .strike{text-decoration:line-through; color:rgba(255,255,255,.8); font-weight:400; margin-right:4px}
+.c-notes article.why li{display:list-item; list-style:disc; margin-left:16px; padding:2px 0; color:var(--ct)}
+.c-notes article.why li::marker{color:var(--ca)}
+.c-notes article.why li b{color:#9A5A08; background:#FFF4DC; padding:1px 5px; border-radius:5px; font-weight:700}
+.c-notes article.why li .no{color:var(--red); font-weight:600}
+.c-sw{display:flex; align-items:center; gap:10px}
+.c-sw .switch{width:210px; height:44px; box-shadow:3px 3px 0 var(--ink)} .c-sw .switch .knob{width:97px; height:32px} .c-sw .switch.on .knob{left:calc(100% - 101px - 4px)} .c-sw .switch .lab{font-size:12px}
+.cue-top{position:absolute; right:96px; top:98px; font-family:var(--head); font-weight:800; font-size:14px; letter-spacing:.5px; text-transform:uppercase; background:var(--orange); color:var(--white); border:3px solid var(--ink); border-radius:6px; box-shadow:4px 4px 0 var(--ink); padding:8px 14px}
+.tag-top{position:absolute; right:96px; top:104px; font-family:var(--head); font-weight:700; font-size:13px; color:var(--mute); letter-spacing:.3px; text-transform:uppercase}
 
 /* ---------- slide 7 ---------- */
 #s7 .grid{display:grid; grid-template-columns:repeat(4,1fr); gap:22px; margin-bottom:22px}
@@ -371,36 +451,137 @@ body{background:var(--paper); color:var(--ink); font-family:var(--body); overflo
   </div>
 </section>
 
-<!-- ===== 6 · DEMO: THE FLIP ===== -->
-<section class="slide" id="s6" data-t="3:30–4:15 · then LIVE 4:15–7:15">
-  <p class="kicker w">05 · DEMO · SAME QUERY, SAME SERVER, ONE SWITCH</p>
-  <h2 class="h2" style="margin-bottom:18px">Watch the ranking <span class="navy">flip</span></h2>
-  <div class="demo">
-    <div class="panel">
-      <div class="switch-wrap">
-        <div class="switch" id="sw" role="switch" aria-checked="false" tabindex="0"><div class="knob"></div><span class="lab l">CONTROL</span><span class="lab r">BONDLAYER</span></div>
-        <span class="tag">press S or click</span>
-      </div>
-      <div class="hdr">UCP-Agent: dev.ucp.shopping.catalog.search;<br>dev.ucp.shopping.catalog.lookup;<span class="ext off" id="hdr-ext">org.bondlayer.benefit_value</span></div>
-      <p class="utt">"A laptop under $1,500 I can return easily if it turns out not to suit my work, from a brand that actually repairs things."</p>
-      <div class="cl"><span class="pill c">HARD</span><div><div class="q">under $1,500</div><div class="ev yes">✓ attribute shelf_price ≤ 1500</div></div></div>
-      <div class="cl"><span class="pill g">SOFT</span><div><div class="q">suits my work</div><div class="ev yes">✓ attribute ram_gb · weight_kg (ordering signal)</div></div></div>
-      <div class="cl"><span class="pill m">SERVICE</span><div><div class="q">return easily</div><div class="ev no" id="ev-service">← no catalogue attribute answers this</div></div></div>
-      <div class="cl"><span class="pill y">VALUES</span><div><div class="q">brand that actually repairs things</div><div class="ev no" id="ev-values">← no catalogue attribute answers this</div></div></div>
-      <div class="sum deg" id="sum">[resolve: degraded] 2 of 4 constraints answered; 0 answered only by a verified record.</div>
-    </div>
-    <div class="panel">
-      <div class="rank" id="rank">
-        <div class="rk" id="rk-cit"><div class="pos">1</div><div class="who"><b>CITYCIRCUIT</b> · 14" i5 laptop <span class="sku">CIT-0032</span><br><span class="tag">control merchant · plain feed</span></div><div class="price"><div class="shelf">shelf $1,066.00</div><div class="eff">$1,066.00</div></div><div class="why" id="why-cit">Cheapest shelf price that passes the HARD filter. No records published — nothing to credit, nothing to cite.</div></div>
-        <div class="rk" id="rk-vol"><div class="pos">2</div><div class="who"><b>VOLTWAY</b> · 14" laptop <span class="sku">VOL-0031</span><br><span class="tag">BondLayer merchant</span></div><div class="price"><div class="shelf" id="vol-shelf">shelf $1,142.96</div><div class="eff" id="vol-eff">$1,142.96</div></div><div class="why" id="why-vol">Passes HARD + SOFT. Never the cheapest shelf price anywhere in the catalogue.</div></div>
-        <div class="rk dim"><div class="pos">3</div><div class="who"><b>+10 MORE</b> listings across NorthGear, CityCircuit, Voltway<br><span class="tag">12 candidates pass the price filter</span></div><div class="price"><div class="shelf">ranked below</div></div></div>
-      </div>
-      <div class="receipt" id="receipt"><span class="k">close the loop</span> → POST /citycircuit/ucp/checkout<br>CIT-0032 · plain UCP order · <span class="o">binds no records</span> · payment: out_of_scope</div>
+<!-- ===== 6 · DEMO A · MERCHANT CONSOLE — OVERVIEW ===== -->
+<section class="slide" id="s6" data-t="3:30–4:00">
+  <p class="kicker w">05 · DEMO · THE MERCHANT CONSOLE</p>
+  <h2 class="h2">What the retailer <span class="navy">sees</span></h2>
+  <span class="tag-top">Mockup · illustrative numbers</span>
+  <div class="browser">
+    <div class="browser-bar"><i></i><i></i><i></i><span class="url">console.bondlayer.local/overview</span><span class="mock">mockup</span></div>
+    <div class="con">
+      <aside class="c-side">
+        <div class="c-brand"><svg viewBox="0 0 561 540"><path d="M495 356l60 30c8 4 8 15 0 19L290 538c-6 3-13 3-19 0L6 405c-8-4-8-15 0-19l60-30 186 93c18 9 39 9 57 0l186-93zM271 2c6-3 13-3 19 0l265 133c8 4 8 15 0 19L290 286c-6 3-13 3-19 0L6 154c-8-4-8-15 0-19L271 2z" fill="#FF9F47"/><path d="M495 231l60 30c8 4 8 15 0 19L290 412c-6 3-13 3-19 0L6 280c-8-4-8-15 0-19l60-30 186 93c18 9 39 9 57 0l186-93z" fill="#FF7A00"/></svg>BondLayer</div>
+        <p class="c-navlab">Workspace</p>
+        <div class="c-nav on"><b>▦</b>Overview</div>
+        <div class="c-nav"><b>▤</b>Catalogue</div>
+        <div class="c-nav"><b>☰</b>Request console</div>
+        <div class="c-nav"><b>◉</b>Data quality</div>
+        <p class="c-navlab">Manage</p>
+        <div class="c-nav"><b>✦</b>Benefit records</div>
+        <div class="c-nav"><b>⚙</b>Settings</div>
+      </aside>
+      <section class="c-work">
+        <header class="c-top"><span class="c-search">⌕ Search requests or products</span><span class="c-acct"><span class="av"><svg viewBox="0 0 561 540"><path d="M495 356l60 30c8 4 8 15 0 19L290 538c-6 3-13 3-19 0L6 405c-8-4-8-15 0-19l60-30 186 93c18 9 39 9 57 0l186-93zM271 2c6-3 13-3 19 0l265 133c8 4 8 15 0 19L290 286c-6 3-13 3-19 0L6 154c-8-4-8-15 0-19L271 2z" fill="#FF9F47"/><path d="M495 231l60 30c8 4 8 15 0 19L290 412c-6 3-13 3-19 0L6 280c-8-4-8-15 0-19l60-30 186 93c18 9 39 9 57 0l186-93z" fill="#FF7A00"/></svg></span><span><b>Harbor Tech</b>merchant@harbortech.com</span><span>▾</span></span></header>
+        <div class="c-body">
+          <div class="c-head"><div><h1>Good morning, Harbor Tech</h1><p>Make every product easy for agents to find, verify and compare.</p></div><div class="c-acts"><span class="c-btn">Export</span><span class="c-btn pri">Run test request</span></div></div>
+          <div class="c-metrics stagger">
+            <article class="c-metric"><p>Agent requests · 7 days</p><strong>1,248</strong><div class="c-trend"><span class="up">↑ 12.4%</span><small>vs. previous 7 days</small></div></article>
+            <article class="c-metric hi"><p>Agent-ready products</p><strong>48<small> / 62</small></strong><div class="c-trend"><span class="up">↑ 8.7%</span><small>after last policy import</small></div></article>
+            <article class="c-metric og"><p>Verified value credited</p><strong>$4,912</strong><div class="c-trend"><span class="up">↑ 21%</span><small>signed records only</small></div></article>
+            <article class="c-metric"><p>Rankings won vs. price-only</p><strong>61%</strong><div class="c-trend"><span class="up">↑ 3.2 pts</span><small>vs. previous week</small></div></article>
+          </div>
+          <div class="c-grid">
+            <div class="c-col">
+              <article class="c-panel">
+                <div class="c-ph"><div><h2>Product catalogue</h2><p>Agent-facing fields and recommended fixes</p></div><span class="c-pill ok">Live</span></div>
+                <table class="c-table">
+                  <thead><tr><th>Product</th><th>Category</th><th>Requests</th><th>Data quality</th><th>Next fix</th><th>Status</th></tr></thead>
+                  <tbody>
+                    <tr><td><div class="c-prod"><span class="c-thumb">💻</span><span><strong>Surface Laptop Go 3</strong><small>SLG3-256</small></span></div></td><td>Laptop</td><td>328</td><td><div class="c-q"><span><i style="width:96%"></i></span><strong>96%</strong></div></td><td><code>Add repairability score</code></td><td><span class="c-pill ok">Ready</span></td></tr>
+                    <tr><td><div class="c-prod"><span class="c-thumb">🔋</span><span><strong>Ridge 10K Power Bank</strong><small>HT-PB10K</small></span></div></td><td>Power</td><td>174</td><td><div class="c-q"><span><i style="width:78%"></i></span><strong>78%</strong></div></td><td><code>Add battery_energy_wh</code></td><td><span class="c-pill warn">Review</span></td></tr>
+                    <tr><td><div class="c-prod"><span class="c-thumb">🔌</span><span><strong>Universal Travel Adapter</strong><small>HT-TRAVEL4</small></span></div></td><td>Travel</td><td>96</td><td><div class="c-q"><span><i style="width:55%; background:#CE6572"></i></span><strong>55%</strong></div></td><td><code>Map supported plug types</code></td><td><span class="c-pill bad">Fix now</span></td></tr>
+                    <tr><td><div class="c-prod"><span class="c-thumb">🧵</span><span><strong>Braided USB-C Cable</strong><small>HT-USBC2M</small></span></div></td><td>Accessory</td><td>241</td><td><div class="c-q"><span><i style="width:92%"></i></span><strong>92%</strong></div></td><td><code>Add transfer speed</code></td><td><span class="c-pill warn">Nearly ready</span></td></tr>
+                  </tbody>
+                </table>
+              </article>
+              <article class="c-panel">
+                <div class="c-ph"><div><h2>Agent requests over time</h2><p>Daily requests · last 30 days</p></div><span class="c-pill ok">↑ 12.4%</span></div>
+                <div class="c-chart"><svg viewBox="0 -20 600 122" preserveAspectRatio="none" style="height:70px"><defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#2FB56E" stop-opacity=".28"/><stop offset="1" stop-color="#2FB56E" stop-opacity="0"/></linearGradient></defs><path d="M0 20H600M0 60H600M0 100H600" stroke="#E3E8EF" stroke-dasharray="3 4" fill="none"/><polygon fill="url(#ga)" points="0,100 0,100 20.7,92.5 41.4,95.5 62.1,85 82.8,88 103.4,77.5 124.1,71.5 144.8,79 165.5,68.5 186.2,61 206.9,65.5 227.6,55 248.3,49 269,58 289.7,44.5 310.3,37 331,46 351.7,34 372.4,28 393.1,38.5 413.8,31 434.5,20.5 455.2,25 475.9,13 496.6,17.5 517.2,5.5 537.9,10 558.6,-2 579.3,-8 600,-14 600,100"/><polyline fill="none" stroke="#1F8A55" stroke-width="2" stroke-linejoin="round" points="0,100 20.7,92.5 41.4,95.5 62.1,85 82.8,88 103.4,77.5 124.1,71.5 144.8,79 165.5,68.5 186.2,61 206.9,65.5 227.6,55 248.3,49 269,58 289.7,44.5 310.3,37 331,46 351.7,34 372.4,28 393.1,38.5 413.8,31 434.5,20.5 455.2,25 475.9,13 496.6,17.5 517.2,5.5 537.9,10 558.6,-2 579.3,-8 600,-14"/></svg><div class="c-axis"><span>30 days ago</span><span>Today</span></div></div>
+              </article>
+            </div>
+            <article class="c-panel">
+              <div class="c-ph"><div><h2>Catalogue readiness</h2><p>62 products by agent readiness</p></div><span class="c-pill ok">77% ready</span></div>
+              <div class="c-ready"><div class="c-stack"><i class="k-ready" style="width:77.4%"></i><i class="k-data" style="width:9.7%"></i><i class="k-avail" style="width:8.1%"></i><i class="k-pol" style="width:4.8%"></i></div>
+                <ul><li><i class="k-ready"></i>48 ready</li><li><i class="k-data"></i>6 missing product data</li><li><i class="k-avail"></i>5 missing availability</li><li><i class="k-pol"></i>3 policy gaps</li></ul></div>
+              <div class="c-ph" style="border-top:1px solid var(--cb)"><div><h2>Improve discovery</h2><p>Highest-impact actions</p></div><span class="c-pill warn">3 fixes</span></div>
+              <div class="c-reasons">
+                <div><span>1</span><p><strong>Stable identifiers</strong><small>Publish GTIN, MPN and canonical URL.</small></p></div>
+                <div><span>2</span><p><strong>Structured specifications</strong><small>Typed values, units and availability.</small></p></div>
+                <div><span>3</span><p><strong>Verifiable benefits</strong><small>Sign returns, warranty and member value.</small></p></div>
+                <aside><strong>Best next fix</strong><p>Sign the 60-day returns policy — 3 lost rankings this week cited it.</p></aside>
+              </div>
+            </article>
+          </div>
+        </div>
+        <div class="c-prompt"><span class="mk">✦</span>Ask BondLayer about your catalogue, agents or next fix…<span class="go">↑</span></div>
+      </section>
     </div>
   </div>
-  <div class="cue">
-    <span class="tagdemo">DEMO · replay of <span class="mono">trace_run.py</span> R01 · synthetic 148-SKU catalogue · frozen-run figures</span>
-    <span class="live">▶ NOW CUT TO THE LIVE APP · buyer-agent :8001 · /console · ≈3:00</span>
+</section>
+
+<!-- ===== 6b · DEMO B · REQUEST CONSOLE — THE FLIP ===== -->
+<section class="slide" id="s6b" data-t="4:00–4:45 · then LIVE 4:45–7:15">
+  <p class="kicker w">05 · DEMO · WHY WE WON, WHY WE LOST</p>
+  <h2 class="h2">One request, <span class="navy">explained</span></h2>
+  <span class="cue-top">▶ then cut to the live app · ≈3:00</span>
+  <div class="browser">
+    <div class="browser-bar"><i></i><i></i><i></i><span class="url">console.bondlayer.local/requests/REQ-0017</span><span class="mock">mockup</span></div>
+    <div class="con">
+      <aside class="c-side">
+        <div class="c-brand"><svg viewBox="0 0 561 540"><path d="M495 356l60 30c8 4 8 15 0 19L290 538c-6 3-13 3-19 0L6 405c-8-4-8-15 0-19l60-30 186 93c18 9 39 9 57 0l186-93zM271 2c6-3 13-3 19 0l265 133c8 4 8 15 0 19L290 286c-6 3-13 3-19 0L6 154c-8-4-8-15 0-19L271 2z" fill="#FF9F47"/><path d="M495 231l60 30c8 4 8 15 0 19L290 412c-6 3-13 3-19 0L6 280c-8-4-8-15 0-19l60-30 186 93c18 9 39 9 57 0l186-93z" fill="#FF7A00"/></svg>BondLayer</div>
+        <p class="c-navlab">Workspace</p>
+        <div class="c-nav"><b>▦</b>Overview</div>
+        <div class="c-nav"><b>▤</b>Catalogue</div>
+        <div class="c-nav on"><b>☰</b>Request console</div>
+        <div class="c-nav"><b>◉</b>Data quality</div>
+        <p class="c-navlab">Manage</p>
+        <div class="c-nav"><b>✦</b>Benefit records</div>
+        <div class="c-nav"><b>⚙</b>Settings</div>
+      </aside>
+      <section class="c-work">
+        <header class="c-top"><span class="c-search">⌕ Search requests or products</span>
+          <div class="c-sw"><span class="tag" style="font-size:11px">Serve signed records</span><div class="switch" id="sw" role="switch" aria-checked="false" tabindex="0"><div class="knob"></div><span class="lab l">CONTROL</span><span class="lab r">BONDLAYER</span></div></div>
+          <span class="c-acct"><span class="av"><svg viewBox="0 0 561 540"><path d="M495 356l60 30c8 4 8 15 0 19L290 538c-6 3-13 3-19 0L6 405c-8-4-8-15 0-19l60-30 186 93c18 9 39 9 57 0l186-93zM271 2c6-3 13-3 19 0l265 133c8 4 8 15 0 19L290 286c-6 3-13 3-19 0L6 154c-8-4-8-15 0-19L271 2z" fill="#FF9F47"/><path d="M495 231l60 30c8 4 8 15 0 19L290 412c-6 3-13 3-19 0L6 280c-8-4-8-15 0-19l60-30 186 93c18 9 39 9 57 0l186-93z" fill="#FF7A00"/></svg></span><span><b>Harbor Tech</b>merchant@harbortech.com</span><span>▾</span></span></header>
+        <div class="c-body">
+          <div class="c-head"><div><h1>Request console</h1><p>See why an agent selected, rejected or questioned an offer.</p></div><div class="c-acts"><span class="c-btn">Export log</span></div></div>
+          <div class="c-req">
+            <aside class="c-inbox">
+              <header><div><h2><i>☰</i>Evaluation requests</h2><p>30 frozen scenarios · seeded state</p></div><span class="c-pill ok">Run complete</span></header>
+              <div class="c-item sel"><span class="r"><strong>REQ-0017</strong><small>Just now</small></span><span class="s">Laptop under $1,600 · painless returns</span><span class="c-pill bad" id="st-0017">Lost on price</span></div>
+              <div class="c-item"><span class="r"><strong>REQ-9238</strong><small>24 min ago</small></span><span class="s">Flight-safe power bank under $70</span><span class="c-pill warn">Clarification needed</span></div>
+              <div class="c-item"><span class="r"><strong>REQ-9229</strong><small>1 hr ago</small></span><span class="s">Travel adapter for Europe and UK</span><span class="c-pill bad">Incomplete match</span></div>
+              <div class="c-item"><span class="r"><strong>REQ-9214</strong><small>3 hr ago</small></span><span class="s">Podcast starter kit under $1,200</span><span class="c-pill ok">Bundle proposed</span></div>
+            </aside>
+            <section class="c-detail">
+              <header><div><h2>Request explanation</h2><p>REQ-0017 · buyer-agent.demo · verified</p></div><span class="c-pill bad" id="st-head">Lost on price</span></header>
+              <div class="c-dbody">
+                <div class="c-trow"><div><h3>Laptop with painless returns</h3><p>Completed in 184 ms</p></div><code>UCP · Request-Id req-0017</code></div>
+                <blockquote class="c-quote">“A laptop under $1,600 — I’d rather pay a bit more if the returns are genuinely painless.”</blockquote>
+                <div class="c-tags"><span>Hard filter · ≤ $1,600</span><span>Product · laptop</span><span class="hot" id="tag-svc">Service · painless returns · unanswered</span><span>Preference · pay slightly more</span></div>
+                <div class="c-stages">
+                  <article><small>01 · Intent</small><strong class="data">4 constraints decoded</strong></article>
+                  <article class="off" id="stg-exp"><small>02 · Exposure</small><strong class="grey" id="stg-exp-v">0 signed records served</strong></article>
+                  <article class="off" id="stg-val"><small>03 · Valuation</small><strong class="grey" id="stg-val-v">$0 credited</strong></article>
+                  <article class="off" id="stg-out"><small>04 · Outcome</small><strong class="bad" id="stg-out-v">CityCircuit ranked #1</strong></article>
+                </div>
+                <div class="c-notes">
+                  <article><h3>Products considered</h3><ul id="prods">
+                    <li class="win" id="p-cit"><span class="dot"></span><span class="nm">CityCircuit Surface Laptop Go 3</span><span class="pr">$1,066.00</span></li>
+                    <li id="p-nor"><span class="dot"></span><span class="nm">NorthGear Surface Laptop Go 3</span><span class="pr">$1,099.00</span></li>
+                    <li id="p-vol"><span class="dot"></span><span class="nm">Voltway Surface Laptop Go 3</span><span class="pr" id="p-vol-pr">$1,142.96</span></li>
+                  </ul></article>
+                  <article class="why"><h3>What the console explains</h3><ul id="why">
+                    <li>Painless returns: <span class="no">← no catalogue attribute answers this</span></li>
+                    <li>Agent ranked on shelf price alone — you were third</li>
+                    <li><b>$257.03</b> of member value existed and was invisible</li>
+                  </ul></article>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </div>
   </div>
 </section>
 
@@ -534,49 +715,36 @@ body{background:var(--paper); color:var(--ink); font-family:var(--body); overflo
   function resetT(){ pauseT(); tLeft=600; paint(); }
   paint();
 
-  /* ---- demo switch ---- */
+  /* ---- demo switch (request console) ---- */
   const sw=document.getElementById('sw');
-  const rank=document.getElementById('rank');
-  const rkCit=document.getElementById('rk-cit'), rkVol=document.getElementById('rk-vol');
   let on=false;
+  const $=id=>document.getElementById(id);
+  function setPill(el,txt,cls){ el.textContent=txt; el.className='c-pill '+cls; }
   function flip(state){
     on=state;
     sw.classList.toggle('on',on); sw.setAttribute('aria-checked',on);
-    document.getElementById('hdr-ext').classList.toggle('off',!on);
-    const evS=document.getElementById('ev-service'), evV=document.getElementById('ev-values'), sum=document.getElementById('sum');
-    if(on){
-      evS.textContent='✓ cited verified record vw-returns-60'; evS.className='ev yes';
-      evV.textContent='✓ cited verified record vw-repairability-parts-5y'; evV.className='ev yes';
-      sum.textContent='[resolve: ok] 4 of 4 constraints answered; 2 answered only by a verified record.'; sum.className='sum ok';
-      document.getElementById('vol-eff').textContent='$933.01';
-      document.getElementById('vol-shelf').textContent='shelf $1,142.96 → effective';
-      document.getElementById('why-vol').innerHTML='Signed records credited under the shopper\'s own policy: <span class="rec">vw-returns-60</span> · warranty · member price · delivery · points. Repairability cited, worth $0 by design.';
-      document.getElementById('why-cit').textContent='Still the cheapest shelf. Publishes no records — nothing to credit, so effective cost = shelf.';
-      document.getElementById('receipt').innerHTML='<span class="k">close the loop</span> → POST /voltway/ucp/checkout<br>VOL-0031 · confirmed_awaiting_payment · subtotal $1,142.96 · <span class="ok">6/6 cited records honoured</span> and bound into the order · payment: out_of_scope';
-    } else {
-      evS.textContent='← no catalogue attribute answers this'; evS.className='ev no';
-      evV.textContent='← no catalogue attribute answers this'; evV.className='ev no';
-      sum.textContent='[resolve: degraded] 2 of 4 constraints answered; 0 answered only by a verified record.'; sum.className='sum deg';
-      document.getElementById('vol-eff').textContent='$1,142.96';
-      document.getElementById('vol-shelf').textContent='shelf $1,142.96';
-      document.getElementById('why-vol').textContent='Passes HARD + SOFT. Never the cheapest shelf price anywhere in the catalogue.';
-      document.getElementById('why-cit').textContent='Cheapest shelf price that passes the HARD filter. No records published — nothing to credit, nothing to cite.';
-      document.getElementById('receipt').innerHTML='<span class="k">close the loop</span> → POST /citycircuit/ucp/checkout<br>CIT-0032 · plain UCP order · <span class="o">binds no records</span> · payment: out_of_scope';
-    }
-    // FLIP reorder
-    const first={cit:rkCit.getBoundingClientRect(), vol:rkVol.getBoundingClientRect()};
-    if(on){ rank.insertBefore(rkVol, rkCit); } else { rank.insertBefore(rkCit, rkVol); }
-    rkVol.classList.toggle('win',on); rkCit.classList.toggle('win',!on);
-    rkVol.querySelector('.pos').textContent=on?'1':'2'; rkCit.querySelector('.pos').textContent=on?'2':'1';
+    setPill($('st-0017'), on?'Ranking changed':'Lost on price', on?'ok':'bad');
+    setPill($('st-head'), on?'Ranking changed':'Lost on price', on?'ok':'bad');
+    const tg=$('tag-svc'); tg.textContent=on?'Service · painless returns · cited vw-returns-60':'Service · painless returns · unanswered'; tg.className=on?'':'hot';
+    $('stg-exp').classList.toggle('off',!on); $('stg-val').classList.toggle('off',!on); $('stg-out').classList.toggle('off',!on);
+    $('stg-exp-v').textContent=on?'5 signed records served':'0 signed records served'; $('stg-exp-v').className=on?'data':'grey';
+    $('stg-val-v').textContent=on?'$257.03 credited':'$0 credited'; $('stg-val-v').className=on?'money':'grey';
+    $('stg-out-v').textContent=on?'Voltway ranked #1':'CityCircuit ranked #1'; $('stg-out-v').className=on?'data':'bad';
+    $('p-vol-pr').innerHTML=on?'<span class="strike">$1,142.96</span> $885.93':'$1,142.96';
+    $('why').innerHTML=on
+      ? '<li>Warranty credit capped at <b>$74.50</b> — the declared ceiling, not the claim</li><li>Unsigned claims were displayed but valued at <b>$0</b></li><li>CityCircuit lost <b>$46.66</b> of unexpressed value — no records published</li>'
+      : '<li>Painless returns: <span class="no">← no catalogue attribute answers this</span></li><li>Agent ranked on shelf price alone — you were third</li><li><b>$257.03</b> of member value existed and was invisible</li>';
+    // FLIP reorder of products
+    const list=$('prods'), vol=$('p-vol'), cit=$('p-cit'), nor=$('p-nor');
+    const items=[vol,cit,nor]; const first=new Map(items.map(el=>[el,el.getBoundingClientRect().top]));
+    if(on){ list.append(vol,cit,nor); } else { list.append(cit,nor,vol); }
+    vol.classList.toggle('win',on); cit.classList.toggle('win',!on);
     const sc=stage.getBoundingClientRect().width/1600;
-    [[rkCit,first.cit],[rkVol,first.vol]].forEach(([el,f])=>{
-      const l=el.getBoundingClientRect(); const dy=(f.top-l.top)/sc;
-      el.style.transition='none'; el.style.transform=`translateY(${dy}px)`;
-      requestAnimationFrame(()=>{ el.style.transition=''; el.style.transform=''; });
-    });
+    items.forEach(el=>{ const dy=(first.get(el)-el.getBoundingClientRect().top)/sc; el.style.transition='none'; el.style.transform=`translateY(${dy}px)`;
+      requestAnimationFrame(()=>{ el.style.transition='transform .5s cubic-bezier(.2,.8,.2,1), background .3s'; el.style.transform=''; }); });
   }
   if(/[?&]on=1/.test(location.search)) setTimeout(()=>flip(true),50);
-  sw.addEventListener('click',()=>flip(!on));
+  sw.addEventListener('click',e=>{ e.stopPropagation(); flip(!on); });
   sw.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault(); flip(!on);} });
 
   /* ---- keys ---- */
@@ -591,7 +759,7 @@ body{background:var(--paper); color:var(--ink); font-family:var(--body); overflo
       case 't': case 'T': tOn=!tOn; timer.classList.toggle('on',tOn); if(tOn&&!tRun&&tLeft===600) startT(); break;
       case 'p': case 'P': tRun?pauseT():startT(); break;
       case 'r': case 'R': resetT(); break;
-      case 's': case 'S': flip(!on); if(i!==5) show(5); break;
+      case 's': case 'S': if(i!==6) show(6); flip(!on); break;
       case 'f': case 'F': document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen(); break;
       case 'h': case 'H': case '?': help.classList.toggle('on'); break;
     }
