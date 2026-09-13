@@ -46,7 +46,9 @@ EVIDENCE_KINDS = (ConstraintKind.SERVICE, ConstraintKind.VALUES)
 #: so the agent gets typed names, not prose.
 _ATTRIBUTE_NAMES = ("shelf_price", "weight_kg", "ram_gb", "storage_gb", "screen_in", "gpu", "cpu", "category")
 
-_HARD_CEILING_WORD = re.compile(r"\b(under|below|less\s+than|no\s+more\s+than|up\s+to)\b", re.IGNORECASE)
+_HARD_CEILING_WORD = re.compile(
+    r"\b(under|below|less\s+than|no\s+more\s+than|up\s+to|at\s+most|max(?:imum)?|budget|or\s+less)\b",
+    re.IGNORECASE)
 
 
 def _jsonable(value: object) -> object:
@@ -75,10 +77,16 @@ def _hard_interpretation(specs: list[HardSpec]) -> dict:
                 out["implies_attribute"] = spec.narrow
         elif spec.kind == "ram":
             out["ram_gb"] = spec.value
+            if spec.op != "eq":
+                out["ram_gb_bound"] = spec.op
         elif spec.kind == "storage":
             out["storage_gb"] = spec.value
+            if spec.op != "eq":
+                out["storage_gb_bound"] = spec.op
         elif spec.kind == "screen":
             out["screen_in"] = spec.value
+            if spec.op != "eq":
+                out["screen_in_bound"] = spec.op
         elif spec.kind == "gpu":
             out["gpu"] = spec.value
         elif spec.kind == "cpu":

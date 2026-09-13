@@ -60,8 +60,18 @@ UNANSWERED = "← no catalogue attribute answers this"
 
 # --- HARD: what a clause means in catalogue terms ---------------------------
 
-_MONEY_MAX = re.compile(
-    r"\b(?:under|below|less\s+than|no\s+more\s+than|up\s+to)\s+\$?\s*(\d[\d,]*(?:\.\d+)?)(?![\d.,]*\s*(?:kg|gb|tb|mb|inch))",
+#: A budget ceiling. Shoppers (and the live decode) say "under $1,500" but also
+#: "within a budget of 3000", "max 3000" and "$3000 or less"; an unread budget
+#: used to fall through to a product-name spec and exclude every listing.
+_CEILING_WORDS = (
+    r"under|below|less\s+than|no\s+more\s+than|not\s+(?:more\s+than|over)|up\s+to|at\s+most"
+    r"|max(?:imum)?(?:\s+of)?|within(?:\s+(?:a|my|the|your))?\s+budget(?:\s+of)?"
+    r"|budget(?:\s+(?:is|of))?(?:\s+(?:about|of))?\s*:?"
+)
+_AMOUNT = r"(?:aud\s*)?\$?\s*(\d[\d,]*(?:\.\d+)?)(?![\d.,]*\s*(?:kg|gb|tb|mb|inch))"
+_MONEY_MAX = re.compile(rf"\b(?:{_CEILING_WORDS})\s*{_AMOUNT}", re.IGNORECASE)
+_MONEY_MAX_TRAILING = re.compile(
+    r"\$?\s*\b(\d[\d,]*(?:\.\d+)?)\s*(?:aud\s*)?(?:or\s+(?:less|under|below)|max(?:imum)?|budget)\b",
     re.IGNORECASE,
 )
 _WEIGHT_MAX = re.compile(
@@ -73,6 +83,28 @@ _TB = re.compile(r"\b(\d+)\s*tb\b", re.IGNORECASE)
 _INCH = re.compile(r"\b(\d+(?:\.\d+)?)\s*(?:inch(?:es)?|in)\b", re.IGNORECASE)
 _GPU = re.compile(r"\b(rtx|gtx)\s*(\d{4})?\b", re.IGNORECASE)
 _CPU = re.compile(r"\b(i[3579])\b", re.IGNORECASE)
+_AT_LEAST_BEFORE = re.compile(
+    r"(?:\b(?:at\s+least|minimum(?:\s+of)?|min\.?|no\s+less\s+than|over|more\s+than)|>=?)\s*$", re.IGNORECASE)
+_AT_LEAST_AFTER = re.compile(
+    r"^\s*(?:\+|(?:ram\s+|memory\s+|storage\s+)?(?:or\s+(?:more|above|higher|bigger|larger|greater)"
+    r"|minimum|min\b|and\s+up|plus\b))", re.IGNORECASE)
+_AT_MOST_BEFORE = re.compile(
+    r"(?:\b(?:at\s+most|maximum(?:\s+of)?|max\.?|no\s+more\s+than|up\s+to|under|below|less\s+than)|<=?)\s*$",
+    re.IGNORECASE)
+_AT_MOST_AFTER = re.compile(
+    r"^\s*(?:(?:ram\s+|memory\s+|storage\s+)?(?:or\s+(?:less|smaller|below|under|lower)|maximum|max\b))",
+    re.IGNORECASE)
+
+#: Words that say how to order a shelf, never what is on it. A HARD clause made
+#: only of these ("cheapest", "best value") must not become a product-name
+#: filter: no listing's tokens contain "cheapest", so every offer was excluded.
+_ORDERING_WORDS = {
+    "cheapest", "cheap", "cheaper", "lowest", "low", "price", "priced", "best", "value",
+    "affordable", "inexpensive", "budget", "good", "great", "top", "find", "me", "want",
+    "need", "buy", "get", "looking", "you", "have", "any", "some", "that", "is", "at",
+    "least", "most", "within", "ram", "memory", "storage", "aud", "dollars",
+    "new", "something", "beginner", "friendly", "gear", "equipment", "kit", "stuff", "setup",
+}
 
 #: Product nouns the shopper uses -> the category the catalogue files them
 #: under, plus an optional typed attribute the noun implies.
@@ -109,6 +141,15 @@ _CATEGORY_WORDS: dict[str, tuple[str, str | None]] = {
     "keyboard": ("accessory", None),
     "mouse": ("accessory", None),
     "charger": ("accessory", None),
+    # Every podcasting listing is filed under audio (R06/R07 gold is the whole
+    # audio shelf), so a live decode that marks "podcasting gear" HARD must
+    # land on that category rather than on a product-name match nothing has.
+    "podcasting gear": ("audio", None),
+    "podcast gear": ("audio", None),
+    "podcasting": ("audio", None),
+    "podcast": ("audio", None),
+    "recording gear": ("audio", None),
+    "audio": ("audio", None),
     "microphone": ("audio", None),
     "mic": ("audio", None),
     "headset": ("audio", None),
@@ -130,6 +171,7 @@ class HardSpec:
     value: object = None
     attribute: str | None = None
     narrow: str | None = None  # a typed attribute that must be present (category refinement)
+    op: str = "eq"  # eq | min | max, for ram, storage and screen bounds
 
 
 def interpret_hard(text: str) -> list[HardSpec]:
@@ -147,23 +189,24 @@ def interpret_hard(text: str) -> list[HardSpec]:
     if m := _WEIGHT_MAX.search(text):
         specs.append(HardSpec("weight", float(m.group(1)), "weight_kg"))
         consumed = consumed.replace(m.group(0), " ")
-    if m := _MONEY_MAX.search(consumed):
+    if m := (_MONEY_MAX.search(consumed) or _MONEY_MAX_TRAILING.search(consumed)):
         specs.append(HardSpec("price", Decimal(m.group(1).replace(",", "")), "shelf_price"))
         consumed = consumed.replace(m.group(0), " ")
     if m := _TB.search(consumed):
-        specs.append(HardSpec("storage", int(m.group(1)) * 1024, "storage_gb"))
+        specs.append(HardSpec("storage", int(m.group(1)) * 1024, "storage_gb", op=_bound_op(consumed, m)))
         consumed = consumed.replace(m.group(0), " ")
     if m := _GB.search(consumed):
         gb = int(m.group(1))
         # Memory tops out well under 128GB in this catalogue; anything larger
         # spelled in GB is storage.
+        op = _bound_op(consumed, m)
         if gb <= 64:
-            specs.append(HardSpec("ram", gb, "ram_gb"))
+            specs.append(HardSpec("ram", gb, "ram_gb", op=op))
         else:
-            specs.append(HardSpec("storage", gb, "storage_gb"))
+            specs.append(HardSpec("storage", gb, "storage_gb", op=op))
         consumed = consumed.replace(m.group(0), " ")
     if m := _INCH.search(consumed):
-        specs.append(HardSpec("screen", float(m.group(1)), "screen_in"))
+        specs.append(HardSpec("screen", float(m.group(1)), "screen_in", op=_bound_op(consumed, m)))
         consumed = consumed.replace(m.group(0), " ")
     if m := _GPU.search(consumed):
         family = m.group(1).upper() + (m.group(2) or "")
@@ -180,7 +223,7 @@ def interpret_hard(text: str) -> list[HardSpec]:
             break
 
     if not specs:
-        leftover = [t for t in tokens(consumed) if t not in _STOPWORDS]
+        leftover = [t for t in tokens(consumed) if t not in _STOPWORDS and t not in _ORDERING_WORDS]
         if leftover:
             specs.append(HardSpec("product", " ".join(leftover), "title/brand/model_key tokens"))
         else:
@@ -189,6 +232,16 @@ def interpret_hard(text: str) -> list[HardSpec]:
 
 
 _STOPWORDS = {"a", "an", "the", "with", "and", "or", "for", "of", "to", "i", "my", "one", "own", "already"}
+
+
+def _bound_op(text: str, m: re.Match[str]) -> str:
+    """Whether a spec is a floor ("at least 16GB"), a ceiling ("up to 1TB") or exact."""
+    before, after = text[:m.start()], text[m.end():]
+    if _AT_LEAST_BEFORE.search(before) or _AT_LEAST_AFTER.search(after):
+        return "min"
+    if _AT_MOST_BEFORE.search(before) or _AT_MOST_AFTER.search(after):
+        return "max"
+    return "eq"
 
 
 def _fmt_money(value: Decimal) -> str:
@@ -223,11 +276,16 @@ def _check_hard(spec: HardSpec, sku: Sku, index: TfidfIndex | None, categories: 
         value = attrs.get(attribute)
         if not isinstance(value, (int, float)):
             return False, attribute, f"Attribute absent: the listing publishes no {attribute}, so this spec cannot be checked."
-        ok = float(value) == float(spec.value)
         unit = "GB" if spec.kind != "screen" else "in"
+        if spec.op == "min":
+            ok, wanted = float(value) >= float(spec.value), f"at least {spec.value:g}{unit}"
+        elif spec.op == "max":
+            ok, wanted = float(value) <= float(spec.value), f"at most {spec.value:g}{unit}"
+        else:
+            ok, wanted = float(value) == float(spec.value), f"{spec.value:g}{unit}"
         return ok, attribute, (
-            f"{attribute} {value:g}{unit} matches the requested {spec.value:g}{unit} (typed attribute, not title text)."
-            if ok else f"{attribute} {value:g}{unit} does not match the requested {spec.value:g}{unit}."
+            f"{attribute} {value:g}{unit} meets the requested {wanted} (typed attribute, not title text)."
+            if ok else f"{attribute} {value:g}{unit} does not meet the requested {wanted}."
         )
     if spec.kind == "gpu":
         gpu = attrs.get("gpu")

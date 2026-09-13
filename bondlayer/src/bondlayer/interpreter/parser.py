@@ -40,7 +40,7 @@ _SERVICE_PATTERNS = (
     r"\b(?:long|extended)\s+warranty\b",
     r"\bwarranty\b[^,.;]*",
     r"\b(?:delivered|delivery)\b[^,.;]*",
-    r"\btrade\s+in\b[^,.;]*",
+    r"\b(?:decent\s+)?trade[-\s]+in\b[^,.;]*",
 )
 
 _VALUES_PATTERNS = (
@@ -122,12 +122,14 @@ _CATEGORY_PATTERNS = (
 _SPEC_PATTERNS = (
     # "under 1.3kg" is one clause: the bound and the unit together.
     r"\b(?:under|below|less\s+than|no\s+more\s+than|up\s+to|max(?:imum)?)\s+\d+(?:\.\d+)?\s*kg\b",
-    r"\b\d+(?:\.\d+)?\s*(?:gb|gigs?|tb|inch(?:es)?|kg)\b",
+    r"\b(?:(?:at\s+least|minimum(?:\s+of)?|at\s+most|up\s+to)\s+)?\d+(?:\.\d+)?\s*(?:gb|gigs?|tb|inch(?:es)?|kg)\b"
+    r"(?:\s*\+|\s+(?:ram\s+)?or\s+(?:more|less))?",
     r"\b(?:rtx\s*\d*|i[357])\b",
 )
 
 _HARD_PRICE = re.compile(
-    rf"\b(?:under|below|less\s+than|no\s+more\s+than|up\s+to)\s+{_MONEY}",
+    rf"\b(?:under|below|less\s+than|no\s+more\s+than|up\s+to|at\s+most|max(?:imum)?(?:\s+of)?"
+    rf"|within(?:\s+(?:a|my|the))?\s+budget(?:\s+of)?|budget(?:\s+(?:is|of))?)\s+{_MONEY}",
     re.IGNORECASE,
 )
 _SOFT_PRICE = re.compile(

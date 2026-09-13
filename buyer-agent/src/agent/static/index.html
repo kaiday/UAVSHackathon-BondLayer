@@ -1042,15 +1042,11 @@ async function send(text) {
 }
 
 const STARTERS = [
-  // Deliberately underspecified: the agent should come back with one question
-  // rather than guessing, which is the conversation the one-shot box could not have.
-  'I need a new laptop',
+  // Each names a category, a hard limit the catalogue can check, and what to
+  // weigh, so the agent searches at once and every one has matching listings.
+  'The cheapest laptop with at least 16GB RAM under $2,000',
   'A laptop under $1,500 I can return easily if it turns out not to suit my work, from a brand that actually repairs things',
-  'A phone under $900 with a decent trade-in offer',
-  // The problem statement's own worked example, and the one that shows a set
-  // rather than a ranking.
-  "Beginner-friendly podcasting gear, I've never recorded anything before",
-  'The cheapest laptop you have',
+  'A phone under $900 with at least 256GB storage and a decent trade-in offer',
 ];
 
 function chips() {
