@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 import { Failed, Loading } from "@/components/states";
 import { humanise, severityTone, useReport, useSelectedMerchant } from "@/lib/api";
 
@@ -10,9 +10,36 @@ export default function CataloguePage() {
   const merchant = useSelectedMerchant();
   const { data: report, error } = useReport(merchant);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
 
   const diagnostics =
     report?.diagnostics.filter((d) => filter === "all" || d.severity === filter) ?? [];
+
+  async function upload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    setUploadMessage(null);
+    const form = new FormData();
+    form.append("file", file);
+    try {
+      const response = await fetch("/onboard/catalog", { method: "POST", body: form });
+      const body = (await response.json()) as { merchant?: string; detail?: string };
+      if (!response.ok) throw new Error(body.detail ?? `Upload failed (${response.status})`);
+      setUploadMessage(
+        `Published ${file.name} for ${body.merchant}. Readiness and agent search are now using it.`,
+      );
+      window.location.reload();
+    } catch (cause) {
+      setUploadError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
+  }
 
   return (
     <div className="content">
@@ -25,8 +52,14 @@ export default function CataloguePage() {
             merchant-facing message the server composed — it is not rewritten here.
           </p>
         </div>
+        <label className="upload-button">
+          <input type="file" accept=".csv,text/csv" onChange={upload} disabled={uploading} />
+          {uploading ? "Processing…" : "Upload catalogue"}
+        </label>
       </div>
 
+      {uploadMessage && <p className="upload-success" role="status">{uploadMessage}</p>}
+      {uploadError && <p className="upload-error" role="alert">{uploadError}</p>}
       {error && <Failed what="the merchant report" error={error} />}
       {!report && !error && <Loading what="the merchant report" />}
 

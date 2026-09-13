@@ -87,7 +87,7 @@ const STEPS: Step[] = [
     target: "prompt",
     placement: "top",
     title: "Ask BondLayer",
-    body: "Ask in plain language, for example “Why did I lose this request?” or “What should I fix first?”. Preview: not connected to a model in this prototype.",
+    body: "Ask about this merchant’s catalogue in plain language, for example “What should I fix first?” or “Which listings are blockers?”. Answers come straight from your readiness report, not from an AI model.",
   },
   {
     target: "help",

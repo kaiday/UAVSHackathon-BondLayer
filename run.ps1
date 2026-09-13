@@ -176,11 +176,21 @@ if ($StartAgent -and $StartUi -and (Test-Path (Join-Path $UiDir "package.json"))
 Say "ready"
 Write-Host "   merchant profile   http://127.0.0.1:$MerchantPort/voltway/.well-known/ucp"
 Write-Host "   plain UCP search   http://127.0.0.1:$MerchantPort/voltway/ucp/catalog/search?category=laptop&max_price=1500"
-Write-Host "   merchant dashboard http://127.0.0.1:$MerchantPort/dashboard/"
+Write-Host "   merchant console   http://127.0.0.1:$MerchantPort/console/"
 Write-Host "   onboarding API     http://127.0.0.1:$MerchantPort/onboard/merchants"
 Write-Host "   API docs           http://127.0.0.1:$MerchantPort/docs"
 if ($StartAgent -and (Test-Path $AgentMain)) { Write-Host "   buyer agent        http://127.0.0.1:$AgentPort/" }
 if ($UiStarted) { Write-Host "   chat UI            http://127.0.0.1:$UiPort/" }
+if (Port-Busy $MerchantPort) {
+  try {
+    $console = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:$MerchantPort/console/" -TimeoutSec 2
+    if ($console.StatusCode -ne 200) {
+      Write-Host "   WARNING: /console/ did not return HTTP 200; restart the existing merchant process."
+    }
+  } catch {
+    Write-Host "   WARNING: the existing process on :$MerchantPort may be an older build; restart it to load the current console."
+  }
+}
 Write-Host ""
 Write-Host "   Ctrl-C stops what this script started."
 
