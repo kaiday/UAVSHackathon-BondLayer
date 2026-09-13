@@ -66,6 +66,11 @@ app.add_middleware(
 class ShoppingQuery(BaseModel):
     query: str = Field(min_length=1, max_length=4000)
     bondlayer_enabled: bool = True
+    #: Who to shop as, when the shopper has said. Left unset the request goes
+    #: out anonymously: no id on the wire, no identity capability declared, and
+    #: every merchant's member benefits credited exactly as they are today.
+    #: Setting it is the consent, and it is the whole of the consent.
+    shopper_id: str | None = Field(default=None, max_length=200)
 
     @field_validator("query")
     @classmethod
@@ -178,7 +183,8 @@ def _sanitise(exc: Exception) -> str:
     return f"The agent could not complete this request ({type(exc).__name__})."
 
 
-def _fetcher(http: httpx.Client, plan_override: dict | None = None):
+def _fetcher(http: httpx.Client, plan_override: dict | None = None,
+             shopper_id: str | None = None):
     """The UCP fetcher, with the model's decode preferred over the interpreter's.
 
     ``run_request`` still computes its own typed plan and still passes it; where
@@ -186,7 +192,7 @@ def _fetcher(http: httpx.Client, plan_override: dict | None = None):
     plan backfills whatever the model left empty. A model that returns nothing
     usable therefore degrades to the old search rather than to no search.
     """
-    base = ucp_client.make_fetcher(http)
+    base = ucp_client.make_fetcher(http, shopper_id=shopper_id)
     if not plan_override:
         return base
 
@@ -239,7 +245,8 @@ def _handle_query(request: ShoppingQuery, http: httpx.Client) -> dict:
         intent = {"summary": request.query, "category": None, "max_price_aud": None,
                   "must_have": [], "note": "no merchants onboarded; nothing decoded"}
 
-    fetch = _fetcher(http, rank.plan_from_intent(intent) if merchants else None)
+    fetch = _fetcher(http, rank.plan_from_intent(intent) if merchants else None,
+                     shopper_id=request.shopper_id)
     verify = ucp_client.make_verifier(http, merchants=merchants)
 
     # ``run_request`` unchanged, then the shopper's sentence goes to every

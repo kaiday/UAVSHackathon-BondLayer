@@ -1,0 +1,29 @@
+{
+  "_note": "Who each merchant says its members are. Authored 13/09/2026. The server reads this and nothing else when answering 'is this shopper a member' -- an agent sends an id, the merchant answers from here. There is deliberately no global roster: membership is a relationship with one merchant, so the same shopper is a Circle member at Voltway and a stranger at NorthGear.",
+  "_why_not_in_manifests": "manifests.json says what a merchant publishes to every agent. A roster is per-shopper and is never published -- it is only ever consulted for an id the shopper's own agent supplied.",
+  "rosters": {
+    "voltway": {
+      "shopper-001": {
+        "status": "member",
+        "tier": "circle",
+        "joined": "2024-03-11",
+        "orders": 7
+      },
+      "shopper-002": {
+        "status": "prospect",
+        "tier": null,
+        "joined": null,
+        "orders": 0
+      }
+    },
+    "northgear": {
+      "shopper-002": {
+        "status": "paid_member",
+        "tier": "plus",
+        "joined": "2025-11-02",
+        "orders": 3
+      }
+    },
+    "citycircuit": {}
+  }
+}

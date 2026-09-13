@@ -46,6 +46,7 @@ from bondlayer.types import (
 )
 from bondlayer.valuation import (
     ATTESTED_CONDITIONS,
+    attested_conditions,
     MERCHANT_DOMAINS,
     REFERENCE_SHOPPER_POLICY,
     DeterministicValuation,
@@ -391,6 +392,15 @@ def run_request(
     ``unsatisfied``, and a ``Phase.RESOLVE`` step summarises how much of the
     request the shelf could answer. Resolution never filters and never
     reorders -- the ranking is the same arithmetic it always was.
+
+    **Identity is read, never asserted.** If ``fetch`` sent a shopper id, each
+    merchant answers with a ``shopper`` block saying what that id means to it,
+    and the eligibility tokens gating that merchant's records come from its own
+    answer instead of from the module-level constant. A merchant that was sent
+    no id, or does not know the one it was sent, attests nothing and its member
+    benefits credit zero. Whether an id goes out at all is the caller's
+    decision, taken when it builds ``fetch`` -- withholding consent means the
+    id is never on the wire, not that it is filtered afterwards.
     """
     policy = policy or DEFAULT_POLICY
     shopper = _shopper(policy)
@@ -466,6 +476,38 @@ def run_request(
                 f"{merchant} does not publish the benefit extension - it is ranked on shelf price alone.",
                 {"merchant": merchant}))
 
+        # --- what this merchant says about this shopper -----------------------
+        #
+        # The merchant is the authority on its own membership, so the tokens
+        # that gate its records come out of its answer rather than out of a
+        # constant here. A merchant that was sent no id, or does not know the
+        # one it was sent, attests nothing and its member benefits credit zero.
+        identity = body.get("shopper") or {}
+        attested = (ATTESTED_CONDITIONS if not identity
+                    else attested_conditions(identity))
+        if identity:
+            linked = bool(identity.get("linked"))
+            status, tier = identity.get("status"), identity.get("tier")
+            # Recognised and member are different facts. A `prospect` is known
+            # to the merchant and has joined nothing, so the trace must not
+            # read as though the member benefits were credited.
+            is_member = "member" in attested
+            if is_member:
+                summary = (f"{merchant} confirms this shopper is a "
+                           + (f"{tier} member." if tier else "member."))
+            elif linked:
+                summary = (f"{merchant} knows this shopper but says they are "
+                           f"not a member ({status}) - its member benefits are "
+                           "withheld, not credited.")
+            else:
+                summary = (f"{merchant} does not recognise this shopper - "
+                           "its member benefits are withheld, not credited.")
+            steps.append(Step(
+                Phase.DISCOVERY, Outcome.OK if is_member else Outcome.DEGRADED,
+                summary,
+                {"merchant": merchant, "linked": linked, "member": is_member,
+                 "status": status, "tier": tier, "attested": list(attested)}))
+
         # blocks are positional, one per product, but each carries sku_id
         by_sku = {b.get("sku_id"): b for b in (ext_blocks or [])}
 
@@ -497,7 +539,7 @@ def run_request(
             cost = DeterministicValuation(
                 _WireVerifier(verify, entries),
                 merchant_domains=MERCHANT_DOMAINS,
-                satisfied_conditions=ATTESTED_CONDITIONS,
+                satisfied_conditions=attested,
             ).effective_cost(sku, signed_records, shopper)
 
             verified = [e for r, e in ((r, entries[id(r)]) for r in signed_records)

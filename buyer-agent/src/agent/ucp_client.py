@@ -62,6 +62,10 @@ POLICY = {bt.value: v for bt, v in REFERENCE_SHOPPER_POLICY.values_aud.items()}
 CATALOG_SEARCH = "dev.ucp.shopping.catalog.search"
 CATALOG_LOOKUP = "dev.ucp.shopping.catalog.lookup"
 BENEFIT_VALUE = "org.bondlayer.benefit_value"
+#: Base UCP, and declared only when this agent actually has an id to offer --
+#: see ``make_fetcher``. Declaring it while sending nobody would ask every
+#: merchant to open an identity conversation the shopper did not consent to.
+IDENTITY_LINKING = "dev.ucp.common.identity_linking"
 
 #: Same vocabulary the interpreter's parser matches categories on, so the
 #: search query built from decoded HARD constraints lands on the category the
@@ -132,13 +136,21 @@ def _search_params(utterance: str) -> dict:
     return params
 
 
-def make_fetcher(client: httpx.Client | None = None) -> Callable[..., dict]:
+def make_fetcher(client: httpx.Client | None = None,
+                 shopper_id: str | None = None) -> Callable[..., dict]:
     """A ``bondlayer.agent.composition.Fetcher`` over real HTTP.
 
     ``client`` is accepted so a caller (a test, or a script) can hand in one
     already pointed at an in-process app; the default opens a real connection
     to ``MERCHANT_BASE_URL`` -- the one place this agent touches the network,
     and only ever localhost.
+
+    ``shopper_id`` is **the consent decision, taken once, here.** A shopper who
+    has not said who they are leaves it ``None``, and then the id is not on the
+    query string, ``identity_linking`` is not declared in the header, and no
+    merchant is ever in a position to withhold it from a log. Consent is not a
+    flag the merchant is trusted to honour and not a filter applied to the
+    answer -- it is the absence of the field on the request.
     """
     owns_client = client is None
     http = client or httpx.Client(base_url=MERCHANT_BASE_URL, timeout=10)
@@ -147,7 +159,11 @@ def make_fetcher(client: httpx.Client | None = None) -> Callable[..., dict]:
         header = CATALOG_SEARCH + ";" + CATALOG_LOOKUP
         if extension:
             header += ";" + BENEFIT_VALUE
+        if shopper_id:
+            header += ";" + IDENTITY_LINKING
         params = {"limit": 100, **(_params_from_plan(plan) if plan else _search_params(query))}
+        if shopper_id:
+            params["shopper_id"] = shopper_id
         combined = None
         while True:
             response = http.get(f"/{merchant}/ucp/catalog/search", params=params,

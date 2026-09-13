@@ -19,7 +19,7 @@
         "source_span": "We accept change-of-mind returns on most items for 60 days from the delivery date, provided the item is in resaleable condition with its original packaging. ... Return shipping is free for Voltway Circle members.",
         "value_ceiling_aud": "45"
       },
-      "signature": "aDhjkUM8zcIivUeiQmx5k5D15s5-owyKWf9CmgEki8JF-_qLCERBoEnKXdqhJE3uKoucUTLuWQy57A1ARMZbwQ",
+      "signature": "wXVVgt08Uy8V7-Vhz0FEJaASPWaYpibKMrd2m5epp4MWlb2hgel4yI3k1rX41Rf053X0PeylAX1EVhtymtr9_w",
       "key_id": "voltway-2026-09"
     },
     {
@@ -40,7 +40,7 @@
         "source_span": "Change-of-mind returns on opened audio products are limited to 14 days for hygiene reasons.",
         "value_ceiling_aud": "10"
       },
-      "signature": "RUc9g1UheZIUEa9B3HMi9FByRY0scDQ6helJwmRQnNsUtp9GEpb6yjZWNpPmEaeaACIVc18t3SGm078H7podpQ",
+      "signature": "rPLND8jFVPeGE2iy4Gd3AcGAK3-iCJByJ30otoZ418QyC4DuVVripavcgCdyZGPa-hz90dDFJ5ks9zwBg_ccig",
       "key_id": "voltway-2026-09"
     },
     {
@@ -59,7 +59,7 @@
         "source_span": "All laptops and phones carry the manufacturer warranty plus an additional 12 months of Voltway Cover at no extra charge.",
         "value_ceiling_aud": "60"
       },
-      "signature": "q0dlxYkPj-1H9jZIBpWVSYPV62KIG_281rhFWaYg25DMri4OJvddKtj1kue5dzNNgxPDiX3T3AL1yh1N3BB9qA",
+      "signature": "dEY-hRjmDZgHBlAqZ7EDrccOlt0FIWtiVhHk5VoRvhNw3nN4NR5mB52Mb7LRjSWX3o7bLsO4fR0sAWeQ1VRgrQ",
       "key_id": "voltway-2026-09"
     },
     {
@@ -78,7 +78,7 @@
         "source_span": "Appliances carry 24 months of Voltway Cover in addition to the manufacturer term.",
         "value_ceiling_aud": "110"
       },
-      "signature": "0ivFfUqOcCDJvtIl5XMzxgb6BZ_Rgjrmq4fdSs40idEfmmvm6WRSGNCRnwwAoMBFHKT9ttIfMSkzIlYcKnws4A",
+      "signature": "uLG_0mXa9UzVfG9OJWj9Ro5-_cPf3BEb9mAtaW3jfVweYZ4jrfZV6qhF_Fr9P7Pk2zk8hQ7OE9-WDuKJpquDOA",
       "key_id": "voltway-2026-09"
     },
     {
@@ -99,7 +99,7 @@
         "source_span": "Members earn 4 points per dollar spent. Points are worth 1 cent each on redemption, so 4 points per dollar is an effective 4% return.",
         "value_ceiling_aud": "60"
       },
-      "signature": "jYK9FioUyeOi6C91pVHcAy8vtKlc6bpGp5ETgJSEBVrWZe1TNBnf1rbYOYwj7GwrIWnusLGjZfkvaKGL4F61JA",
+      "signature": "mPFJo2EehssJ56jc_2UQMHKBDqJrdLoLx06ubHv40QuQD5QA_88V5eZvrBQD9lKX6bHVckr4BG9m1U2mYiKv4Q",
       "key_id": "voltway-2026-09"
     },
     {
@@ -120,7 +120,29 @@
         "source_span": "Members receive member pricing on selected lines, typically 5% below the shelf price, and the discount is applied automatically at checkout.",
         "value_ceiling_aud": "75"
       },
-      "signature": "H7Nbg2yp6von1gRcBtJJ51Dc90oQyIQCKRB44p70XcJpX70HdpINf856CcQ12SqRAuycM8L_YVjViTMHjlVnLg",
+      "signature": "w5pqGu780ollp1dvpv89VxmADIG7TCc7EKT8w_y-mVBIgxjEljze1J4cPLKZGo-_PUxMCt6-oDoI-xbpulDUDg",
+      "key_id": "voltway-2026-09"
+    },
+    {
+      "record": {
+        "benefit_type": "member_price",
+        "conditions": [
+          "member",
+          "Not transferable"
+        ],
+        "expires_at": "2027-07-01T00:00:00.000000Z",
+        "fact": {
+          "discount_pct": 10,
+          "shopper_id": "shopper-001"
+        },
+        "issued_at": "2026-09-12T00:00:00.000000Z",
+        "issuer": "voltway.example",
+        "record_id": "vw-member-price-10-shopper-001",
+        "sku_id": null,
+        "source_span": "From time to time we make an offer to one member rather than to the programme ... a standing 10% below the shelf price for a long-standing member. A personal offer names the member it belongs to and is not transferable, and we publish it only to that member.",
+        "value_ceiling_aud": "75"
+      },
+      "signature": "UKlw3K3cfip5HrbQoZsPq7p5lIt1yd_wauvhsrp5BX-MZQwVlhZjBQocyLJ60lWTuZNul8q7kzTYNGKSvMjM_A",
       "key_id": "voltway-2026-09"
     },
     {
@@ -141,7 +163,7 @@
         "source_span": "Trade-in credit is assessed on condition and model, and is capped at $450 for phones and $700 for laptops.",
         "value_ceiling_aud": "700"
       },
-      "signature": "Vj8r7epz-nWdFehjcy_4P1ZTXBT-cMBK2NoS0YtuWEQbxQhgHTZqZgD6KubAaZ2ktJ6m0xrESi5TtfRa3jKVIQ",
+      "signature": "kCh3M-CP4VIT0vYcd7m5Scg_ZEN7BMw2C7Y_BF2JMfzbyRFiZdtcY8YHhnbyRPudI5kkZTLDDUulDGLsNhjxGQ",
       "key_id": "voltway-2026-09"
     },
     {
@@ -162,7 +184,7 @@
         "source_span": "Trade-in credit is assessed on condition and model, and is capped at $450 for phones and $700 for laptops.",
         "value_ceiling_aud": "450"
       },
-      "signature": "bGpWv3rCKgVvvji8WhhoxGgYHOlpH_wEmOavp1GIbPpaZVIX0-BPmneSWjoS0nfst8g5lxPg34ENmrbqFvAGqg",
+      "signature": "6xgTP42II1-kX_ZL1jNyVpNt692dFCrCL3vp30cUdPwcPP5VkW3HU_E7rCmxBsinVQG_Mo3DhH80NHGgQupyYA",
       "key_id": "voltway-2026-09"
     },
     {
@@ -182,7 +204,7 @@
         "source_span": "Standard delivery is free on orders over $99. Below that threshold, standard delivery is $9.95.",
         "value_ceiling_aud": "9.95"
       },
-      "signature": "KBNxYISbIc9MKhipGmhWSAn7HVRfLNFxzb1ubOXgIUEhC_8M9OIEJ8vcdGsuHpfmgkC14h7UPd-DR24PgVOhpQ",
+      "signature": "GaaHJogQT1syHOgwazw2XVk9eAjYIyRWFmQ0MY9Ml-C3loYC8k0lU_AUVOE-ywTt66UVvWeGS0kFv7JQuMUCHw",
       "key_id": "voltway-2026-09"
     },
     {
@@ -201,7 +223,7 @@
         "source_span": "We publish repair pricing for every product we sell. We stock spare parts for a minimum of five years after a product line is discontinued.",
         "value_ceiling_aud": null
       },
-      "signature": "C8RuOox72BXJ3FRIoqZhZmt5ibGz6XnoUA3W9ydH3xYTlt5KXPltDpZM-j6YK0SaQRw2qbS-lxsPmRlYKHUobg",
+      "signature": "5lAzp0aBidO35HwwT5Y3dkxFcafxDrNHJ9kxaY2tF-SLwcfvfJQIobF0jeiqkeyVi0hohIQBokFQua7-gtT5Qw",
       "key_id": "voltway-2026-09"
     },
     {
@@ -220,7 +242,7 @@
         "source_span": "We publish an annual emissions statement, independently assured by a third party ... In FY2026 we recovered 412 tonnes of e-waste through that scheme.",
         "value_ceiling_aud": null
       },
-      "signature": "KvYJnsvDBgmj-sfCq-fRIFH3canISUqPbe_jadoDR3xKy1Hx_-5n_ocR7qWW3GDm18gbfjl6MRQ12mHrJKI2zQ",
+      "signature": "iOThTV3wafJY3eax0Qf29nqYfqX3oiSidghl9uJKqvUpSIIt-a8EJfSr1Maa1vx3X0vsSVbuzcgX0obssI0Gyw",
       "key_id": "voltway-2026-09"
     },
     {
@@ -238,7 +260,7 @@
         "source_span": "We will quote on out-of-warranty repairs for any product we have sold, regardless of age.",
         "value_ceiling_aud": null
       },
-      "signature": "rhMGOgyOmh58K5RBaZZ5FE_enKwALkEMZ2S6nw3s-VvfDZ9w8sGg9YHTE6H36zue_L0pL1jVmwJVeSkMHrVw4g",
+      "signature": "fSkEps86v6L690ylZlOTX-vQwqGhRqgNKu0A-oMpOG7oN0qzWTy-o26Tx00QpjQcrmkgkq7UnI-Njmp1MZhYzQ",
       "key_id": "voltway-2026-09"
     }
   ]

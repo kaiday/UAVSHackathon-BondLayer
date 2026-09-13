@@ -5,6 +5,10 @@ result; this module reads it and the UCP head serves it on the catalogue call.
 Nothing here signs, and nothing here needs a private key -- the demo verifies
 from a fresh clone with no secrets and no network.
 
+Selection lives here too: :func:`for_sku` decides which of a merchant's records
+reach one listing for one shopper, and it is where consent becomes structural
+rather than conditional.
+
 **Unsigned records are not rejected here.** A record with no signature loads,
 serves, and is marked ``signed: false`` on the wire so the console can display
 it and the valuation can credit it zero. NorthGear's planted greenwashing claim
@@ -58,18 +62,36 @@ def load_records(merchant_id: str, records_dir: Path = RECORDS) -> list[dict]:
     return [_envelope(r) for r in payload]
 
 
-def for_sku(records: list[dict], sku_id: str) -> list[dict]:
-    """Records that apply to one listing.
+def for_sku(records: list[dict], sku_id: str,
+            shopper_id: str | None = None) -> list[dict]:
+    """Records that apply to one listing, for one shopper.
 
     ``sku_id: null`` means the record applies to the whole merchant -- a
     returns window or a repairability commitment is a property of the retailer,
     not of one laptop -- so those attach to every SKU.
+
+    ``fact["shopper_id"]`` is the same idea along the other axis: absent means
+    the record is offered to everyone, and a value means it is offered to that
+    shopper alone. ``fact`` is inside the canonical signed payload, so a scope
+    cannot be widened on the wire -- re-pointing a personal offer at another
+    shopper breaks the signature.
+
+    **This is the consent mechanism, and it is structural.** A request that
+    carries no linked shopper passes ``shopper_id=None`` and the scoped records
+    are never selected. Nothing downstream has to remember to filter them out,
+    and there is no ``if consent:`` branch here to get wrong -- the records
+    simply do not leave this function.
     """
     out = []
     for envelope in records:
-        target = envelope["record"].get("sku_id")
-        if target is None or target == sku_id:
-            out.append(envelope)
+        record = envelope["record"]
+        target = record.get("sku_id")
+        if target is not None and target != sku_id:
+            continue
+        scoped_to = record.get("fact", {}).get("shopper_id")
+        if scoped_to is not None and scoped_to != shopper_id:
+            continue
+        out.append(envelope)
     return out
 
 

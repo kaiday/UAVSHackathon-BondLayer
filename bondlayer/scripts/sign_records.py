@@ -68,13 +68,21 @@ def record(
     ceiling: str | None = None,
     conditions: tuple[str, ...] = (),
     sku_id: str | None = None,
+    shopper_id: str | None = None,
 ) -> BenefitRecord:
-    """One claim. ``ceiling=None`` means validated but never priced."""
+    """One claim. ``ceiling=None`` means validated but never priced.
+
+    ``shopper_id`` narrows the claim to one member, the way ``sku_id`` narrows
+    it to one listing. It is written into ``fact``, which is inside the signed
+    payload, so a personal offer cannot be re-pointed at another shopper
+    without breaking the signature -- "not transferable" is a property of the
+    record rather than a promise about the server.
+    """
     return BenefitRecord(
         record_id=record_id,
         sku_id=sku_id,
         benefit_type=benefit_type,
-        fact=fact,
+        fact=fact if shopper_id is None else {**fact, "shopper_id": shopper_id},
         conditions=list(conditions),
         issuer=issuer,
         issued_at=ISSUED_AT,
@@ -143,6 +151,27 @@ VOLTWAY_RECORDS = [
         "shelf price, and the discount is applied automatically at checkout.",
         ceiling="75.00",
         conditions=("member", "Does not stack with clearance pricing"),
+    ),
+    # A personal offer: signed for one member, served to nobody else.
+    #
+    # Note what it is *worth*, which is less than it looks. MEMBER_PRICE is
+    # already credited to this shopper's own cap by vw-member-price-5, and the
+    # cap is per benefit type across the whole listing -- so doubling the rate
+    # from 5% to 10% does not double the credit, and would not have even if
+    # Voltway had published it to everyone. That is the shopper-side budget
+    # working as designed: a merchant cannot buy rank by restating a benefit
+    # the shopper has already valued. What this record demonstrates is
+    # selection, not price -- it reaches shopper-001's agent and no other.
+    record(
+        "vw-member-price-10-shopper-001", VOLTWAY, BenefitType.MEMBER_PRICE,
+        {"discount_pct": 10},
+        "From time to time we make an offer to one member rather than to the "
+        "programme ... a standing 10% below the shelf price for a long-standing "
+        "member. A personal offer names the member it belongs to and is not "
+        "transferable, and we publish it only to that member.",
+        ceiling="75.00",
+        conditions=("member", "Not transferable"),
+        shopper_id="shopper-001",
     ),
     record(
         "vw-tradein-laptop-700", VOLTWAY, BenefitType.TRADE_IN_CREDIT,

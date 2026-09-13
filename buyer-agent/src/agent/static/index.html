@@ -77,6 +77,15 @@
     border-bottom:1px solid var(--border);padding:12px 16px;
   }
   .sidehdr h2{margin:0 0 9px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .shopperpick{
+    display:flex;align-items:center;gap:8px;margin:8px 2px 0;
+    font-size:11.5px;color:var(--muted);
+  }
+  .shopperpick span{letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+  .shopperpick select{
+    flex:1;min-width:0;padding:5px 8px;font:inherit;font-size:11.5px;color:var(--text);
+    border:1px solid var(--border);border-radius:8px;background:var(--quiet);
+  }
   .runtoggle{display:flex;gap:6px}
   .runtoggle button{
     flex:1;padding:6px 10px;font-size:11.5px;font-weight:600;cursor:pointer;
@@ -458,6 +467,17 @@
           <input id="q" type="text" placeholder="Tell me what you're shopping for — I'll ask if I need more" autocomplete="off">
           <button id="go">Send</button>
         </div>
+        <!-- Shopping as. "Not signed in" is not a filter applied to the
+             answer: it means no id goes on the request at all, and no
+             merchant is asked who this is. -->
+        <label class="shopperpick">
+          <span>Shopping as</span>
+          <select id="shopper">
+            <option value="">Not signed in</option>
+            <option value="shopper-001">shopper-001 — Voltway Circle member</option>
+            <option value="shopper-002">shopper-002 — NorthGear Plus member</option>
+          </select>
+        </label>
       </div>
     </div>
   </div>
@@ -893,10 +913,15 @@ function renderSide() {
 }
 
 async function query(text, bondlayerEnabled) {
+  // No selection means the key is absent from the body, not sent as null:
+  // the request is anonymous all the way down to the merchant's query string.
+  const body = {query: text, bondlayer_enabled: bondlayerEnabled};
+  const shopper = $('shopper') && $('shopper').value;
+  if (shopper) body.shopper_id = shopper;
   const r = await fetch('/query', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({query: text, bondlayer_enabled: bondlayerEnabled}),
+    body: JSON.stringify(body),
   });
   if (!r.ok) {
     const body = await r.text();

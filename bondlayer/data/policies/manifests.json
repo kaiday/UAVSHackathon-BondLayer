@@ -15,6 +15,7 @@
         {"benefit_type": "warranty", "fact": {"extra_months": 24, "scope": "appliance"}, "priced": true},
         {"benefit_type": "points_earn", "fact": {"points_per_dollar": 4, "cents_per_point": 1}, "priced": true},
         {"benefit_type": "member_price", "fact": {"discount_pct": 5}, "priced": true},
+        {"benefit_type": "member_price", "fact": {"discount_pct": 10, "shopper_id": "shopper-001"}, "priced": true, "_why_scoped": "A personal offer. fact.shopper_id is inside the signed payload, so it is served to that member's agent alone and cannot be re-pointed at anyone else."},
         {"benefit_type": "trade_in_credit", "fact": {"cap_aud": 700, "scope": "laptop"}, "priced": true},
         {"benefit_type": "trade_in_credit", "fact": {"cap_aud": 450, "scope": "phone"}, "priced": true},
         {"benefit_type": "delivery", "fact": {"free_over_aud": 99}, "priced": true},

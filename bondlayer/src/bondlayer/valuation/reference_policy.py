@@ -48,6 +48,58 @@ ATTESTED_CONDITIONS = (
     "order_over_99",
 )
 
+#: Tokens above that a shopper has to *be* something to earn. The rest are
+#: properties of the basket or of the returned item -- true of any shopper,
+#: identified or not.
+MEMBERSHIP_TOKENS = frozenset({"member", "paid_member"})
+
+#: The attested tokens that owe nothing to identity. Derived rather than
+#: restated, so extending ``ATTESTED_CONDITIONS`` cannot leave this behind.
+SHOPPER_INDEPENDENT = tuple(
+    c for c in ATTESTED_CONDITIONS if c not in MEMBERSHIP_TOKENS
+)
+
+#: Statuses that actually make someone a member. A merchant can know a shopper
+#: without the shopper having joined anything -- ``prospect`` is a real answer
+#: and it earns nothing. Being *recognised* and being a *member* are different
+#: facts, and conflating them would hand every browsing shopper the member
+#: price.
+MEMBER_STATUSES = frozenset({"member", "paid_member"})
+
+
+def attested_conditions(identity: dict) -> tuple[str, ...]:
+    """What a merchant's answer about this shopper actually earns.
+
+    ``identity`` is the ``shopper`` block a merchant returned
+    (``ucp.membership.resolve_shopper``). Call this only when a merchant
+    actually answered; with no identity in play the caller keeps using
+    :data:`ATTESTED_CONDITIONS` unchanged, so an unidentified run is byte for
+    byte the run it always was.
+
+    Once an identity *is* in play, ``member`` stops being free. A shopper the
+    merchant does not know earns no membership token, which is what makes a
+    ``member_price`` record credit zero for a stranger -- the valuation's
+    existing condition gate does the withholding, and this only decides what
+    that gate is told.
+
+    ``paid_member`` is the interesting one, and it is the honest resolution of
+    the caveat written out above. The static tuple omits it because an agent
+    comparing merchants cannot credit a benefit the shopper would have to buy
+    first. A shopper who has **already** bought it is a different shopper, and
+    the merchant is the only party who knows which one is asking. NorthGear's
+    $49 Plus benefits stay withheld for everyone else.
+    """
+    status = identity.get("status") if identity.get("linked") else None
+    if status not in MEMBER_STATUSES:
+        return SHOPPER_INDEPENDENT
+    earned = ["member"]
+    if status == "paid_member":
+        earned.append("paid_member")
+    tier = identity.get("tier")
+    if tier:
+        earned.append(f"{tier}_tier")
+    return SHOPPER_INDEPENDENT + tuple(earned)
+
 #: What this shopper says each benefit is worth. Values claims are absent by
 #: construction: they carry no ceiling and credit $0 however they are valued.
 REFERENCE_SHOPPER_POLICY = ShopperPolicy(
