@@ -1,0 +1,127 @@
+{
+  "merchant": "bigw",
+  "program_id": "bigw-everyday-rewards",
+  "name": "Everyday Rewards at BIG W",
+  "program_type": "free_consumer_loyalty",
+  "status": "active",
+  "collected_at": "2026-09-13",
+  "loyalty": {
+    "unit": "everyday_rewards_points",
+    "earn_rates": [
+      {
+        "units_per_aud": 1,
+        "scope": "eligible_in_store_and_online_purchases",
+        "detail": "Members collect at least 1 Everyday Rewards point per AUD 1 spent when their card is scanned or linked."
+      },
+      {
+        "units_per_aud": 10,
+        "scope": "activated_points_boosters",
+        "detail": "Selected boosters can increase earning to as much as 10 points per AUD 1; individual offer conditions apply."
+      }
+    ],
+    "redeem_rate_aud_per_unit": "0.005",
+    "redeem_minimum_units": 2000,
+    "points_expire_months": null,
+    "redemption_options": [
+      "AUD 10 off a future shop for every 2000 points",
+      "bank rewards for use between 1 December and 1 January",
+      "convert 2000 points to 1000 Qantas Points"
+    ]
+  },
+  "benefits": [
+    {
+      "benefit_type": "points_earn",
+      "fact": {
+        "points_per_dollar": 1,
+        "boosted_points_per_dollar_up_to": 10,
+        "channels": ["in_store", "online", "lay_by_initial_purchase"]
+      },
+      "conditions": [
+        "everyday_rewards_member",
+        "registered_card_scanned_in_store_or_linked_online",
+        "logged_in_before_online_checkout"
+      ],
+      "exclusions": [
+        "gift cards including iTunes",
+        "mobile recharge",
+        "travel cards and tickets",
+        "cash outs",
+        "delivery charges",
+        "donations",
+        "Carpet Care",
+        "Pre-Order Kiosks",
+        "BIG W Photos",
+        "BIG W eBay",
+        "lay-by service and cancellation fees",
+        "charge-account purchases"
+      ]
+    },
+    {
+      "benefit_type": "member_price",
+      "fact": {
+        "discount_pct": null,
+        "scope": "selected_products",
+        "channels": ["in_store", "online"],
+        "automatic_after_identification": true
+      },
+      "conditions": [
+        "everyday_rewards_member",
+        "qualifying_product",
+        "offer_period_active",
+        "card_scanned_in_store_or_linked_online"
+      ],
+      "exclusions": [
+        "products without an Everyday Rewards Member Price marker",
+        "expired individual offers",
+        "unavailable stock"
+      ],
+      "detail": "Member Prices vary by product and can generally be used multiple times during the advertised offer period."
+    },
+    {
+      "benefit_type": "reward_redemption",
+      "fact": {
+        "threshold_points": 2000,
+        "reward_aud": "10.00",
+        "redemption_increment_aud": "10.00"
+      },
+      "conditions": [
+        "everyday_rewards_member",
+        "sufficient_rewards_balance"
+      ],
+      "exclusions": [
+        "gift cards including iTunes",
+        "mobile recharge",
+        "travel cards and tickets",
+        "cash outs",
+        "delivery charges",
+        "donations",
+        "Carpet Care",
+        "Pre-Order Kiosks",
+        "BIG W Photos",
+        "BIG W eBay",
+        "lay-by purchases and fees",
+        "charge-account purchases"
+      ]
+    }
+  ],
+  "enrolment": {
+    "requires_consent": true,
+    "eligibility": ["consumer_member"],
+    "identity_proof": "card_or_identity_linking",
+    "required_links": [
+      "scan a physical or digital Everyday Rewards card in store",
+      "link Everyday Rewards to the BIG W online account for online earning and Member Prices"
+    ]
+  },
+  "tiers": [],
+  "sources": [
+    {
+      "title": "Everyday Rewards at BIG W",
+      "url": "https://www.bigw.com.au/everydayrewards"
+    },
+    {
+      "title": "Everyday Rewards Member Price at BIG W",
+      "url": "https://www.bigw.com.au/collection/everyday-rewards-member-price"
+    }
+  ]
+}

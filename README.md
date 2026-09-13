@@ -71,7 +71,7 @@ flowchart TD
     Records["Signed benefit records\nrecords/, keys/, data/records/*.signed.json"]
     Policy["Policy onboarding\npolicy.py, data/policies/*.md"]
     Data["Merchant data\ndata/catalog/electronics.csv, manifests.json"]
-    Dash["Merchant dashboard (Requests tab)\napp/dashboard/, GET /onboard/requests*"]
+    Dash["Merchant console /console/\napp/src -> app/out (Next.js static export), GET /onboard/*"]
     Checkout["Checkout route\nucp/checkout.py -- dev.ucp.shopping.checkout"]
 
     Shopper --> Agent
@@ -104,8 +104,8 @@ flowchart TD
 | Close the loop, agent side | After ranking, checks out one unit of the winner, citing exactly the verified records that moved its effective cost or answered a clause, and appends the merchant's confirmation as the last trace step; never changes the ranking, never cites an unverified record | `bondlayer/src/bondlayer/agent/close_loop.py` |
 | Bundler | Composes already-matched proposals from one merchant into a set with a togetherness rationale; never re-matches, never crosses merchants; a bundle of one is the valid degenerate case | `bondlayer/src/bondlayer/bundle/compose.py` |
 | Composition root + trace | Wires interpreter, merchants, valuation and the bundler into one request; renders the AI reasoning trace including the `Phase.RESOLVE` and `Phase.BUNDLE` steps | `bondlayer/src/bondlayer/agent/{composition,trace}.py` |
-| Merchant dashboard | Onboarding screen, readiness (five dimensions, never averaged), a Requests tab rendering the four figures and "why we lost/won" per request from `/onboard/requests*` | `bondlayer/app/dashboard/` |
-| Buyer-agent stand-in | The demo harness: turns a shopper's sentence into a UCP request against the running merchant server, shows the "Merchant's own reading" block between the trace and the ranking, and renders the checkout receipt last; static page only, no separate build step | `buyer-agent/src/agent/` |
+| Merchant console | Served at `/console/`: per-merchant readiness and diagnostics worst first, Catalogue with **Upload catalogue** (a new merchant id in the CSV registers a catalogue-only retailer), Data quality, the Request console rendering the four figures and "why we lost/won" per request, and the **Ask BondLayer** bar, which answers a merchant's question from `/onboard/report/{merchant}` with no model. Every figure is fetched from `/onboard/*`; the Next.js static export in `app/out` is committed, so no Node runs at the venue. The older no-build dashboard is still served at `/dashboard/` for compatibility | `bondlayer/app/src/`, `bondlayer/app/out/` |
+| Buyer-agent stand-in | The demo harness: turns a shopper's sentence into a UCP request against the running merchant server, shows the "Merchant's own reading" block between the trace and the ranking, and renders the checkout receipt last; one static page in the console's visual style, no separate build step | `buyer-agent/src/agent/` |
 
 `bondlayer/src/bondlayer/types.py` is the one shared contract every component above imports.
 It is frozen on feature branches; a change goes to the team before it lands.
@@ -123,9 +123,12 @@ Declared in full, as the rules require, so nothing here is an undisclosed depend
 - **`httpx`**, **`python-multipart`**, **`pypdf`** — HTTP client for the agent-side fetcher,
   multipart uploads for the onboarding CSV route, and PDF reading for merchant policy
   documents respectively.
-- **React, vendored as UMD builds** (`bondlayer/app/vendor/react.production.min.js`,
-  `react-dom.production.min.js`) — the merchant dashboard. No build step, no npm dependency
-  for the dashboard itself.
+- **Next.js + React + lucide-react** (`bondlayer/app/package.json`) — the merchant console,
+  built once with `npm run build` into a static export (`bondlayer/app/out/`, committed) that
+  the merchant server mounts at `/console/`. Fonts (Figtree, Space Grotesk) are self-hosted in
+  the export; nothing is fetched at runtime and no Node is needed to run the demo.
+- **React, vendored as UMD builds** (`bondlayer/app/vendor/`) — the older no-build dashboard,
+  still served at `/dashboard/` for compatibility.
 - **No separate chat UI build.** The buyer-agent stand-in serves one static page,
   `buyer-agent/src/agent/static/index.html`, from the agent's own FastAPI process on
   :8001. There is no Vite/TypeScript `src/ui/` in this build — an earlier draft of this
@@ -137,7 +140,8 @@ Declared in full, as the rules require, so nothing here is an undisclosed depend
   namespaced under `org.bondlayer.*` rather than `dev.ucp.*` because `dev.ucp.*` is reserved
   for capabilities governed by the UCP Tech Council itself (`bondlayer/docs/stage1-agent-ready-catalog.md`
   §5.6) — a third party may extend UCP only inside its own namespace.
-- **OpenAI, optional, prose-only** — if `OPENAI_API_KEY` is set, the buyer-agent stand-in asks
+- **OpenAI, optional, prose-only** — if `OPENAI_API_KEY` is set (in `buyer-agent/.env`, see
+  [Run it](#run-it)), the buyer-agent stand-in asks
   a model for one paragraph of rationale generated from the already-computed trace; if it is
   not set, a template sentence is rendered instead and the trace records
   `"prose: template (no model key)"`. No code path on the ranking or valuation side ever calls
@@ -153,25 +157,71 @@ Declared in full, as the rules require, so nothing here is an undisclosed depend
 
 ## Run it
 
-One command from a clean clone:
+One command from a clean clone. Needs Python 3.12+ only — no Node, no network at runtime.
 
-```bash
-./run.sh              # venv, install, merchant server :8000, agent :8001 (serves its own static page)
-./run.sh --check       # venv, install, pytest -- what scripts/clean_clone_check.sh runs
-./run.sh --setup       # install only, start nothing
-./run.sh --no-agent    # merchant server only
+**Windows (PowerShell)**
+
+```powershell
+$env:PYTHONUTF8 = "1"
+.\run.ps1             # venv, install, merchant server :8000, buyer agent :8001
+.\run.ps1 -Restart    # stop the BondLayer servers already on :8000/:8001, start fresh ones
+.\run.ps1 -Check      # venv, install, pytest
+.\run.ps1 -Setup      # install only, start nothing
+.\run.ps1 -NoAgent    # merchant server only
 ```
 
-Needs Python 3.12+ only; `PYTHON`, `BONDLAYER_PORT`, `AGENT_PORT` are the override
-environment variables if the defaults (8000 / 8001) are already taken. `run.sh` also checks
-for a `buyer-agent/src/ui` Vite dev server and a `UI_PORT` (5173) to serve it on, but that
-directory does not exist in this build — the agent's own static page on :8001 is the only UI.
-Idempotent — re-running reuses `.venv` and leaves an already-serving port alone.
+If scripts are blocked: `powershell -ExecutionPolicy Bypass -File .\run.ps1`.
 
-**On Windows**, set `PYTHONUTF8=1` first (PowerShell: `$env:PYTHONUTF8 = "1"`). The trace
-prints `←` and `✓`, which a default cp1252 console cannot encode: without it
-`scripts/trace_run.py` raises `UnicodeEncodeError` and the eight tests that run it as a
-subprocess fail. With it, `bondlayer/`'s suite is 270 passed at `66bb37c`.
+**macOS / Linux**
+
+```bash
+./run.sh              # venv, install, merchant server :8000, buyer agent :8001
+./run.sh --restart    # stop the BondLayer servers already on :8000/:8001, start fresh ones
+./run.sh --check      # venv, install, pytest -- what scripts/clean_clone_check.sh runs
+./run.sh --setup      # install only, start nothing
+./run.sh --no-agent   # merchant server only
+```
+
+Then open:
+
+| URL | What it is |
+|---|---|
+| <http://127.0.0.1:8000/console/> | **Merchant console** — readiness per merchant, catalogue diagnostics, Upload catalogue, the Request console, and the Ask BondLayer bar |
+| <http://127.0.0.1:8001/> | **Buyer-agent chat** — type a shopping request; control and BondLayer panes side by side, the trace, the merchant's own reading, the checkout receipt |
+| <http://127.0.0.1:8000/docs> | API docs for the merchant server |
+| <http://127.0.0.1:8000/dashboard/> | the older no-build dashboard, kept for compatibility and no longer advertised |
+
+**"already serving -- leaving it alone" is not an error.** The launcher never starts a second
+copy of a server. If :8000 or :8001 already answers, it prints the links and ends with
+`(everything was already running; nothing to wait on)`, and that server keeps the code it was
+started with. After pulling new code, use `.\run.ps1 -Restart` (`./run.sh --restart`): it stops
+only processes running `run_server.py` or `src.agent.main` on those ports — anything else
+holding a port is reported and left alone — and starts fresh ones. Ctrl-C stops what a run
+started. `PYTHON`, `BONDLAYER_PORT` and `AGENT_PORT` override the interpreter and ports.
+
+**OpenAI key (optional).** Copy `buyer-agent/.env.example` to `buyer-agent/.env` (gitignored)
+and set `OPENAI_API_KEY`, then restart the agent. It writes one paragraph of prose on the chat
+page after the ranking is already decided; without a key the page shows a template sentence and
+the trace records `prose: template (no model key)`. Rankings and figures are identical either way.
+
+**Uploading a catalogue.** Console → Catalogue → **Upload catalogue**, a UTF-8 CSV with at least
+`sku, merchant, title, category, price`. The `merchant` column decides whose catalogue it is: a
+seeded merchant (`voltway`, `citycircuit`, `northgear`) has its catalogue replaced; a new id
+(for example `bigw`) is registered as a catalogue-only retailer with no benefit records. The
+file is analysed before it is published; a CSV missing required columns, or with no rows for
+the merchant named, is refused with a 400 and the reason. Uploads are kept in
+`bondlayer/data/uploads/` (gitignored) and load again on restart.
+
+**Ask BondLayer.** The bar at the bottom of the console answers questions about the selected
+merchant — "how do I improve my performance", "what's wrong with my prices", "worst blockers" —
+by selecting and grouping that merchant's diagnostics from `GET /onboard/report/{merchant}`,
+worst first, with the server's own explanation for each. No model is called; the panel says
+which word it matched and where the answer came from.
+
+**On Windows**, `PYTHONUTF8=1` matters for the tests too. The trace prints `←` and `✓`, which a
+default cp1252 console cannot encode: without it `scripts/trace_run.py` raises
+`UnicodeEncodeError` and the eight tests that run it as a subprocess fail. With it,
+`bondlayer/`'s suite is 295 passed and `buyer-agent/`'s is 15 passed.
 
 **Manual path**, if you want the merchant server without the launcher:
 
@@ -409,7 +459,7 @@ beats a larger one nobody on the team can defend in Q&A.
 
 ```
 bondlayer/          the product -- merchant-side UCP server, adapter, signed records,
-                     valuation, intent interpreter, composition root, dashboard
+                     valuation, intent interpreter, composition root, merchant console
 buyer-agent/         the buyer-agent stand-in used in the demo -- not the product
 docs/notes/          working notes: the Day 2 plan and pitch outline
 docs/                problem statement, rulebook, team crosswalk, this README's sources
