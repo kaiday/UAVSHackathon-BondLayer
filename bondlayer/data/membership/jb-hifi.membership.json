@@ -1,0 +1,84 @@
+{
+  "merchant": "jb_hi_fi",
+  "program": "JB Hi-Fi Perks",
+  "program_type": "free_membership",
+  "program_status": "active",
+  "source_url": "https://support.jbhifi.com.au/hc/en-au/articles/5824932866447-What-is-JB-Hi-Fi-Perks",
+  "terms_url": "https://www.jbhifi.com.au/pages/perks-terms-and-conditions",
+  "retrieved_at": "2026-09-13",
+  "verification_status": "public_source_only",
+  "merchant_signed": false,
+  "eligibility": {
+    "account_required": true,
+    "australian_mobile_required": true,
+    "membership_fee_aud": 0
+  },
+  "channels": [
+    "online",
+    "in_store"
+  ],
+  "benefits": [
+    {
+      "benefit_type": "welcome_coupon",
+      "fact": {
+        "value_aud": 10,
+        "validity_days": 28
+      },
+      "conditions": [
+        "Coupon validity and exclusions apply."
+      ]
+    },
+    {
+      "benefit_type": "member_discounts",
+      "fact": {
+        "exclusive_discounts": true
+      }
+    },
+    {
+      "benefit_type": "early_sale_access",
+      "fact": {
+        "early_notifications": true
+      }
+    },
+    {
+      "benefit_type": "birthday_perk",
+      "fact": {
+        "birthday_gift": true
+      },
+      "conditions": [
+        "Birthday month must be provided when joining."
+      ]
+    },
+    {
+      "benefit_type": "digital_receipts",
+      "fact": {
+        "in_store_receipts_saved_to_account": true
+      }
+    },
+    {
+      "benefit_type": "member_competitions",
+      "fact": {
+        "exclusive_competition_access": true
+      }
+    }
+  ],
+  "rewards": {
+    "points_system": null,
+    "tiers": null,
+    "redemption_rules": "Member discounts and coupons are subject to individual offer terms."
+  },
+  "consent": {
+    "marketing_communications_may_be_required": true,
+    "privacy_policy_url": "https://www.jbhifi.com.au/pages/privacy-policy"
+  },
+  "evidence": {
+    "source_spans": [
+      "Get a $10 Perks coupon when you join.",
+      "Get it for less with Perks members only sales and offers.",
+      "Get priority access to our biggest and best sales.",
+      "Birthday Perks.",
+      "Go receipt free with digital receipts saved to your account."
+    ],
+    "last_verified_at": "2026-09-13"
+  }
+}
