@@ -218,7 +218,7 @@ As per instructions, these are marked as TODO/blocked but have working mocks:
 ## Running the Demo
 
 ```bash
-cd round2/chat-app
+cd buyer-agent
 
 # Terminal 1: Merchant Service
 python -m src.merchant.main

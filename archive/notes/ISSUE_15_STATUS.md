@@ -100,10 +100,10 @@ BondLayer OFF: None
 
 ## Code Locations
 
-- **Agent Pipeline**: `round2/chat-app/src/agent/main.py` (248 lines)
-- **Merchant Service**: `round2/chat-app/src/merchant/main.py` (91 lines)
-- **Web UI**: `round2/chat-app/src/ui/src/App.tsx` (180 lines)
-- **Styles**: `round2/chat-app/src/ui/src/App.css` (440 lines)
+- **Agent Pipeline**: `buyer-agent/src/agent/main.py` (248 lines)
+- **Merchant Service**: `buyer-agent/src/merchant/main.py` (91 lines)
+- **Web UI**: `buyer-agent/src/ui/src/App.tsx` (180 lines)
+- **Styles**: `buyer-agent/src/ui/src/App.css` (440 lines)
 
 ## Integration Points
 
@@ -159,7 +159,7 @@ BondLayer OFF: None
 
 ```bash
 # Terminal 1
-cd round2/chat-app && python -m src.merchant.main
+cd buyer-agent && python -m src.merchant.main
 
 # Terminal 2
 export OPENAI_API_KEY=sk-... && python -m src.agent.main

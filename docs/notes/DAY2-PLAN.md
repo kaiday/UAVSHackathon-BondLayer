@@ -32,8 +32,8 @@ product after 13:00; the afternoon is clean-clone, deck, video, submission.
 | The interpreter's `resolve()` returns `[]` | `bondlayer/src/bondlayer/interpreter/resolver.py`, 19 lines, marked "integration stub only" |
 | The composition root runs with **no interpreter wired** and passes the utterance through as a keyword query | `composition.py` emits `Step(Phase.INTENT, Outcome.ABSENT, …)` |
 | Only R01 has a parser test; no run over the 30 frozen requests exists | `tests/test_interpreter.py` has 2 tests; `grep -l requests.json` finds no runner |
-| `round2/chat-app` runs its **own** merchant service on :8000 with **copied** data; all 5 copies have drifted | `cmp` on `electronics.csv`, `manifests.json`, both `*.signed.json`, `voltway.pub.json` |
-| The chat agent needs a **live OpenAI key**, raises without one, and lets the LLM rank ("no effective cost computed") | `round2/chat-app/src/agent/llm.py:53-61`, `main.py:255-283` |
+| `buyer-agent` runs its **own** merchant service on :8000 with **copied** data; all 5 copies have drifted | `cmp` on `electronics.csv`, `manifests.json`, both `*.signed.json`, `voltway.pub.json` |
+| The chat agent needs a **live OpenAI key**, raises without one, and lets the LLM rank ("no effective cost computed") | `buyer-agent/src/agent/llm.py:53-61`, `main.py:255-283` |
 | Bundling, checkout settlement, negotiation: not started | no `Bundler`; README "Not attempted" |
 | Top-level `README.md` is two lines; no deck; no Problem Setter notes; no market-strategy artefact | `wc -l README.md` = 3 |
 | 18 commits authored `unknown <ltb1002.edmail@gmail.com>` | `git log --format='%an <%ae>' \| sort \| uniq -c` |
@@ -178,7 +178,7 @@ readable trace: constraints parsed → merchants queried → extension negotiate
 verified / unverified → credited arithmetic → ranking, with the flip named. This is the Path-B demo and the
 backup for Path A. Done when R01 prints Voltway winning with the extension and not winning with `--control`.
 
-**Part 2 — Path A (default per D1).** In `round2/chat-app`:
+**Part 2 — Path A (default per D1).** In `buyer-agent`:
 
 1. Delete `src/merchant/` and `data/` (all of it). The merchant is `bondlayer/`'s server. Add
    `bondlayer` as a dependency (`pip install -e ../../bondlayer`, and say so in `requirements.txt`).
@@ -227,8 +227,8 @@ one command, and a script proves it.
    `pytest`, then curl `/voltway/.well-known/ucp`, a plain search, a search with the extension header, and
    `/onboard/merchants`; assert the plain response has no `extensions` key and the other does. Non-zero exit
    on any failure. Steering runs this on every merge and once more at 13:00 on a second laptop.
-4. Fix `bondlayer/README.md` test count (says 35; suite is 95+), and the `round2/README.md` folder tree,
-   which describes directories that do not exist. Remove `round2/IMPLEMENTATION-SUMMARY.md`,
+4. Fix `bondlayer/README.md` test count (says 35; suite is 95+), and the `docs/notes/README.md` folder tree,
+   which describes directories that do not exist. Remove `docs/notes/IMPLEMENTATION-SUMMARY.md`,
    `ISSUE-18-SUMMARY.md` and the `ISSUE_15_*` files from the root of the story or fold their one useful
    paragraph each into the README; they read as scaffolding.
 5. Ports: `bondlayer` :8000, agent :8001, nothing else. Delete Windows launch scripts that start the
@@ -277,13 +277,13 @@ one command, and a script proves it.
      certification, bundling, negotiation, the 100-request set.
    - Repo map, with this paragraph verbatim in spirit: `demo/` and `bach-demo/` are the **Round 1
      feasibility spike (committed 02/09, before the hackathon)** kept for reference only; **no submitted
-     code imports from them**; the product is `bondlayer/` and `round2/chat-app/`.
+     code imports from them**; the product is `bondlayer/` and `buyer-agent/`.
    - Team, with roles.
-2. `round2/PROBLEM-SETTER-NOTES.md`: what FPT said in the 15:30 window and the concrete change each point
+2. `docs/notes/PROBLEM-SETTER-NOTES.md`: what FPT said in the 15:30 window and the concrete change each point
    caused. **Nha dictates the content; the agent only formats it.** If nothing was noted, write down what
    was asked and answered from memory tonight, while it is fresh.
-3. `round2/system-architecture.md` rewritten to describe what exists, not the plan.
-4. `round2/PITCH-OUTLINE.md`: ten minutes, in the FPT criterion order: the query → the decode → the match
+3. `docs/notes/system-architecture.md` rewritten to describe what exists, not the plan.
+4. `docs/notes/PITCH-OUTLINE.md`: ten minutes, in the FPT criterion order: the query → the decode → the match
    with justification → the wire with and without the extension → the flip → the dashboard's "why we lost"
    → market → ask. Q&A drill list, with Q2 (Talon.One / UIP) answered in three sentences.
 5. Fix `CLAUDE.md`: it points at `round1/fpt.md`, which does not exist; point at

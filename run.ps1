@@ -2,7 +2,7 @@
 BondLayer -- one command from a clean clone to the running demo (Windows).
 
   .\run.ps1              set up, then start the merchant server (:8000) and,
-                         if round2\chat-app is present, the buyer-agent
+                         if buyer-agent is present, the buyer-agent
                          stand-in (:8001) and its Vite UI (:5173). Ctrl-C stops
                          everything this script started.
   .\run.ps1 -Check       set up and run the bondlayer test suite, start nothing
@@ -32,7 +32,7 @@ $Venv = Join-Path $Root ".venv"
 $MerchantPort = if ($env:BONDLAYER_PORT) { [int]$env:BONDLAYER_PORT } else { 8000 }
 $AgentPort = if ($env:AGENT_PORT) { [int]$env:AGENT_PORT } else { 8001 }
 $UiPort = if ($env:UI_PORT) { [int]$env:UI_PORT } else { 5173 }
-$ChatApp = Join-Path $Root "round2\chat-app"
+$ChatApp = Join-Path $Root "buyer-agent"
 $LogDir = Join-Path $Root ".run"
 $StartAgent = -not $NoAgent
 $StartUi = -not $NoUi
@@ -64,14 +64,14 @@ Say "installing bondlayer (editable, with dev extras)"
 if ($LASTEXITCODE -ne 0) { Write-Error "pip install of bondlayer failed" }
 
 if (Test-Path (Join-Path $ChatApp "requirements.txt")) {
-  Say "installing round2/chat-app requirements"
+  Say "installing buyer-agent requirements"
   Push-Location $ChatApp
   try {
     & $VPy -m pip install -q --disable-pip-version-check -r requirements.txt
     if ($LASTEXITCODE -ne 0) { Write-Error "pip install of chat-app requirements failed" }
   } finally { Pop-Location }
 } else {
-  Write-Host "   round2/chat-app/requirements.txt not present -- merchant server only"
+  Write-Host "   buyer-agent/requirements.txt not present -- merchant server only"
   $StartAgent = $false
   $StartUi = $false
 }
@@ -123,11 +123,11 @@ if (Port-Busy $MerchantPort) {
 }
 
 # ------------------------------------------------------------- the agent ----
-# Only the agent. round2\chat-app\src\merchant is being removed: the merchant
+# Only the agent. buyer-agent\src\merchant is being removed: the merchant
 # is bondlayer's server, and nothing else is started on :8000.
 $AgentMain = Join-Path $ChatApp "src\agent\main.py"
 if ($StartAgent -and (Test-Path $AgentMain)) {
-  Say "buyer-agent stand-in (round2\chat-app: src.agent.main) on :$AgentPort"
+  Say "buyer-agent stand-in (buyer-agent: src.agent.main) on :$AgentPort"
   if (Port-Busy $AgentPort) {
     Write-Host "   :$AgentPort already serving -- leaving it alone"
   } else {
@@ -143,7 +143,7 @@ if ($StartAgent -and (Test-Path $AgentMain)) {
     else { Write-Host "   did not answer on :$AgentPort yet; see .run\agent.err.log" }
   }
 } elseif ($StartAgent) {
-  Say "no round2\chat-app\src\agent\main.py -- agent not started"
+  Say "no buyer-agent\src\agent\main.py -- agent not started"
 }
 
 # ----------------------------------------------------------------- the UI ----

@@ -16,7 +16,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "openai>=1.40",
     "cryptography>=41.0.0",
-    # bondlayer itself is a local sibling package: `pip install -e ../../bondlayer`
+    # bondlayer itself is a local sibling package: `pip install -e ../bondlayer`
     # (see requirements.txt). Not listed here as a path dependency -- pip's
     # handling of relative file: URLs in pyproject.toml is not reliable across
     # versions, and the explicit two-step install is what root run.sh does.

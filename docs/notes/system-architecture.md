@@ -2,7 +2,7 @@
 
 *Rewritten 12/09 evening to describe what exists, verified against the running code, not
 the Day 1 plan. The earlier version of this file sketched a design before any of it was
-built; that version is why `round2/overview-progress.md` §2 records four open questions
+built; that version is why `docs/notes/overview-progress.md` §2 records four open questions
 about ownership (§3.1–3.4) that this rewrite closes by describing the code as it now stands.
 Re-verified 13/09 against `round2/dev` at `339a7ed`, adding the intent path
 (`org.bondlayer.intent_match`, `ucp/intent.py`) and the bundler (`bundle/compose.py`), both
@@ -12,11 +12,11 @@ of which landed after the evening rewrite; nothing else below changed.*
 
 The Day 1 plan (`bondlayer/WORKPLAN.md`) split the work across five owned surfaces (user
 chat, merchant dashboard, console log). What actually shipped is **two applications**
-sharing one core, matching `round2/overview-progress.md` §2's re-cut:
+sharing one core, matching `docs/notes/overview-progress.md` §2's re-cut:
 
 ```mermaid
 flowchart TD
-    subgraph agent_side["Buyer-agent stand-in — round2/chat-app"]
+    subgraph agent_side["Buyer-agent stand-in — buyer-agent"]
         UI["Chat UI\nsrc/agent/static/index.html (static page, no build step)"]
         AGENT["FastAPI agent :8001\nsrc/agent/main.py"]
         LLM["llm.py — optional prose only\nnever raises on missing key or a failed call"]
@@ -62,7 +62,7 @@ flowchart TD
 | Bundler | Composes already-matched proposals from one merchant into a set with a togetherness rationale; never re-matches, never crosses merchants | `bondlayer/src/bondlayer/bundle/compose.py` | `feat/nguyen-d2-bundle` |
 | Composition root + trace | Wires interpreter, merchants, valuation and the bundler into one request/response; renders the AI chain-of-thought trace, including `Phase.RESOLVE` and `Phase.BUNDLE` steps | `bondlayer/src/bondlayer/agent/{composition,trace}.py` | `feat/minh-console`, `feat/hieu-d2-resolve-live` |
 | Merchant dashboard | Onboarding screen, readiness, a Requests tab rendering the four figures and "why we lost/won" per request | `bondlayer/app/dashboard/` (vendored React UMD, no build step) | `feat/nguyen-ucp-head`, `feat/minh-console`, `feat/minh-d2-dashboard` |
-| Buyer-agent stand-in | FastAPI agent + a static chat page; calls `bondlayer`'s composition root over HTTP | `round2/chat-app/src/agent/` | `feat/bach-records-signing`, `feat/bach`, `feat/bach-d2-one-demo` |
+| Buyer-agent stand-in | FastAPI agent + a static chat page; calls `bondlayer`'s composition root over HTTP | `buyer-agent/src/agent/` | `feat/bach-records-signing`, `feat/bach`, `feat/bach-d2-one-demo` |
 | Policy import | Merchant T&C prose → typed facts (envelope, records, conditions, provenance) behind a human approval gate | `bondlayer/src/bondlayer/policy.py` | `feat/hieu-interpreter` |
 
 `src/bondlayer/types.py` is the shared contract every component above imports; it is not
@@ -71,8 +71,8 @@ edited on a feature branch (`bondlayer/README.md`, `bondlayer/WORKPLAN.md`).
 ## Five humans, and which branches they actually own
 
 Per `docs/team.md` for the full name crosswalk. Branch names describe Day 1 origin, not
-current content — see `round2/README.md` "Day 1 branches → what they became" for the branch
-→ code mapping and `round2/overview-progress.md` §2 for why the names now disagree with the
+current content — see `docs/notes/README.md` "Day 1 branches → what they became" for the branch
+→ code mapping and `docs/notes/overview-progress.md` §2 for why the names now disagree with the
 work.
 
 | Person | Round 2 scope, as it actually stands |
@@ -86,7 +86,7 @@ work.
 ## `Promotions` is `BenefitRecord`, not a separate type
 
 An earlier version of this file listed three data models — Catalogs, Policy, Promotions —
-with Promotions left undefined. `round2/overview-progress.md` §3.4 flagged this as
+with Promotions left undefined. `docs/notes/overview-progress.md` §3.4 flagged this as
 undefined and unresolved; the resolution, settled on `types.py`, is that **there is no
 separate `Promotions` type**. A promotion is a `BenefitRecord` with `benefit_type` drawn
 from the same ontology (`member_price`, `points_earn`, `free_returns`, `warranty`,

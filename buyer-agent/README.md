@@ -51,8 +51,8 @@ service on its own:
 ```bash
 cd bondlayer && pip install -e '.[dev]' && python run_server.py &   # :8000
 
-cd round2/chat-app
-pip install -e ../../bondlayer      # the local sibling package
+cd buyer-agent
+pip install -e ../bondlayer      # the local sibling package
 pip install -r requirements.txt
 cp .env.example .env                # OPENAI_API_KEY is optional -- see below
 python -m uvicorn src.agent.main:app --host 127.0.0.1 --port 8001

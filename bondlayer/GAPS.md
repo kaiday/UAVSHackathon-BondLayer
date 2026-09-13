@@ -1,6 +1,6 @@
 # Gap coverage — from the Round 2 alignment analysis
 
-Every gap in `BondLayer_Round2_Alignment_Analysis.md` §6, plus the open items in
+Every gap in `docs/notes/BondLayer_Round2_Alignment_Analysis.md` §6, plus the open items in
 its §7, mapped to an owner and a branch. This is the checklist for "did we
 actually cover what the analysis found".
 

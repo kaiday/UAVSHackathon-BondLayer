@@ -12,7 +12,7 @@ against `origin/*` rather than restated.*
 > **Code is landing.** Nguyen shipped 1,443 lines at 12:47–12:57; Hieu shipped the intent
 > parser at 12:59. `round2/dev` moved to `4e20af6`. That is the day turning around.
 >
-> **And the architecture changed.** `round2/system-architecture.md` re-cuts the product
+> **And the architecture changed.** `docs/notes/system-architecture.md` re-cuts the product
 > into **two applications and three owners**. It does not match the five-owner split in
 > `WORKPLAN.md` that everyone is currently working from, and it leaves the top-weighted
 > judged criterion without an explicit owner. **§3 lists four questions that need answers
@@ -51,7 +51,7 @@ rather than on logic.
 
 ## 2. The architecture we are building
 
-From `round2/system-architecture.md`. Two applications over three data models.
+From `docs/notes/system-architecture.md`. Two applications over three data models.
 
 ### Data models
 
@@ -153,7 +153,7 @@ what this morning's version called the one hard blocker:
 Verified against `ucp.dev/2026-04-08/specification/signatures/`. **Bach is unblocked — this
 is not waiting on Ford.**
 
-**Correction, 12/09 evening (`round2/DAY2-PLAN.md` §2).** This section originally said
+**Correction, 12/09 evening (`docs/notes/DAY2-PLAN.md` §2).** This section originally said
 "the Round 1 proposal said Ed25519, the spec says ES256." That has it backwards. The
 submitted Round 1 `main.tex` (§5.1) already specifies ES256 over canonical JSON; it is
 `BondLayer_PROJECT_HANDOVER.md`'s stack summary (§8, "PyNaCl (Ed25519)") that is stale.

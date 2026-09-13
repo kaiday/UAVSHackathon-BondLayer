@@ -26,7 +26,7 @@ This implements the P3 milestone: a full shopping agent pipeline with LLM-powere
 
 **Terminal 1: Merchant Service**
 ```bash
-cd round2/chat-app
+cd buyer-agent
 pip install -r requirements.txt
 python -m src.merchant.main
 # Runs on http://localhost:8000
@@ -34,7 +34,7 @@ python -m src.merchant.main
 
 **Terminal 2: Agent Service**
 ```bash
-cd round2/chat-app
+cd buyer-agent
 export OPENAI_API_KEY=sk-...  # Set your OpenAI API key
 python -m src.agent.main
 # Runs on http://localhost:8001
@@ -42,7 +42,7 @@ python -m src.agent.main
 
 **Terminal 3: Web UI**
 ```bash
-cd round2/chat-app/src/ui
+cd buyer-agent/src/ui
 npm install
 npm run dev
 # Opens http://localhost:5173
@@ -89,9 +89,9 @@ npm run dev
 
 ## Key Files
 
-- **Agent** `round2/chat-app/src/agent/main.py` - LLM pipeline
-- **Merchant** `round2/chat-app/src/merchant/main.py` - Mock product catalog
-- **UI** `round2/chat-app/src/ui/src/App.tsx` - React interface
+- **Agent** `buyer-agent/src/agent/main.py` - LLM pipeline
+- **Merchant** `buyer-agent/src/merchant/main.py` - Mock product catalog
+- **UI** `buyer-agent/src/ui/src/App.tsx` - React interface
 
 ## API Endpoints
 

@@ -1,3 +1,5 @@
+> Historical: written when these notes lived in `round2/`. Since 13/09 the chat app is `buyer-agent/` and these notes are in `docs/notes/`; tree listings below describe the old layout.
+
 # Round 2 — working folder
 
 *Rewritten 12/09 evening against `round2/dev` to describe what exists, not what was planned.
@@ -59,7 +61,7 @@ only there so `pytest tests` works from this folder. The one real package is `bo
 |---|---|
 | `feat/nguyen-ucp-head` | `bondlayer/src/bondlayer/ucp/` (profile, capabilities, server, onboard, policy_onboard), `bondlayer/src/bondlayer/adapters/catalog.py`, `bondlayer/app/dashboard/` |
 | `feat/hieu-interpreter` | `bondlayer/src/bondlayer/interpreter/` (parser; resolver being built by WS-A) |
-| `feat/bach-records-signing`, `feat/bach` | `round2/chat-app/` (agent + UI), `round2/valuation/` (absorbed into `bondlayer/src/bondlayer/records/` and `valuation/`) |
+| `feat/bach-records-signing`, `feat/bach` | `buyer-agent/` (agent + UI), `round2/valuation/` (absorbed into `bondlayer/src/bondlayer/records/` and `valuation/`) |
 | `feat/minh-console` | `bondlayer/src/bondlayer/agent/` (composition root + trace), `bondlayer/app/dashboard/` |
 | `feat/nha-eval-data` | `bondlayer/data/` (catalogue, records, policies, `eval/requests.json`) and `bondlayer/docs/` |
 
@@ -73,7 +75,7 @@ in `bondlayer/docs/eval-results.md` with a commit hash.
 
 ## Key references
 
-- Problem statement: [`../docs/FPT-Problem-Statement-Final.pdf`](../docs/FPT-Problem-Statement-Final.pdf)
-- Rulebook: [`../docs/Hackathon-Rulebook-2026-Final-Updated-1.pdf`](../docs/Hackathon-Rulebook-2026-Final-Updated-1.pdf)
-- Merchant service and wire contract: [`../bondlayer/README.md`](../bondlayer/README.md)
-- Pre-hackathon spikes (reference only, not submission code): [`../archive/README.md`](../archive/README.md)
+- Problem statement: [`../docs/FPT-Problem-Statement-Final.pdf`](../FPT-Problem-Statement-Final.pdf)
+- Rulebook: [`../docs/Hackathon-Rulebook-2026-Final-Updated-1.pdf`](../Hackathon-Rulebook-2026-Final-Updated-1.pdf)
+- Merchant service and wire contract: [`../bondlayer/README.md`](../../bondlayer/README.md)
+- Pre-hackathon spikes (reference only, not submission code): [`../archive/README.md`](../../archive/README.md)

@@ -2,7 +2,7 @@
 # BondLayer -- one command from a clean clone to the running demo.
 #
 #   ./run.sh              set up, then start the merchant server (:8000) and,
-#                         if round2/chat-app is present, the buyer-agent
+#                         if buyer-agent is present, the buyer-agent
 #                         stand-in (:8001) and its Vite UI (:5173). Ctrl-C stops
 #                         everything this script started.
 #   ./run.sh --check      set up and run the bondlayer test suite, start nothing
@@ -27,7 +27,7 @@ VENV="$ROOT/.venv"
 MERCHANT_PORT="${BONDLAYER_PORT:-8000}"
 AGENT_PORT="${AGENT_PORT:-8001}"
 UI_PORT="${UI_PORT:-5173}"
-CHAT_APP="$ROOT/round2/chat-app"
+CHAT_APP="$ROOT/buyer-agent"
 LOG_DIR="$ROOT/.run"
 
 MODE=run
@@ -72,12 +72,12 @@ say "installing bondlayer (editable, with dev extras)"
 $VPIP install -q --disable-pip-version-check -e "$ROOT/bondlayer[dev]"
 
 if [ -f "$CHAT_APP/requirements.txt" ]; then
-  say "installing round2/chat-app requirements"
+  say "installing buyer-agent requirements"
   # Run from inside chat-app so any relative -e path in its requirements
   # resolves against that directory.
   ( cd "$CHAT_APP" && $VPIP install -q --disable-pip-version-check -r requirements.txt )
 else
-  echo "   round2/chat-app/requirements.txt not present -- merchant server only"
+  echo "   buyer-agent/requirements.txt not present -- merchant server only"
   START_AGENT=0
   START_UI=0
 fi
@@ -141,10 +141,10 @@ else
 fi
 
 # ------------------------------------------------------------- the agent ----
-# Only the agent. round2/chat-app/src/merchant is being removed: the merchant
+# Only the agent. buyer-agent/src/merchant is being removed: the merchant
 # is bondlayer/'s server, and nothing else is started on :8000.
 if [ "$START_AGENT" = 1 ] && [ -f "$CHAT_APP/src/agent/main.py" ]; then
-  say "buyer-agent stand-in (round2/chat-app: src.agent.main) on :$AGENT_PORT"
+  say "buyer-agent stand-in (buyer-agent: src.agent.main) on :$AGENT_PORT"
   if port_busy "$AGENT_PORT"; then
     echo "   :$AGENT_PORT already serving -- leaving it alone"
   else
@@ -163,7 +163,7 @@ if [ "$START_AGENT" = 1 ] && [ -f "$CHAT_APP/src/agent/main.py" ]; then
   fi
 elif [ "$START_AGENT" = 1 ]; then
   echo
-  echo "== no round2/chat-app/src/agent/main.py -- agent not started"
+  echo "== no buyer-agent/src/agent/main.py -- agent not started"
 fi
 
 # ----------------------------------------------------------------- the UI ----

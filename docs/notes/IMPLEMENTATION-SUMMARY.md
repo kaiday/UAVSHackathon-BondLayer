@@ -188,7 +188,7 @@ credit_benefit(signed) # → CreditedBenefit(..., credited_value=100.0)
 
 ### Setup
 ```bash
-cd round2/chat-app
+cd buyer-agent
 
 # Install Python dependencies
 pip install -r requirements.txt
@@ -313,8 +313,8 @@ The demo makes the value proposition immediate:
 - **Problem Statement**: `@round1/fpt.md`
 - **Hackathon Rules**: `Hackathon Rulebook 2026 Final (EN).md`
 - **Stage 1 Spec**: `round2/docs/stage1-agent-ready-catalog.md`
-- **Architecture**: `round2/system-architecture.md`
-- **Progress**: `round2/overview-progress.md`
+- **Architecture**: `docs/notes/system-architecture.md`
+- **Progress**: `docs/notes/overview-progress.md`
 - **Tests**: `round2/tests/test_invariants.py` (all three invariants verified)
 
 ---

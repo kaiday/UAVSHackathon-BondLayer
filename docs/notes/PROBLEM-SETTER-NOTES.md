@@ -62,7 +62,7 @@ questions above are still genuinely open:
 | Electronics catalogue with 62 distinct products, near-duplicates and attribute noise, replacing the single shared-barcode jacket scenario | Alignment analysis §3.1(c): identical products across merchants leave nothing to match | `bondlayer/data/catalog/electronics.csv`, `bondlayer/GAPS.md` "Two corrections" |
 | Values claims (`sustainability`, `repairability`, `durability`) as signed-but-unpriced records | Problem statement, Illustrative Direction 2, "Values-Based SEO for Agents" | `bondlayer/GAPS.md` gap 5, `bondlayer/data/records/northgear.signed.json` |
 | Third merchant (NorthGear) added so ranking is a ranking, not a coin flip | Handover §8 assumed three profiles; the Day 1 plan had two | `bondlayer/data/policies/manifests.json` |
-| ES256 over Ed25519 | The UCP signatures spec (`ucp.dev/2026-04-08/specification/signatures/`) mandates ES256; the Round 1 proposal (`main.tex` §5.1) already specified it — the handover's stack note was stale, not the submission | `bondlayer/docs/stage1-agent-ready-catalog.md` §5.5, `round2/overview-progress.md` §4.1 |
+| ES256 over Ed25519 | The UCP signatures spec (`ucp.dev/2026-04-08/specification/signatures/`) mandates ES256; the Round 1 proposal (`main.tex` §5.1) already specified it — the handover's stack note was stale, not the submission | `bondlayer/docs/stage1-agent-ready-catalog.md` §5.5, `docs/notes/overview-progress.md` §4.1 |
 
 ## Not yet acted on
 

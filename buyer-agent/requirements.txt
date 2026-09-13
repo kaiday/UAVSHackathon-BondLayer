@@ -5,7 +5,7 @@
 # bondlayer itself is NOT listed here -- it is a local sibling package, not a
 # published one. Install it editable, from this directory:
 #
-#   pip install -e ../../bondlayer
+#   pip install -e ../bondlayer
 #   pip install -r requirements.txt
 #
 # root run.sh does both, in that order, before starting either service.

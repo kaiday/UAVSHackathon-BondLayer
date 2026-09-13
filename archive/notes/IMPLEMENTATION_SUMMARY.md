@@ -194,7 +194,7 @@ python -m pytest tests/test_invariants.py -v
 
 ### Run Agent Service
 ```bash
-cd round2/chat-app
+cd buyer-agent
 pip install -e ".[dev]"
 python -m src.agent.main
 ```
@@ -251,8 +251,8 @@ Listens on `localhost:8001`, health check at `/health`, query at `POST /query`.
 
 ## References
 
-- **Architecture:** `round2/system-architecture.md`
-- **Progress:** `round2/overview-progress.md`
+- **Architecture:** `docs/notes/system-architecture.md`
+- **Progress:** `docs/notes/overview-progress.md`
 - **UCP Spec:** `ucp.dev/2026-04-08/specification/signatures/`
 - **Stage 1:** `round2/docs/stage1-agent-ready-catalog.md`
 - **FPT Problem:** `@round1/fpt.md`

@@ -53,7 +53,7 @@ Payment is out of scope and the response says so: no funds move.
 > In a room full of agents, we are building the thing agents read.
 
 This is deliberately not a shopping assistant — the Problem Statement puts consumer-facing
-agents out of scope, and this repository's own buyer-agent stand-in (`round2/chat-app/`)
+agents out of scope, and this repository's own buyer-agent stand-in (`buyer-agent/`)
 exists only to demonstrate the merchant side, never to be the product.
 
 ## Architecture
@@ -61,7 +61,7 @@ exists only to demonstrate the merchant side, never to be the product.
 ```mermaid
 flowchart TD
     Shopper["Shopper\nstates a need in natural language"]
-    Agent["Buyer-agent stand-in\nround2/chat-app -- FastAPI :8001 + static chat page"]
+    Agent["Buyer-agent stand-in\nbuyer-agent -- FastAPI :8001 + static chat page"]
     UCP["BondLayer UCP server -- bondlayer/ :8000\nucp/server.py, capabilities.py, profile.py"]
     Intent["Intent route (merchant-side decode)\nucp/intent.py -- org.bondlayer.intent_match"]
     Interp["Intent interpreter\ninterpreter/parser.py, resolver.py, interpreter/describe.py"]
@@ -105,7 +105,7 @@ flowchart TD
 | Bundler | Composes already-matched proposals from one merchant into a set with a togetherness rationale; never re-matches, never crosses merchants; a bundle of one is the valid degenerate case | `bondlayer/src/bondlayer/bundle/compose.py` |
 | Composition root + trace | Wires interpreter, merchants, valuation and the bundler into one request; renders the AI reasoning trace including the `Phase.RESOLVE` and `Phase.BUNDLE` steps | `bondlayer/src/bondlayer/agent/{composition,trace}.py` |
 | Merchant dashboard | Onboarding screen, readiness (five dimensions, never averaged), a Requests tab rendering the four figures and "why we lost/won" per request from `/onboard/requests*` | `bondlayer/app/dashboard/` |
-| Buyer-agent stand-in | The demo harness: turns a shopper's sentence into a UCP request against the running merchant server, shows the "Merchant's own reading" block between the trace and the ranking, and renders the checkout receipt last; static page only, no separate build step | `round2/chat-app/src/agent/` |
+| Buyer-agent stand-in | The demo harness: turns a shopper's sentence into a UCP request against the running merchant server, shows the "Merchant's own reading" block between the trace and the ranking, and renders the checkout receipt last; static page only, no separate build step | `buyer-agent/src/agent/` |
 
 `bondlayer/src/bondlayer/types.py` is the one shared contract every component above imports.
 It is frozen on feature branches; a change goes to the team before it lands.
@@ -116,7 +116,7 @@ Declared in full, as the rules require, so nothing here is an undisclosed depend
 
 - **Python 3.12+** — the only runtime. `run.sh` refuses to start on an older interpreter.
 - **FastAPI + uvicorn + pydantic** — the merchant server (`bondlayer/`) and the buyer-agent
-  stand-in (`round2/chat-app/`) are both FastAPI apps.
+  stand-in (`buyer-agent/`) are both FastAPI apps.
 - **`cryptography`** — ES256 (P-256/SHA-256) detached signatures over canonical JSON for
   every benefit record. No key generation happens at runtime; keys ship from `bondlayer/keys/`
   and `bondlayer/keys/*.pem` is gitignored (private keys never enter the repository).
@@ -127,10 +127,10 @@ Declared in full, as the rules require, so nothing here is an undisclosed depend
   `react-dom.production.min.js`) — the merchant dashboard. No build step, no npm dependency
   for the dashboard itself.
 - **No separate chat UI build.** The buyer-agent stand-in serves one static page,
-  `round2/chat-app/src/agent/static/index.html`, from the agent's own FastAPI process on
+  `buyer-agent/src/agent/static/index.html`, from the agent's own FastAPI process on
   :8001. There is no Vite/TypeScript `src/ui/` in this build — an earlier draft of this
   README described one; it was deleted when the chat app was repointed at `bondlayer/`'s
-  server, and nothing in `round2/chat-app/` depends on `npm` or a dev server.
+  server, and nothing in `buyer-agent/` depends on `npm` or a dev server.
 - **UCP (Universal Commerce Protocol), draft spec `2026-04-08`** — `catalog.search`,
   `catalog.lookup`, capability negotiation and the `signing_keys[]` key-publication mechanism
   are all UCP's own. Our extension is declared `org.bondlayer.benefit_value`, reverse-domain
@@ -141,7 +141,7 @@ Declared in full, as the rules require, so nothing here is an undisclosed depend
   a model for one paragraph of rationale generated from the already-computed trace; if it is
   not set, a template sentence is rendered instead and the trace records
   `"prose: template (no model key)"`. No code path on the ranking or valuation side ever calls
-  a model, and `round2/chat-app/src/agent/llm.py` never raises for a missing key or a failed
+  a model, and `buyer-agent/src/agent/llm.py` never raises for a missing key or a failed
   model call — both fall back to the template sentence.
 - **No third-party dataset.** The electronics catalogue (`bondlayer/data/catalog/electronics.csv`),
   the three merchant manifests, the policy documents and the 30-request evaluation set are all
@@ -164,7 +164,7 @@ One command from a clean clone:
 
 Needs Python 3.12+ only; `PYTHON`, `BONDLAYER_PORT`, `AGENT_PORT` are the override
 environment variables if the defaults (8000 / 8001) are already taken. `run.sh` also checks
-for a `round2/chat-app/src/ui` Vite dev server and a `UI_PORT` (5173) to serve it on, but that
+for a `buyer-agent/src/ui` Vite dev server and a `UI_PORT` (5173) to serve it on, but that
 directory does not exist in this build — the agent's own static page on :8001 is the only UI.
 Idempotent — re-running reuses `.venv` and leaves an already-serving port alone.
 
@@ -205,7 +205,7 @@ values constraint — the four clause kinds in `bondlayer/data/eval/taxonomy.md`
    `extensions` now carries each product's benefit records, signed or not, each tagged
    `signed: bool`.
 
-3. **The toggle, end to end.** Through the buyer-agent stand-in (`round2/chat-app`) or
+3. **The toggle, end to end.** Through the buyer-agent stand-in (`buyer-agent`) or
    `bondlayer/scripts/trace_run.py "a laptop under \$1,500 I can return easily if it turns out
    not to suit my work, from a brand that actually repairs things."` (`--control` for off),
    submit R01 with the BondLayer switch off, then on.
@@ -388,7 +388,7 @@ proposal.
 
 ## Problem Setter input
 
-See [`round2/PROBLEM-SETTER-NOTES.md`](round2/PROBLEM-SETTER-NOTES.md) for the questions put
+See [`docs/notes/PROBLEM-SETTER-NOTES.md`](docs/notes/PROBLEM-SETTER-NOTES.md) for the questions put
 to FPT in the 15:30 window, Ford's answers, and the concrete change each one caused. The
 adaptations made from the team's own re-reading of the full case study — ahead of and
 independent of that window — are recorded there too, since both count toward the Round 2
@@ -410,8 +410,8 @@ beats a larger one nobody on the team can defend in Q&A.
 ```
 bondlayer/          the product -- merchant-side UCP server, adapter, signed records,
                      valuation, intent interpreter, composition root, dashboard
-round2/chat-app/     the buyer-agent stand-in used in the demo -- not the product
-round2/              working notes, the Day 2 plan, this repository's own docs
+buyer-agent/         the buyer-agent stand-in used in the demo -- not the product
+docs/notes/          working notes: the Day 2 plan, pitch outline, architecture
 archive/             pre-hackathon reference material -- see below
 docs/                problem statement, rulebook, team crosswalk, this README's sources
 scripts/             scripts/clean_clone_check.sh -- the clean-clone verification WS-C built

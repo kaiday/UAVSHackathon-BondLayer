@@ -23,8 +23,8 @@ All five: University of Wollongong.
 - **`main.tex`** (the submitted Round 1 proposal, `/Users/apple/Downloads/UOW/UAVS/main.tex`)
   is the only document with full legal names, university, email and role, and it is what
   went to the Organising Committee. It is the source of truth for the team block in every
-  Round 2 document, per `round2/DAY2-PLAN.md` §2's source-of-truth order.
-- **`BondLayer_PROJECT_HANDOVER.md`** was written before the team settled on using full
+  Round 2 document, per `docs/notes/DAY2-PLAN.md` §2's source-of-truth order.
+- **`docs/notes/BondLayer_PROJECT_HANDOVER.md`** was written before the team settled on using full
   names consistently, and uses short first-name-style handles (Ford, Manh, Bach, Chan,
   Hieu) for the same five people. Its §9 Q&A assignments ("Ford 1 & 5 · Manh 3 & 8 · Bach
   2 & 9 · Chan 7 & 10 · Hieu 4 & 6") use this scheme. **"Chan" in the handover is Ha Anh
@@ -36,11 +36,11 @@ All five: University of Wollongong.
   label is also *Minh* — two different people. Where a document just says "Minh" with no
   branch or file path alongside it, check which one from context; this repository's own
   branch names disambiguate (`feat/hieu-interpreter` vs `feat/minh-console`).
-- **Branch names describe Day 1 origin, not current content.** `round2/overview-progress.md`
+- **Branch names describe Day 1 origin, not current content.** `docs/notes/overview-progress.md`
   §2 records that by 13:05 on Day 1 the actual work had moved: `feat/nguyen-ucp-head` became
   the dashboard, `feat/bach-records-signing` became the chat app, `feat/hieu-interpreter`
   became RAG/DAO before settling back onto the intent interpreter. The team's decision was to
-  leave the names as they were rather than rename mid-hackathon. `round2/README.md` "Day 1
+  leave the names as they were rather than rename mid-hackathon. `docs/notes/README.md` "Day 1
   branches → what they became" is the authoritative map from branch to what it actually holds.
 
 ## Q&A card assignments, in the real names
@@ -48,7 +48,7 @@ All five: University of Wollongong.
 Renumbered from the handover §9 list (Ford 1 & 5 · Manh 3 & 8 · Bach 2 & 9 · Chan 7 & 10 ·
 Hieu 4 & 6) to the submitted names. The rewritten cards themselves, updated for the real
 build (ES256 not Ed25519, two apps not five surfaces, 30 requests not 100+, the 13:16 gold-set
-correction), are in [`round2/PITCH-OUTLINE.md`](../round2/PITCH-OUTLINE.md).
+correction), are in [`docs/notes/PITCH-OUTLINE.md`](../docs/notes/PITCH-OUTLINE.md).
 
 | Card | Question (handover §9 topic) | Owner |
 |---|---|---|

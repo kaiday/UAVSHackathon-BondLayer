@@ -76,7 +76,7 @@ As per Issue #18 requirements, these are left as placeholders/mocked:
 ### 1. Start Services
 
 ```bash
-cd round2/chat-app
+cd buyer-agent
 
 # Terminal 1: Merchant Service
 python -m src.merchant.main
@@ -185,16 +185,16 @@ BondLayer OFF:
 ## Files Changed
 
 ### Backend
-- `round2/chat-app/src/agent/main.py` — Enhanced with evidence records and transcript
-- `round2/chat-app/src/merchant/main.py` — Mock products (existing)
+- `buyer-agent/src/agent/main.py` — Enhanced with evidence records and transcript
+- `buyer-agent/src/merchant/main.py` — Mock products (existing)
 
 ### Frontend
-- `round2/chat-app/src/ui/src/App.tsx` — Main layout and state management
-- `round2/chat-app/src/ui/src/components/ChatPane.tsx` — Query input
-- `round2/chat-app/src/ui/src/components/ResultsView.tsx` — Product ranking
-- `round2/chat-app/src/ui/src/components/EvidenceTimeline.tsx` — Record states
-- `round2/chat-app/src/ui/src/components/TranscriptPanel.tsx` — Model transparency
-- `round2/chat-app/src/ui/src/App.css` — ProductHunt-style theme
+- `buyer-agent/src/ui/src/App.tsx` — Main layout and state management
+- `buyer-agent/src/ui/src/components/ChatPane.tsx` — Query input
+- `buyer-agent/src/ui/src/components/ResultsView.tsx` — Product ranking
+- `buyer-agent/src/ui/src/components/EvidenceTimeline.tsx` — Record states
+- `buyer-agent/src/ui/src/components/TranscriptPanel.tsx` — Model transparency
+- `buyer-agent/src/ui/src/App.css` — ProductHunt-style theme
 
 ## Known Limitations (Intentional Placeholders per Issue)
 
