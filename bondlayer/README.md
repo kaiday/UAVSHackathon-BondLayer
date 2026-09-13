@@ -317,7 +317,7 @@ Contract notes:
       "row": 4, "sku_id": "VOL-0004", "field": "price",
       "rule": "price_format", "severity": "blocker",
       "found": "$1922.96", "normalised": "1922.96",
-      "message": "Price is not a number. An agent applying \"under $1,500\" drops this listing entirely rather than ranking it low.",
+      "message": "Use a plain number, e.g. 1499.00. Agents skip this in price filters.",
       "autofixed": true
     }
   ]

@@ -32,10 +32,10 @@ BENEFIT_LABELS = {
     "ethical_sourcing": "Ethical sourcing",
 }
 STATE_LABELS = {
-    "credited": "Considered with value", "unpriced": "Verified, unpriced",
+    "credited": "Credited", "unpriced": "Verified, no value",
     "eligibility_unknown": "Eligibility unknown", "ineligible": "Not eligible",
-    "expired": "Expired", "unverified": "Could not verify",
-    "not_credited": "Verified, no value credited",
+    "expired": "Expired", "unverified": "Unverified",
+    "not_credited": "Verified, not credited",
 }
 
 
@@ -104,9 +104,9 @@ def capture_observation(run, merchant: str, snapshot: dict, order: dict) -> dict
             gaps.append({"key": f"benefit:{state}:{kind}", "kind": state,
                          "title": f"{label}: {STATE_LABELS[state].lower()}",
                          "reason": why, "record_id": citation.get("record_id"),
-                         "action": ("Review eligibility integration" if state == "eligibility_unknown"
-                                    else "Review offer conditions" if state == "ineligible"
-                                    else "Review published benefits"), "href": "/benefits/"})
+                         "action": ("Check eligibility setup" if state == "eligibility_unknown"
+                                    else "Check offer conditions" if state == "ineligible"
+                                    else "Check published benefits"), "href": "/benefits/"})
 
     for constraint in run.constraints:
         text, kind = constraint.get("text", ""), constraint.get("kind", "")
@@ -120,19 +120,19 @@ def capture_observation(run, merchant: str, snapshot: dict, order: dict) -> dict
                 if field in ATTRIBUTES and missing:
                     gaps.append({"key": f"attribute:{field}", "kind": "missing_data",
                                  "title": f"Add product {ATTRIBUTES[field]}",
-                                 "reason": f"{len(missing)} returned {'product was' if len(missing) == 1 else 'products were'} missing {ATTRIBUTES[field]} when the shopper asked for “{text}”.",
-                                 "sku_ids": missing, "need": text, "action": "Review product data", "href": "/catalogue/"})
+                                 "reason": f"{len(missing)} {'product' if len(missing) == 1 else 'products'} missing {ATTRIBUTES[field]} for “{text}”.",
+                                 "sku_ids": missing, "need": text, "action": "Fix product data", "href": "/catalogue/"})
         elif kind in {"service", "values"} and best and run.extension_enabled:
             # Absence of evidence is not a claim that the business lacks the benefit.
             topic = next((label for pattern, label in TOPICS if re.search(pattern, text, re.I)), "Service benefits")
             gaps.append({"key": f"evidence:{topic}", "kind": "missing_evidence",
-                         "title": f"Publish evidence for {topic.lower()}",
-                         "reason": f"The returned offer did not establish “{text}”.",
-                         "need": text, "action": "Review your policies", "href": "/benefits/"})
+                         "title": f"Publish your {topic.lower()} policy",
+                         "reason": f"No evidence for “{text}”.",
+                         "need": text, "action": "Add policy", "href": "/benefits/"})
     if not offers and snapshot:
-        gaps.append({"key": "no_offer", "kind": "no_offer", "title": "Review requests with no matching offer",
-                     "reason": "No offer reached the comparison for this store. This alone does not establish whether the cause is assortment, price, or missing data.",
-                     "action": "Review catalogue", "href": "/catalogue/"})
+        gaps.append({"key": "no_offer", "kind": "no_offer", "title": "No matching offer",
+                     "reason": "Your store returned no offer for this request.",
+                     "action": "Check catalogue", "href": "/catalogue/"})
 
     own_checkout = order if order.get("merchant") == merchant else {}
     receipt = own_checkout.get("order") or {}
@@ -238,9 +238,9 @@ def build_insights(reports: dict[str, dict], merchant: str, *, days: int = 30,
         gaps = observation.get("gaps", []) if detailed else []
         if not detailed and unanswered:
             gaps = [{"key": "legacy_unanswered", "kind": "unknown",
-                     "title": "Review unanswered shopping needs",
-                     "reason": "This older report lists unanswered needs but did not save a detailed cause.",
-                     "action": "Review product data and policies", "href": "/catalogue/"}]
+                     "title": "Unanswered needs",
+                     "reason": "Older report; cause not saved.",
+                     "action": "Check catalogue", "href": "/catalogue/"}]
         for gap in gaps:
             key = gap.get("key")
             if not key:
@@ -282,7 +282,7 @@ def build_insights(reports: dict[str, dict], merchant: str, *, days: int = 30,
                       "requests": len(ids), "request_ids": sorted(ids)}
                      for (label, state), ids in sorted(benefit_counts.items())],
         "recent": recent,
-        "coverage": {"source": "Saved buyer-agent comparisons", "retained_report_limit": 500,
+        "coverage": {"source": "Buyer-agent comparisons", "retained_report_limit": 500,
                      "excluded_undated_or_future": skipped_dates,
-                     "note": "Counts describe saved comparison runs, not unique shoppers, all store traffic, paid orders or lost revenue. Selection is shown only when reported by the agent. Baseline and benefits-enabled runs are separate observations."},
+                     "note": "Counts are agent comparison runs, not shoppers or sales."},
     }

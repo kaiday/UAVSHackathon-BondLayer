@@ -45,9 +45,24 @@ from bondlayer.ucp.profile import (
     load_merchants,
 )
 from bondlayer.ucp.records import bundles_for, for_sku, load_records
-from bondlayer.ucp.storage import UPLOADS, load_uploads, test_data_enabled
+from bondlayer.ucp.storage import (
+    UPLOADS,
+    demo_data_enabled,
+    load_uploads,
+    test_data_enabled,
+    uploaded_merchant,
+)
 
 CATALOG = DATA / "catalog" / "electronics.csv"
+RETAILER_CATALOG = DATA / "catalog" / "retailer_catalogue.csv"
+#: Real-retailer catalogues bundled for demos. Catalogue only: none of them
+#: publishes a signing key, so none of them serves benefit records.
+DEMO_RETAILERS = {
+    "bigw": ("Big W", "bigw.com.au"),
+    "jb-hifi": ("JB Hi-Fi", "jbhifi.com.au"),
+    "kmart": ("Kmart", "kmart.com.au"),
+    "officeworks": ("Officeworks", "officeworks.com.au"),
+}
 
 router = APIRouter(tags=["ucp"])
 
@@ -60,20 +75,32 @@ _rosters: dict[str, dict] = {}
 
 
 def seed() -> None:
-    """Restore only user uploads; the empty registry is a valid first start."""
+    """Restore user uploads; the empty registry is a valid first start.
+
+    BONDLAYER_TEST_DATA loads only the synthetic protocol fixtures, for tests.
+    BONDLAYER_DEMO_DATA loads those plus the bundled retailer catalogues, and
+    still restores uploads on top, so a demo can also onboard live.
+    """
     _merchants.clear()
     _catalog.clear()
     _records.clear()
     _rosters.clear()
     _rosters.update(load_rosters())
     onboard._reports.clear()
-    if test_data_enabled():
+    demo = demo_data_enabled()
+    if test_data_enabled() or demo:
         for mid, merchant in load_merchants().items():
             report = CsvCatalogAdapter(CATALOG, merchant=mid).analyse()
             _merchants[mid], _catalog[mid] = merchant, report.skus
             _records[mid] = load_records(mid)
             onboard._reports[mid] = report
-    else:
+    if demo:
+        for mid, (name, domain) in DEMO_RETAILERS.items():
+            report = CsvCatalogAdapter(RETAILER_CATALOG, merchant=mid, strict_columns=False).analyse()
+            _merchants[mid] = uploaded_merchant(mid, display_name=name, domain=domain)
+            _catalog[mid], _records[mid] = report.skus, []
+            onboard._reports[mid] = report
+    if not test_data_enabled():
         for merchant, report in load_uploads(UPLOADS):
             _merchants[merchant.id], _catalog[merchant.id] = merchant, report.skus
             _records[merchant.id] = []

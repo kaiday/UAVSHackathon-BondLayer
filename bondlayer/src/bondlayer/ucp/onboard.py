@@ -23,7 +23,9 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field, ConfigDict
 
 from bondlayer.adapters import CatalogReport, CsvCatalogAdapter
-from bondlayer.ucp.storage import UPLOADS, save_upload, test_data_enabled, uploaded_merchant, validate_id
+from bondlayer.ucp.storage import (
+    UPLOADS, demo_data_enabled, save_upload, test_data_enabled, uploaded_merchant, validate_id,
+)
 
 router = APIRouter(prefix="/onboard", tags=["onboarding"])
 
@@ -78,7 +80,7 @@ def _seed_requests() -> None:
     ``RequestReport`` shape, it never derives it.
     """
     _requests.clear()
-    if not test_data_enabled() or not REPORTS.is_dir():
+    if not (test_data_enabled() or demo_data_enabled()) or not REPORTS.is_dir():
         return
     for path in sorted(REPORTS.glob("*.json")):
         report = json.loads(path.read_text(encoding="utf-8"))

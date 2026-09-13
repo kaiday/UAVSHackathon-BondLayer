@@ -60,7 +60,7 @@ h1, h2, h3, .brand, .metric strong { font-family: var(--font-display), sans-seri
 .merchant-switcher { display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
 .merchant-switcher select { max-width: min(350px, 45vw); padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--paper); color: var(--text); }
 .merchant-select { padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
-.merchant-select:hover, .merchant-select[aria-pressed="true"] { color: var(--accent); text-decoration: underline; }
+.merchant-select:hover { color: var(--accent); text-decoration: underline; }
 .icon-button { position: relative; display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid transparent; border-radius: 50%; color: var(--muted); background: transparent; }
 .icon-button:hover { border-color: var(--border); color: var(--accent); background: var(--accent-soft); }
 .notification-button i { position: absolute; top: 6px; right: 6px; width: 5px; height: 5px; border: 1px solid #fff; border-radius: 50%; background: #dc6572; }
@@ -86,8 +86,33 @@ h1, h2, h3, .brand, .metric strong { font-family: var(--font-display), sans-seri
 .upload-error { color: #a33c49; background: #fff0f1; }
 .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
 .metric { padding: 19px 18px; border: 1px solid var(--border); border-radius: 13px; background: var(--paper); }
-.metrics .metric:nth-child(2) { position: relative; overflow: hidden; border-color: #cbe7e2; box-shadow: 0 8px 22px rgba(15,118,110,.06); }
-.metrics .metric:nth-child(2)::before { content: ""; position: absolute; top: 0; right: 0; left: 0; height: 3px; border-radius: 13px 13px 0 0; background: var(--accent-gradient); }
+/* Merchant cards: as wide as their content, five to a row, then "Show all merchants". */
+.merchant-strip { display: flex; flex-wrap: wrap; align-items: stretch; gap: 12px; margin-bottom: 18px; }
+.merchant-strip .merchant-card { flex: 0 0 auto; min-width: 140px; padding: 14px 18px; }
+.merchant-card .merchant-select { color: var(--text); font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+.merchant-card strong { font-size: 24px; }
+.metric-trend small { white-space: nowrap; }
+.strip-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 140px; min-height: 104px; padding: 0 18px; border: 1px dashed #9fd3c9; border-radius: 13px; color: var(--accent); background: var(--paper); font-size: 13px; font-weight: 650; }
+.strip-toggle.is-open { min-width: 0; padding: 0 16px; }
+.strip-toggle:hover { border-style: solid; background: var(--accent-soft); }
+.strip-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.current-merchant { display: grid; gap: 1px; margin: 0; }
+.current-merchant span { color: var(--muted); font-size: 11px; }
+.current-merchant strong { color: var(--text); font-family: var(--font-display), sans-serif; font-size: 16px; font-weight: 700; }
+@media (max-width: 540px) { .merchant-strip .merchant-card, .strip-toggle { flex: 1 1 calc(50% - 6px); min-width: 0; } .strip-toggle { min-height: 48px; } }
+/* The selected merchant turns green, everything inside it white. */
+.merchant-card { cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease, background .15s ease; }
+.merchant-card:not(.metric-selected):hover { border-color: #b9ddd6; box-shadow: 0 6px 16px rgba(23,32,51,.06); }
+.metric-selected { border-color: transparent; background: var(--accent-gradient); box-shadow: 0 10px 24px rgba(15,118,110,.22); }
+.metric-selected p, .metric-selected strong, .metric-selected .metric-trend small { color: #fff; }
+.metric-selected .merchant-select { color: #fff; font-weight: 700; text-decoration: none; }
+.metric-selected .metric-trend span.up, .metric-selected .metric-trend span.down { color: #fff; background: rgba(255,255,255,.22); }
+.metric-selected .merchant-select:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+/* Readiness stats: small number-only pills, deliberately unlike the merchant cards. */
+.stat-strip { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+.stat { display: inline-flex; align-items: baseline; gap: 10px; padding: 8px 16px; border: 1px solid var(--border); border-radius: 999px; background: var(--quiet); }
+.stat span { color: var(--muted); font-size: 12px; font-weight: 600; }
+.stat strong { color: var(--text); font-family: var(--font-display), sans-serif; font-size: 18px; letter-spacing: -.02em; }
 .metric p { margin: 0; color: var(--muted); font-size: 12px; }
 .metric strong { display: block; margin: 5px 0 2px; font-size: 25px; letter-spacing: -.03em; }
 .metric > span { color: var(--muted); font-size: 14px; }
@@ -134,6 +159,12 @@ tr.winner { background: #f7f9ff; }
 .reason-list small { display: block; margin-top: 3px; color: var(--muted); }
 .reason-list aside { margin-top: 12px; padding: 13px; border-left: 3px solid var(--amber); border-radius: 5px; background: var(--amber-soft); font-size: 12px; }
 .reason-list aside p { margin-top: 3px; color: var(--muted); }
+/* "By rule" on the overview: one row per check, name left, count right. */
+.rule-list { padding: 6px 18px 14px; }
+.rule-list > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.rule-list > div:last-child { border-bottom: 0; }
+.rule-list code { min-width: 0; padding: 3px 6px; border: 1px solid var(--border); border-radius: 6px; color: #40516a; background: var(--quiet); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; overflow-wrap: anywhere; }
+.rule-list b { flex: 0 0 auto; min-width: 28px; color: var(--text); font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; }
 .request-trend { overflow: hidden; }
 .line-chart { padding: 14px 18px 12px; }
 .line-chart svg { width: 100%; height: auto; aspect-ratio: 600 / 170; display: block; overflow: visible; }

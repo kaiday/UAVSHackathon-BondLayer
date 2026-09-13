@@ -12,11 +12,8 @@ export function Loading({ what }: { what: string }) {
 export function Failed({ what, error }: { what: string; error: string }) {
   return (
     <div className="state-error" role="alert">
-      <strong>Could not load {what}.</strong>
-      <p>
-        This console reads the merchant server on the same origin. Start it with{" "}
-        <code>./run.sh --no-agent</code> and reload.
-      </p>
+      <strong>Couldn&apos;t load {what}.</strong>
+      <p>Check the merchant server is running, then reload.</p>
       <code>{error}</code>
     </div>
   );

@@ -25,9 +25,9 @@ export default function CataloguePage() {
     setUploadError(null);
     setUploadMessage(null);
     try {
-      const body = await uploadCatalogue(file, { merchant });
+      await uploadCatalogue(file, { merchant });
       setUploadMessage(
-        `Published ${file.name} for ${body.merchant}. Readiness and agent search are now using it.`,
+        `Catalogue updated from ${file.name}.`,
       );
       reload();
       refreshMerchants();
@@ -44,11 +44,7 @@ export default function CataloguePage() {
       <div className="page-heading">
         <div>
           <h1>Catalogue</h1>
-          <p>
-            The full remediation list for this merchant&rsquo;s export, worst first, as
-            the server ordered it. The sentence in the last column is the
-            merchant-facing message the server composed — it is not rewritten here.
-          </p>
+          <p>Every issue in your catalogue. Fix blockers first.</p>
         </div>
         <label className="upload-button">
           <input type="file" aria-label="Replace catalogue" accept=".csv,text/csv" onChange={upload} disabled={uploading || !merchant} />
@@ -65,11 +61,9 @@ export default function CataloguePage() {
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <h2>Diagnostics</h2>
+              <h2>Issues</h2>
               <p>
-                {diagnostics.length} of {report.diagnostics.length} shown ·{" "}
-                {report.skus} SKUs from {report.rows_read} rows · readiness{" "}
-                {report.readiness}%
+                Showing {diagnostics.length} of {report.diagnostics.length}
               </p>
             </div>
             <div className="filter-row">
@@ -96,11 +90,11 @@ export default function CataloguePage() {
                   <th>Row</th>
                   <th>SKU</th>
                   <th>Field</th>
-                  <th>Rule</th>
-                  <th>Found</th>
-                  <th>Normalised</th>
+                  <th>Issue</th>
+                  <th>Current</th>
+                  <th>Fixed to</th>
                   <th>Severity</th>
-                  <th>What an agent does with it</th>
+                  <th>What to do</th>
                 </tr>
               </thead>
               <tbody>
@@ -121,7 +115,7 @@ export default function CataloguePage() {
                       {diagnostic.normalised ? (
                         <span>
                           {diagnostic.normalised}
-                          {diagnostic.autofixed && <b className="fixed-flag"> autofixed</b>}
+                          {diagnostic.autofixed && <b className="fixed-flag"> auto</b>}
                         </span>
                       ) : (
                         "—"

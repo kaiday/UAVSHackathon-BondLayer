@@ -39,19 +39,19 @@ export function useShoppingInsights(merchant: string | null, days: number, mode:
 }
 
 export const BENEFIT_STATES: Record<string, string> = {
-  credited: "Considered with value", unpriced: "Verified, unpriced", not_credited: "Verified, no value credited",
-  eligibility_unknown: "Eligibility unknown", ineligible: "Not eligible", expired: "Expired", unverified: "Could not verify",
+  credited: "Credited", unpriced: "Verified, no value", not_credited: "Verified, not credited",
+  eligibility_unknown: "Eligibility unknown", ineligible: "Not eligible", expired: "Expired", unverified: "Unverified",
 };
 export const GAP_LABELS: Record<string, string> = {
-  missing_data: "Missing product facts", missing_evidence: "Missing policy evidence", eligibility_unknown: "Eligibility unknown",
-  ineligible: "Offer conditions not met", expired: "Offer expired", unverified: "Verification issue",
-  no_offer: "No matching offer", unknown: "Cause not recorded",
+  missing_data: "Missing product data", missing_evidence: "Missing policy", eligibility_unknown: "Eligibility unknown",
+  ineligible: "Conditions not met", expired: "Expired offer", unverified: "Unverified",
+  no_offer: "No offer", unknown: "Unknown cause",
 };
 
 export function gapExplanation(gap: { kind: string; reason: string }) {
-  if (gap.kind === "eligibility_unknown") return "The agent could not establish the shopper's eligibility for this benefit. This does not mean the shopper is ineligible.";
-  if (gap.kind === "ineligible") return "The saved comparison reports that this shopper did not meet the offer's conditions.";
-  if (gap.kind === "expired") return "The published benefit's validity had ended when the comparison was recorded.";
-  if (gap.kind === "unverified") return "The agent could not verify this benefit. Review its published record and signing information.";
+  if (gap.kind === "eligibility_unknown") return "Agent couldn't confirm the shopper qualifies.";
+  if (gap.kind === "ineligible") return "Shopper didn't meet the offer conditions.";
+  if (gap.kind === "expired") return "This benefit had expired.";
+  if (gap.kind === "unverified") return "Agent couldn't verify this benefit. Check its signature.";
   return gap.reason;
 }

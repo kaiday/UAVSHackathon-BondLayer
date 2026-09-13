@@ -46,17 +46,17 @@ function MerchantAskBar({ merchant }: { merchant: string | null }) {
         <div><p className={styles.question}>{asked}</p><p className={styles.meta}>{merchant && humanise(merchant)}</p></div>
         <button type="button" className={styles.close} aria-label="Close answer" onClick={() => { generation.current++; setAsked(null); setBusy(false); }}><X size={15} /></button>
       </header>
-      {busy && <p className={styles.note}>Asking OpenAI using your current catalogue report…</p>}
+      {busy && <p className={styles.note}>Thinking…</p>}
       {error && <p className="state-error" role="alert">{error}</p>}
       {answer && <>
         <p className={styles.note} style={{ whiteSpace: "pre-wrap" }}>{answer.answer}</p>
         {answer.citations.length > 0 && <ol className={styles.list}>{answer.citations.map((d, i) => <li key={i}><strong>Row {d.row} · {d.sku_id} · {d.field}</strong><p>{d.message}</p></li>)}</ol>}
-        <footer className={styles.footer}><span>OpenAI · {answer.ai.model} · {answer.ai.response_id}<br />Evidence: {answer.source}</span><Link href="/quality/">Open data quality →</Link></footer>
+        <footer className={styles.footer}><span title={`${answer.ai.model} · ${answer.ai.response_id}`}>Based on your catalogue report</span><Link href="/quality/">Data quality →</Link></footer>
       </>}
     </section>}
     <form className="prompt-bar" data-tour="prompt" onSubmit={submit}>
       <span className="prompt-mark" aria-hidden="true">✦</span>
-      <input aria-label="Ask BondLayer" placeholder="Ask OpenAI about your catalogue, e.g. what should I fix first?" value={question} maxLength={3000} onChange={e => setQuestion(e.target.value)} />
+      <input aria-label="Ask BondLayer" placeholder="Ask about your catalogue, e.g. what should I fix first?" value={question} maxLength={3000} onChange={e => setQuestion(e.target.value)} />
       <button type="submit" aria-label="Send prompt" disabled={!question.trim() || !merchant || busy}><ArrowUp size={16} /></button>
     </form>
   </>;

@@ -18,12 +18,8 @@ export default function Home() {
 
       <div className="page-heading">
         <div>
-          <h1>Catalogue readiness</h1>
-          <p>
-            What a shopping agent can read in this merchant&rsquo;s export, and what it
-            cannot. Every figure on this page comes from{" "}
-            <code>GET /onboard/report/{merchant ?? "…"}</code>.
-          </p>
+          <h1>Overview</h1>
+          <p>Issues that stop AI shopping agents from finding your products.</p>
         </div>
       </div>
 
@@ -34,35 +30,11 @@ export default function Home() {
 
       {report && (
         <>
-          <section className="metrics" aria-label="Readiness detail">
-            <article className="metric" data-tour="readiness">
-              <p>Agent readiness</p>
-              <strong>{report.readiness}%</strong>
-              <div className="metric-trend">
-                <small>{report.skus} SKUs from {report.rows_read} rows</small>
-              </div>
-            </article>
-            <article className="metric">
-              <p>Rows rejected</p>
-              <strong>{report.rows_rejected}</strong>
-              <div className="metric-trend">
-                <small>Unparseable, never served to an agent</small>
-              </div>
-            </article>
-            <article className="metric">
-              <p>Attributes normalised</p>
-              <strong>{report.attributes_fixed}</strong>
-              <div className="metric-trend">
-                <small>Repaired on read, provenance kept</small>
-              </div>
-            </article>
-            <article className="metric">
-              <p>Diagnostics</p>
-              <strong>{report.diagnostics.length}</strong>
-              <div className="metric-trend">
-                <small>{report.by_severity.blocker ?? 0} of them blockers</small>
-              </div>
-            </article>
+          <section className="stat-strip" aria-label="Readiness detail">
+            <div className="stat" data-tour="readiness"><span>Agent readiness</span><strong>{report.readiness}%</strong></div>
+            <div className="stat"><span>Rows rejected</span><strong>{report.rows_rejected}</strong></div>
+            <div className="stat"><span>Auto-fixed</span><strong>{report.attributes_fixed}</strong></div>
+            <div className="stat"><span>Issues</span><strong>{report.diagnostics.length}</strong></div>
           </section>
 
           <section className="dashboard-grid">
@@ -70,14 +42,11 @@ export default function Home() {
               <article className="panel" data-tour="worst-first">
                 <div className="panel-heading">
                   <div>
-                    <h2>Worst first</h2>
-                    <p>
-                      Blocker → degrades match → cosmetic → info, then by row. The
-                      server sorts this; the console does not reorder it.
-                    </p>
+                    <h2>Top issues</h2>
+                    <p>Most severe first</p>
                   </div>
                   <Link className="pill neutral" href="/catalogue">
-                    All {report.diagnostics.length} →
+                    See all {report.diagnostics.length} →
                   </Link>
                 </div>
                 <div className="table-wrap">
@@ -88,11 +57,11 @@ export default function Home() {
                         <th>SKU</th>
                         <th>Field</th>
                         <th>Severity</th>
-                        <th>What an agent does with it</th>
+                        <th>What to do</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {report.diagnostics.slice(0, 12).map((diagnostic, index) => (
+                      {report.diagnostics.slice(0, 5).map((diagnostic, index) => (
                         <tr key={`${diagnostic.row}-${diagnostic.field}-${index}`}>
                           <td>{diagnostic.row}</td>
                           <td>
@@ -119,7 +88,6 @@ export default function Home() {
               <div className="panel-heading">
                 <div>
                   <h2>By severity</h2>
-                  <p>Every diagnostic this export produced</p>
                 </div>
               </div>
               <div className="reason-list">
@@ -137,8 +105,7 @@ export default function Home() {
 
               <div className="panel-heading secondary-heading">
                 <div>
-                  <h2>By rule</h2>
-                  <p>Which check fired, and how often</p>
+                  <h2>By issue type</h2>
                 </div>
               </div>
               <div className="rule-list">

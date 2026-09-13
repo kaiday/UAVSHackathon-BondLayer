@@ -23,6 +23,11 @@ def test_data_enabled() -> bool:
     return os.environ.get("BONDLAYER_TEST_DATA") == "1"
 
 
+def demo_data_enabled() -> bool:
+    """Opt-in for demos: every bundled merchant, with uploads still restored on top."""
+    return os.environ.get("BONDLAYER_DEMO_DATA") == "1"
+
+
 def validate_id(merchant_id: str) -> str:
     if not MERCHANT_ID.fullmatch(merchant_id):
         raise ValueError("merchant id must be 1–64 lowercase letters, numbers, hyphens or underscores")

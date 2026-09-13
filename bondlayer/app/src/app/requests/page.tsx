@@ -1,77 +1,120 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, ChevronDown, Lightbulb, RefreshCw, Search, ShoppingBag } from "lucide-react";
+import { ArrowRight, ChevronDown, Lightbulb, RefreshCw, Search } from "lucide-react";
+import { BarList, ChartCard, Donut, LineChart, Meter, SERIES, Sparkline, StackedBars, StatTile } from "@/components/charts";
 import { Failed, Loading } from "@/components/states";
 import { money, useSelectedMerchant } from "@/lib/api";
 import { BENEFIT_STATES, GAP_LABELS, gapExplanation, useShoppingInsights,
-  type ComparisonMode, type Demand, type ShoppingRequest } from "@/lib/insights";
+  type ComparisonMode, type ShoppingInsights, type ShoppingRequest } from "@/lib/insights";
 import styles from "./insights.module.css";
 
 type Focus = { title: string; ids: string[] } | null;
 
-function date(value: string) {
+const DAY = 24 * 60 * 60 * 1000;
+
+/** Outcome slices in a fixed order, so a colour always means the same outcome. */
+const OUTCOMES = [
+  { key: "Offer selected by agent", label: "Chosen, not checked out" },
+  { key: "Another offer selected by agent", label: "Competitor chosen" },
+  { key: "Checkout confirmed", label: "Chosen and checked out" },
+  { key: "Outcome unknown", label: "Unknown" },
+];
+
+const BENEFIT_GROUPS = [
+  { name: "Credited", states: ["credited"] },
+  { name: "Verified, no credit", states: ["unpriced", "not_credited"] },
+  { name: "Eligibility issue", states: ["eligibility_unknown", "ineligible"] },
+  { name: "Not verified", states: ["expired", "unverified"] },
+];
+
+function dateTime(value: string) {
   return new Intl.DateTimeFormat("en-AU", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
-function DemandList({ title, items, total, onFocus }: {
-  title: string; items: Demand[]; total: number; onFocus: (title: string, ids: string[]) => void;
-}) {
-  return <section className={`panel ${styles.demandPanel}`}>
-    <h3>{title}</h3>
-    {items.length === 0 ? <p className={styles.muted}>No {title.toLowerCase()} were recorded.</p> :
-      <ul className={styles.demandList}>{items.slice(0, 6).map(item => <li key={item.label}>
-        <button onClick={() => onFocus(item.label, item.request_ids)}>
-          <span>{item.label}</span><strong>{item.requests} <small>{item.requests === 1 ? "request" : "requests"}</small></strong>
-        </button>
-        <div className={styles.track} aria-hidden="true"><span style={{ width: `${Math.min(100, total ? item.requests / total * 100 : 0)}%` }} /></div>
-      </li>)}</ul>}
-  </section>;
+function shortDate(value: string | number) {
+  return new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short" }).format(new Date(value));
 }
 
-function RequestCard({ request }: { request: ShoppingRequest }) {
-  const [open, setOpen] = useState(false);
+function plural(count: number, word: string) {
+  return `${count} ${count === 1 ? word : `${word}s`}`;
+}
+
+function percent(part: number, whole: number) {
+  return whole ? `${Math.round((part / whole) * 100)}%` : "—";
+}
+
+/** Requests per day (per week past 45 days) across the selected period. */
+function timeline(data: ShoppingInsights) {
+  const until = new Date(data.period.until).getTime();
+  const created = data.recent.map((r) => new Date(r.created_at).getTime());
+  const start = data.period.since ? new Date(data.period.since).getTime() : Math.min(until, ...created);
+  const spanDays = Math.max(1, Math.ceil((until - start) / DAY));
+  const size = spanDays > 45 ? 7 : 1;
+  const count = Math.max(1, Math.ceil(spanDays / size));
+  const labels = Array.from({ length: count }, (_, i) => shortDate(start + i * size * DAY));
+  const all = Array<number>(count).fill(0);
+  const offers = Array<number>(count).fill(0);
+  data.recent.forEach((request, i) => {
+    const bucket = Math.min(count - 1, Math.max(0, Math.floor((created[i] - start) / (size * DAY))));
+    all[bucket] += 1;
+    if (request.has_offer) offers[bucket] += 1;
+  });
+  return { labels, all, offers, weekly: size === 7 };
+}
+
+function RequestDetails({ request }: { request: ShoppingRequest }) {
   const confirmed = request.checkout.status === "confirmed";
-  return <article className={`panel ${styles.request}`} id={`request-${request.request_id}`}>
-    <header className={styles.requestHeader}>
-      <time dateTime={request.created_at}>{date(request.created_at)}</time>
-      <span className={`pill ${confirmed || request.selected === true ? "success" : "neutral"}`}>{request.outcome}</span>
-    </header>
-    <h3>“{request.question}”</h3>
-    <div className={styles.requestSummary}>
-      <span><ShoppingBag size={15} /> {request.has_offer ? "Your store returned an offer" : "No matching offer returned"}</span>
-      {request.unanswered.length > 0 && <span>{request.unanswered.length} {request.unanswered.length === 1 ? "need" : "needs"} unanswered</span>}
-    </div>
-    {request.product && <p className={styles.product}>{request.product.title || request.product.sku_id} <strong>{money(request.product.price)}</strong> <small>shelf price</small></p>}
-    {confirmed && <p className={styles.muted}>A checkout confirmation was returned. This is not evidence of a paid sale.</p>}
+  return <div className={styles.evidence}>
+    {confirmed && <p className={styles.muted}>Checkout confirmed. Not a paid sale.</p>}
     {request.gaps[0] && <div className={styles.nextAction}><Lightbulb size={17} /><span><b>{request.gaps[0].title}</b> · {gapExplanation(request.gaps[0])}</span></div>}
-    <button className={styles.evidenceToggle} aria-expanded={open} onClick={() => setOpen(!open)}>
-      {open ? "Hide supporting evidence" : "See supporting evidence"} <ChevronDown size={16} style={{ transform: open ? "rotate(180deg)" : undefined }} />
-    </button>
-    {open && <div className={styles.evidence}>
-      <h4>What your offer could answer</h4>
-      {request.requirements.length > 0 ? <ul className={styles.requirements}>{request.requirements.map((r, i) => <li key={i}>
-        <span className={`pill ${r.satisfied ? "success" : "warning"}`}>{r.satisfied ? "Evidence available" : "Unanswered"}</span><span>{r.text}</span>
-      </li>)}</ul> : <p className={styles.muted}>Detailed requirement checks were not saved for this offer.</p>}
-      {request.unanswered.length > 0 && <><h4>Needs left unanswered</h4><ul>{request.unanswered.map((need, i) => <li key={i}>{need}</li>)}</ul></>}
-      <h4>Benefits considered</h4>
-      {request.benefits.length ? <ul className={styles.requirements}>{request.benefits.map((b, i) => <li key={`${b.record_id}-${i}`}><span>{b.label}</span><span className="pill neutral">{BENEFIT_STATES[b.state] ?? b.state}</span></li>)}</ul> :
-        <p className={styles.muted}>{request.technical.benefits_enabled === false ? "Benefits were not requested in this baseline run." : "No detailed benefit decisions were saved for this offer."}</p>}
-      {request.gaps.length > 0 && <><h4>What you can do next</h4><ul className={styles.gapList}>{request.gaps.map((g, i) => <li key={`${g.key}-${i}`}>
-        <strong>{g.title}</strong><p>{gapExplanation(g)}</p>
-        {g.sku_ids?.length ? <p className={styles.muted}>Affected products: {g.sku_ids.slice(0, 10).join(", ")}{g.sku_ids.length > 10 ? " …" : ""}</p> : null}
-        <Link href={g.href}>{g.action} <ArrowRight size={13} /></Link>
-      </li>)}</ul></>}
-      <details className={styles.technical}><summary>Technical details</summary>
-        <dl><dt>Report reference</dt><dd><code>{request.request_id}</code></dd><dt>Source</dt><dd>Saved buyer-agent comparison</dd>
-          <dt>Evidence detail</dt><dd>{request.technical.evidence_version ? "Captured when the request ran" : "Older summary report"}</dd>
-          <dt>Checkout reference</dt><dd>{request.checkout.order_id || "Not observed for this merchant"}</dd></dl>
-        {request.requirements.map((r, i) => <p key={i}>{r.note}{r.record_id && <> · <code>{r.record_id}</code></>}</p>)}
-        {request.benefits.map((b, i) => <p key={i}><code>{b.record_id}</code> · {b.reason}</p>)}
-      </details>
-    </div>}
-  </article>;
+    <div className={styles.detailGrid}>
+      <div>
+        <h4>Requirements</h4>
+        {request.requirements.length > 0 ? <ul className={styles.requirements}>{request.requirements.map((r, i) => <li key={i}>
+          <span className={`pill ${r.satisfied ? "success" : "warning"}`}>{r.satisfied ? "Met" : "Unanswered"}</span><span>{r.text}</span>
+        </li>)}</ul> : <p className={styles.muted}>Not recorded.</p>}
+      </div>
+      <div>
+        <h4>Benefits</h4>
+        {request.benefits.length ? <ul className={styles.requirements}>{request.benefits.map((b, i) => <li key={`${b.record_id}-${i}`}><span>{b.label}</span><span className="pill neutral">{BENEFIT_STATES[b.state] ?? b.state}</span></li>)}</ul> :
+          <p className={styles.muted}>{request.technical.benefits_enabled === false ? "Not requested in this run." : "Not recorded."}</p>}
+      </div>
+    </div>
+    {request.gaps.length > 0 && <><h4>Next steps</h4><ul className={styles.gapList}>{request.gaps.map((g, i) => <li key={`${g.key}-${i}`}>
+      <strong>{g.title}</strong><p>{gapExplanation(g)}</p>
+      {g.sku_ids?.length ? <p className={styles.muted}>Products: {g.sku_ids.slice(0, 10).join(", ")}{g.sku_ids.length > 10 ? " …" : ""}</p> : null}
+      <Link href={g.href}>{g.action} <ArrowRight size={13} /></Link>
+    </li>)}</ul></>}
+    <details className={styles.technical}><summary>Technical details</summary>
+      <dl><dt>Report ID</dt><dd><code>{request.request_id}</code></dd>
+        <dt>Order ID</dt><dd>{request.checkout.order_id || "—"}</dd></dl>
+      {request.requirements.map((r, i) => <p key={i}>{r.note}{r.record_id && <> · <code>{r.record_id}</code></>}</p>)}
+      {request.benefits.map((b, i) => <p key={i}><code>{b.record_id}</code> · {b.reason}</p>)}
+    </details>
+  </div>;
+}
+
+function RequestRow({ request }: { request: ShoppingRequest }) {
+  const [open, setOpen] = useState(false);
+  const good = request.checkout.status === "confirmed" || request.selected === true;
+  return <Fragment>
+    <tr className={open ? styles.rowOpen : ""}>
+      <td className={styles.nowrap}>{dateTime(request.created_at)}</td>
+      <td className={styles.question}>“{request.question}”</td>
+      <td>{request.product ? <><span className={styles.productName}>{request.product.title || request.product.sku_id}</span><small>{money(request.product.price)}</small></> : <span className={styles.muted}>No offer</span>}</td>
+      <td><span className={`pill ${good ? "success" : "neutral"}`}>{request.outcome}</span></td>
+      <td className={styles.numeric}>{request.unanswered.length || "—"}</td>
+      <td className={styles.toggleCell}>
+        <button type="button" className={styles.rowToggle} aria-expanded={open} onClick={() => setOpen(!open)}
+          aria-label={open ? "Hide details" : "Show details"}>
+          <ChevronDown size={16} style={{ transform: open ? "rotate(180deg)" : undefined }} />
+        </button>
+      </td>
+    </tr>
+    {open && <tr className={styles.detailRow}><td colSpan={6}><RequestDetails request={request} /></td></tr>}
+  </Fragment>;
 }
 
 export default function ShoppingInsightsPage() {
@@ -83,63 +126,157 @@ function MerchantInsights({ merchant }: { merchant: string | null }) {
   const [days, setDays] = useState(30);
   const [mode, setMode] = useState<ComparisonMode>("enabled");
   const [focus, setFocus] = useState<Focus>(null);
-  const [visible, setVisible] = useState(8);
+  const [visible, setVisible] = useState(10);
   const { data, error, loading, reload } = useShoppingInsights(merchant, days, mode);
-  function showEvidence(title: string, ids: string[]) {
-    setFocus({ title, ids }); setVisible(8);
+
+  function showRequests(title: string, ids: string[]) {
+    setFocus({ title, ids }); setVisible(10);
     document.getElementById("shopping-requests")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
-  const recent = data?.recent.filter(r => !focus || focus.ids.includes(r.request_id)) ?? [];
+  function resetView() { setFocus(null); setVisible(10); }
+
+  const recent = data?.recent.filter((r) => !focus || focus.ids.includes(r.request_id)) ?? [];
 
   return <div className={`content ${styles.page}`}>
-    <div className={`page-heading ${styles.heading}`}><div><p className={styles.eyebrow}>Understand demand. Improve your offer.</p><h1>Shopping insights</h1>
-      <p>What shoppers asked for, how {data?.display_name || "your store"} responded, and what to improve next.</p></div>
-      <button className={styles.refresh} disabled={loading || !merchant} onClick={reload}><RefreshCw size={15} /> {loading ? "Updating…" : "Refresh insights"}</button>
+    <div className={`page-heading ${styles.heading}`}>
+      <div><h1>Shopping insights</h1><p>What shoppers asked for, and what to improve.</p></div>
     </div>
+
     <div className={styles.filters}>
-      <label>Reporting period<select aria-label="Reporting period" value={days} onChange={e => { setDays(Number(e.target.value)); setFocus(null); setVisible(8); }}><option value={7}>Last 7 days</option><option value={30}>Last 30 days</option><option value={90}>Last 90 days</option><option value={0}>All retained history</option></select></label>
-      <label>Comparison view<select aria-label="Comparison view" value={mode} onChange={e => { setMode(e.target.value as ComparisonMode); setFocus(null); setVisible(8); }}><option value="enabled">Benefits enabled</option><option value="control">Baseline — catalogue only</option><option value="all">All comparison runs</option></select></label>
-      {data && <span className={styles.updated}>As of {date(data.period.until)}</span>}
+      <label>Period<select aria-label="Period" value={days} onChange={(e) => { setDays(Number(e.target.value)); resetView(); }}><option value={7}>Last 7 days</option><option value={30}>Last 30 days</option><option value={90}>Last 90 days</option><option value={0}>All time</option></select></label>
+      <label>View<select aria-label="View" value={mode} onChange={(e) => { setMode(e.target.value as ComparisonMode); resetView(); }}><option value="enabled">With benefits</option><option value="control">Catalogue only</option><option value="all">All runs</option></select></label>
+      <div className={styles.filterEnd}>
+        {data && <span className={styles.updated}>As of {dateTime(data.period.until)}</span>}
+        <button className={styles.refresh} disabled={loading || !merchant} onClick={reload}><RefreshCw size={15} /> {loading ? "Updating…" : "Refresh"}</button>
+      </div>
     </div>
+
     {error && <Failed what="shopping insights" error={error} />}
     {!data && !error && <Loading what="shopping insights" />}
-    {data && <>
-      <section className={`metrics ${styles.metrics}`} aria-label="Merchant insight summary">
-        <article className="metric"><p>Shopping requests observed</p><strong>{data.metrics.requests}</strong><small>Saved comparison runs for this store</small></article>
-        <article className="metric"><p>Requests with offers</p><strong>{data.metrics.with_offers}</strong><small>Your store returned at least one candidate</small></article>
-        <article className="metric"><p>Requests with unanswered needs</p><strong>{data.metrics.unanswered}</strong><small>Some requirements lacked a satisfied answer</small></article>
-        <article className="metric"><p>Checkout confirmations</p><strong>{data.metrics.checkout_confirmations}</strong><small>Confirmed responses, not paid sales</small></article>
-      </section>
-      <p className={styles.selection}>{data.metrics.selection_known > 0 ? <><CheckCircle2 size={15} /> Your offer was selected in <strong>{data.metrics.selected} of {data.metrics.selection_known}</strong> runs with an agent-reported selection.</> : "No agent-reported selections in this view. Purchase outcomes are unknown."}</p>
-      {data.metrics.requests === 0 ? <section className={`panel ${styles.empty}`}><Search size={28} /><h2>No shopping insights yet</h2>
-        <p>There are no saved comparisons for this merchant in the selected period and view. Publish your catalogue, run a buyer-agent comparison, then refresh insights.</p>
-        <div><Link className="upload-button" href="/catalogue/">Review catalogue</Link><Link href="/benefits/">Prepare your benefits <ArrowRight size={14} /></Link></div>
-      </section> : <>
-        <section aria-labelledby="opportunities-title"><div className={styles.sectionHeading}><div><h2 id="opportunities-title">Your next improvements</h2><p>Prioritised by how many observed requests contained each issue. Open the evidence before making changes.</p></div><Lightbulb size={21} /></div>
-          {data.opportunities.length === 0 ? <div className={`panel ${styles.noIssues}`}><CheckCircle2 size={20} /><p>No actionable issues were recorded in this view. This does not establish that every shopping need was met.</p></div> :
-            <div className={styles.opportunities}>{data.opportunities.slice(0, 3).map(item => <article className={`panel ${styles.opportunity}`} key={item.id}>
-              <span className="pill neutral">{GAP_LABELS[item.kind] ?? item.kind}</span><h3>{item.title}</h3>
-              <p>{gapExplanation({ kind: item.kind, reason: item.examples[0]?.reason || "" })}</p>
-              <strong className={styles.impact}>{item.requests} {item.requests === 1 ? "request" : "requests"} observed</strong>
-              <footer><Link href={item.href}>{item.action} <ArrowRight size={14} /></Link><button onClick={() => showEvidence(item.title, item.request_ids)}>View evidence</button></footer>
-            </article>)}</div>}
-          {data.opportunities.length > 3 && <details className={styles.moreIssues}><summary>{data.opportunities.length - 3} more recorded opportunities</summary>{data.opportunities.slice(3).map(item => <button key={item.id} onClick={() => showEvidence(item.title, item.request_ids)}>{item.title}<span>{item.requests} requests →</span></button>)}</details>}
-        </section>
-        <section aria-labelledby="demand-title"><div className={styles.sectionHeading}><div><h2 id="demand-title">What shoppers are looking for</h2><p>Based on the needs recorded in these comparisons. A request can mention several needs.</p></div></div>
-          <div className={styles.demandGrid}><DemandList title="Product categories" items={data.demand.categories} total={data.metrics.requests} onFocus={showEvidence} /><DemandList title="Budget ceilings" items={data.demand.budgets} total={data.metrics.requests} onFocus={showEvidence} /><DemandList title="Specifications and services" items={data.demand.needs} total={data.metrics.requests} onFocus={showEvidence} /></div>
-        </section>
-        <section className={`panel ${styles.benefits}`} aria-labelledby="benefits-title"><div className={styles.sectionHeading}><div><h2 id="benefits-title">Are your benefits being understood?</h2><p>Each count is the number of requests recording that decision for your offer.</p></div><Link href="/benefits/">Manage benefits <ArrowRight size={14} /></Link></div>
-          {data.benefits.length ? <div className={styles.benefitRows}>{data.benefits.map(b => <button key={`${b.label}:${b.state}`} onClick={() => showEvidence(`${b.label}: ${b.state_label}`, b.request_ids)}><strong>{b.label}</strong><span className="pill neutral">{b.state_label}</span><span>{b.requests} {b.requests === 1 ? "request" : "requests"} <ArrowRight size={13} /></span></button>)}</div> : <p className={styles.muted}>{mode === "control" ? "Baseline comparisons do not request benefit records." : "No detailed benefit decisions were saved in this view. Older reports may not include this evidence."}</p>}
-        </section>
-        <section id="shopping-requests" aria-labelledby="requests-title" className={styles.recent}><div className={styles.sectionHeading}><div><h2 id="requests-title">Recent shopping opportunities</h2><p>What your store could offer and what the agent reported afterwards.</p></div></div>
-          {focus && <div className={styles.focus}><span>Evidence for <strong>{focus.title}</strong> · {recent.length} requests</span><button onClick={() => { setFocus(null); setVisible(8); }}>Show all requests</button></div>}
-          {recent.slice(0, visible).map(r => <RequestCard key={r.request_id} request={r} />)}
-          {visible < recent.length && <button className={styles.loadMore} onClick={() => setVisible(visible + 8)}>Show more requests ({recent.length - visible} remaining)</button>}
-        </section>
-      </>}
-      <footer className={styles.coverage}><strong>How to read these insights</strong><p>{data.coverage.note}</p><p>Source: {data.coverage.source}, from up to {data.coverage.retained_report_limit} retained runs. {data.metrics.detailed_reports} of {data.metrics.requests} reports include detailed evidence captured at the time.</p>
-        {data.coverage.excluded_undated_or_future > 0 && <p>{data.coverage.excluded_undated_or_future} reports with missing or future dates were excluded.</p>}
-      </footer>
-    </>}
+    {data && <Dashboard data={data} mode={mode} loading={loading} focus={focus} recent={recent} visible={visible}
+      onShowRequests={showRequests} onClearFocus={resetView} onMore={() => setVisible(visible + 10)} />}
+  </div>;
+}
+
+function Dashboard({ data, mode, loading, focus, recent, visible, onShowRequests, onClearFocus, onMore }: {
+  data: ShoppingInsights; mode: ComparisonMode; loading: boolean; focus: Focus; recent: ShoppingRequest[]; visible: number;
+  onShowRequests: (title: string, ids: string[]) => void; onClearFocus: () => void; onMore: () => void;
+}) {
+  const m = data.metrics;
+  if (m.requests === 0) {
+    return <section className={`panel ${styles.empty}`}><Search size={28} /><h2>No insights yet</h2>
+      <p>Run the buyer agent against this store, then refresh.</p>
+      <div><Link className="upload-button" href="/catalogue/">Review catalogue</Link><Link href="/benefits/">Add benefits <ArrowRight size={14} /></Link></div>
+    </section>;
+  }
+
+  const trend = timeline(data);
+  const outcomes = OUTCOMES.map((o, i) => ({
+    label: o.label, color: SERIES[i], value: data.recent.filter((r) => r.outcome === o.key).length,
+  }));
+  const benefitRows = Object.values(data.benefits.reduce<Record<string, { label: string; values: number[] }>>((acc, b) => {
+    const row = acc[b.label] ?? { label: b.label, values: BENEFIT_GROUPS.map(() => 0) };
+    const group = BENEFIT_GROUPS.findIndex((g) => g.states.includes(b.state));
+    if (group >= 0) row.values[group] += b.requests;
+    acc[b.label] = row;
+    return acc;
+  }, {})).sort((a, b) => b.values.reduce((x, y) => x + y, 0) - a.values.reduce((x, y) => x + y, 0));
+  const topOpportunities = data.opportunities.slice(0, 5);
+  const maxOpportunity = Math.max(1, ...topOpportunities.map((o) => o.requests));
+
+  return <div className={`${styles.dashboard} ${loading ? styles.refetching : ""}`} aria-busy={loading}>
+    <section className={styles.kpis} aria-label="Summary">
+      <StatTile label="Requests" value={String(m.requests)} detail={trend.weekly ? "Per week" : "Per day"}>
+        <Sparkline values={trend.all} />
+      </StatTile>
+      <StatTile label="Offer rate" value={percent(m.with_offers, m.requests)} detail={`${m.with_offers} of ${m.requests} had your offer`}>
+        <Meter value={m.requests ? m.with_offers / m.requests : 0} />
+      </StatTile>
+      <StatTile label="Needs answered" value={percent(m.requests - m.unanswered, m.requests)} detail={`${m.unanswered} with unanswered needs`}>
+        <Meter value={m.requests ? (m.requests - m.unanswered) / m.requests : 0} />
+      </StatTile>
+      <StatTile label="Chosen by agent" value={m.selection_known ? percent(m.selected, m.selection_known) : "—"}
+        detail={m.selection_known ? `${m.selected} of ${m.selection_known} runs` : "No selections reported"}>
+        <Meter value={m.selection_known ? m.selected / m.selection_known : 0} />
+      </StatTile>
+    </section>
+
+    <ChartCard className={styles.span8} title="Requests over time"
+      subtitle={`${trend.weekly ? "Weekly" : "Daily"} · hover to see how many had your offer`}
+      table={{ columns: [trend.weekly ? "Week of" : "Day", "Requests", "With your offer"], rows: trend.labels.map((l, i) => [l, trend.all[i], trend.offers[i]]) }}>
+      <LineChart height={320} labels={trend.labels} series={[
+        { name: "Requests", color: SERIES[0], values: trend.all },
+        { name: "With your offer", color: SERIES[1], values: trend.offers, hidden: true },
+      ]} />
+    </ChartCard>
+
+    <ChartCard className={styles.span4} title="Agent outcomes" subtitle="What the agent did after comparing"
+      table={{ columns: ["Outcome", "Requests", "Share"], rows: outcomes.map((o) => [o.label, o.value, percent(o.value, m.requests)]) }}>
+      <Donut slices={outcomes} centerLabel="requests" />
+      <p className={styles.footnote}>Checkouts are confirmations, not paid sales.</p>
+    </ChartCard>
+
+    <ChartCard className={styles.span7} title="Next improvements" subtitle="Ranked by requests affected"
+      table={{ columns: ["Issue", "Type", "Requests"], rows: data.opportunities.map((o) => [o.title, GAP_LABELS[o.kind] ?? o.kind, o.requests]) }}>
+      {topOpportunities.length === 0 ? <p className={styles.muted}>No issues in this view.</p> :
+        <ol className={styles.opportunityList}>{topOpportunities.map((item, i) => <li key={item.id}>
+          <span className={styles.rank}>{i + 1}</span>
+          <div className={styles.opportunityBody}>
+            <div className={styles.opportunityTitle}><strong>{item.title}</strong><span className="pill neutral">{GAP_LABELS[item.kind] ?? item.kind}</span></div>
+            <p>{gapExplanation({ kind: item.kind, reason: item.examples[0]?.reason || "" })}</p>
+            <div className={styles.impactRow}>
+              <span className={styles.impactTrack}><span style={{ width: `${(item.requests / maxOpportunity) * 100}%`, background: SERIES[1] }} /></span>
+              <small>{plural(item.requests, "request")}</small>
+            </div>
+          </div>
+          <div className={styles.opportunityActions}>
+            <Link href={item.href}>{item.action} <ArrowRight size={13} /></Link>
+            <button type="button" onClick={() => onShowRequests(item.title, item.request_ids)}>View requests</button>
+          </div>
+        </li>)}</ol>}
+      {data.opportunities.length > 5 && <p className={styles.footnote}>{data.opportunities.length - 5} more in the table view.</p>}
+    </ChartCard>
+
+    <ChartCard className={styles.span5} title="Benefit recognition" subtitle="Agent decisions per benefit. A request can involve several."
+      action={<Link href="/benefits/">Manage <ArrowRight size={13} /></Link>}
+      table={{ columns: ["Benefit", ...BENEFIT_GROUPS.map((g) => g.name)], rows: benefitRows.map((r) => [r.label, ...r.values]) }}>
+      {benefitRows.length === 0
+        ? <div className={styles.cardEmpty}>
+            <p>{mode === "control" ? "Benefits aren't requested in catalogue-only runs." : "No benefit data yet."}</p>
+            {mode !== "control" && <Link href="/benefits/">Publish benefits <ArrowRight size={13} /></Link>}
+          </div>
+        : <StackedBars rows={benefitRows} unit="decisions" keys={BENEFIT_GROUPS.map((g, i) => ({ name: g.name, color: SERIES[i] }))} />}
+    </ChartCard>
+
+    <ChartCard className={styles.span4} title="Top categories" subtitle="Click a bar to see requests"
+      table={{ columns: ["Category", "Requests"], rows: data.demand.categories.map((d) => [d.label, d.requests]) }}>
+      <BarList items={data.demand.categories.map((d) => ({ label: d.label, value: d.requests, ids: d.request_ids }))} onSelect={onShowRequests} />
+    </ChartCard>
+    <ChartCard className={styles.span4} title="Budgets" subtitle="Price ceilings shoppers set"
+      table={{ columns: ["Budget", "Requests"], rows: data.demand.budgets.map((d) => [d.label, d.requests]) }}>
+      <BarList items={data.demand.budgets.map((d) => ({ label: d.label.replace("Budget ceiling: ", "Under "), value: d.requests, ids: d.request_ids }))} onSelect={onShowRequests} />
+    </ChartCard>
+    <ChartCard className={styles.span4} title="Specs and services" subtitle="What else shoppers asked for"
+      table={{ columns: ["Need", "Requests"], rows: data.demand.needs.map((d) => [d.label, d.requests]) }}>
+      <BarList items={data.demand.needs.map((d) => ({ label: d.label, value: d.requests, ids: d.request_ids }))} onSelect={onShowRequests} />
+    </ChartCard>
+
+    <section id="shopping-requests" className={`${styles.span12} ${styles.requestsCard}`} aria-labelledby="requests-title">
+      <header className={styles.requestsHeader}>
+        <div><h2 id="requests-title">Recent requests</h2><p>{focus ? <>Showing <strong>{focus.title}</strong> · {recent.length}</> : plural(recent.length, "request")}</p></div>
+        {focus && <button type="button" className={styles.clearFocus} onClick={onClearFocus}>Show all</button>}
+      </header>
+      <div className={styles.tableScroll}>
+        <table className={styles.requestTable}>
+          <thead><tr><th>Date</th><th>Request</th><th>Your offer</th><th>Outcome</th><th className={styles.numeric}>Unanswered</th><th><span className="sr-only">Details</span></th></tr></thead>
+          <tbody>{recent.slice(0, visible).map((r) => <RequestRow key={r.request_id} request={r} />)}</tbody>
+        </table>
+      </div>
+      {visible < recent.length && <button type="button" className={styles.loadMore} onClick={onMore}>Show more ({recent.length - visible})</button>}
+    </section>
+
+    <footer className={`${styles.span12} ${styles.coverage}`}><p>{data.coverage.note}</p>
+      {data.coverage.excluded_undated_or_future > 0 && <p>{plural(data.coverage.excluded_undated_or_future, "undated report")} excluded.</p>}
+    </footer>
   </div>;
 }

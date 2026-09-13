@@ -287,7 +287,7 @@ class CsvCatalogAdapter:
                     if self.merchant is None or raw.get("merchant") == self.merchant:
                         self._row_diagnostics.append(Diagnostic(
                             line, raw.get("sku", "?"), "csv", "column_count", Severity.BLOCKER,
-                            "Uneven row", "", "Legacy upload has a different number of cells than its header. Re-upload a corrected CSV; missing cells are empty.", False,
+                            "Uneven row", "", "Wrong number of cells in this row. Fix it and re-upload.", False,
                         ))
                 row = {key: value or "" for key, value in raw.items() if key is not None}
                 row.setdefault("merchant", self.merchant or "")
@@ -356,8 +356,7 @@ class CsvCatalogAdapter:
                 Severity.BLOCKER,
                 raw_price,
                 price,
-                'Price is not a number. An agent applying "under $1,500" drops '
-                "this listing entirely rather than ranking it low.",
+                "Use a plain number, e.g. 1499.00. Agents skip this in price filters.",
             )
 
         attributes: dict[str, str | int | float | bool] = {
@@ -379,9 +378,7 @@ class CsvCatalogAdapter:
                         Severity.DEGRADES_MATCH,
                         raw_ram,
                         f"{gb}GB",
-                        f'"{raw_ram}" and "{gb}GB" are the same memory. An agent '
-                        'filtering "at least 16GB" matches one spelling and '
-                        "misses the others.",
+                        f'Write as "{gb}GB". Other spellings are missed by RAM filters.',
                     )
 
         raw_storage = row["storage"].strip()
@@ -408,8 +405,7 @@ class CsvCatalogAdapter:
                         Severity.DEGRADES_MATCH,
                         raw_screen,
                         inches,
-                        "Screen size is not comparable as a number, so a "
-                        '"13 to 14 inch" constraint cannot be applied.',
+                        "Use inches as a number, e.g. 14.0. Size filters skip it.",
                     )
 
         # 4 -- weight, where a physical object should have one.
@@ -425,9 +421,7 @@ class CsvCatalogAdapter:
                 Severity.DEGRADES_MATCH,
                 "",
                 "",
-                'No weight, so "light enough to carry daily" cannot be '
-                "answered. The listing is excluded from that comparison "
-                "rather than ranked lower.",
+                "Add weight_kg. Weight questions skip this product.",
                 autofixed=False,
             )
 
@@ -444,8 +438,7 @@ class CsvCatalogAdapter:
                 Severity.INFO,
                 "",
                 "",
-                f"Empty battery capacity is correct for a {category} listing. "
-                "No action needed.",
+                f"No battery value needed for {category} products. No action.",
                 autofixed=False,
             )
 
@@ -461,8 +454,7 @@ class CsvCatalogAdapter:
                     Severity.COSMETIC,
                     raw_brand,
                     brand,
-                    f'"{raw_brand}" and "{brand}" are one brand. Filtering by '
-                    "brand splits your listings across both spellings.",
+                    f'Use "{brand}" everywhere. Mixed spellings split brand filters.',
                 )
         attributes["brand"] = brand
 
@@ -478,8 +470,7 @@ class CsvCatalogAdapter:
                 Severity.DEGRADES_MATCH,
                 raw_title,
                 canonical,
-                f'"{title}" and "{canonical}" are the same product. An agent '
-                "reads them as two, so you compete against yourself.",
+                f'Use one title: "{canonical}". Duplicates compete with each other.',
             )
         elif raw_title != title:
             note(
@@ -488,7 +479,7 @@ class CsvCatalogAdapter:
                 Severity.COSMETIC,
                 raw_title,
                 title,
-                "Extra whitespace in the title.",
+                "Remove extra spaces from the title.",
             )
 
         # 8 -- a GTIN two merchants share. Not a defect: it is the mechanism
@@ -504,10 +495,9 @@ class CsvCatalogAdapter:
                     Severity.INFO,
                     gtin,
                     gtin,
-                    "Also listed by "
+                    "Also sold by "
                     + ", ".join(sorted(others))
-                    + ". This is how an agent knows it is the same product "
-                    "— keep publishing it.",
+                    + ". Keep this GTIN so agents can compare.",
                     autofixed=False,
                 )
 
@@ -539,10 +529,7 @@ class CsvCatalogAdapter:
                 Severity.DEGRADES_MATCH,
                 raw_title.strip(),
                 gpu,
-                f"{gpu} appears only inside the product title. An agent "
-                'filtering on "must have a discrete GPU" cannot see it, '
-                "because there is no GPU field to filter on. Publish it as a "
-                "column and this becomes a hard, checkable fact.",
+                f"Add a gpu column ({gpu}). Agents can't filter on specs in titles.",
             )
 
         for extra in ("cpu",):
@@ -565,7 +552,7 @@ class CsvCatalogAdapter:
                     if self.strict_columns:
                         raise ValueError("stock must be a nonnegative integer or availability status")
                     note("stock", "stock_format", Severity.DEGRADES_MATCH, raw_stock, "",
-                         "Stock is unreadable; availability is unknown. Re-upload a corrected CSV.", autofixed=False)
+                         "Use a number or in_stock/out_of_stock, then re-upload.", autofixed=False)
 
         # Publish the canonical spelling, not the one this row happened to use.
         # Two spellings of one product compete against each other in the same

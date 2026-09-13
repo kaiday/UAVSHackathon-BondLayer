@@ -32,7 +32,7 @@ function DraftCard({ draft, merchant, reload }: { draft: Draft; merchant: string
       }) });
       if (decision !== "save") await request(`${path}/${decision}`, { method: "POST" });
       await reload();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not update draft."); }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Couldn't update draft."); }
     finally { setBusy(false); }
   }
 
@@ -41,8 +41,8 @@ function DraftCard({ draft, merchant, reload }: { draft: Draft; merchant: string
     <p>Source: {draft.section}</p><blockquote style={{ whiteSpace: "pre-wrap", margin: "12px 0" }}>{draft.record.source_span}</blockquote>
     <div className="setting-list">{Object.entries(facts).map(([key, value]) => <label key={key}><span>{humanise(key)}</span><input disabled={!pending || busy} value={value} onChange={e => setFacts({ ...facts, [key]: typeof value === "number" && e.target.value !== "" ? Number(e.target.value) : e.target.value })} /></label>)}</div>
     <label style={{ display: "block", marginTop: 12 }}>Conditions (one per line)<textarea disabled={!pending || busy} value={conditions} onChange={e => setConditions(e.target.value)} rows={3} style={{ width: "100%" }} /></label>
-    {!unpriced && <label style={{ display: "block", margin: "12px 0" }}>Your maximum indicative benefit value (AUD, optional) <input type="number" min="0" step="0.01" value={ceiling} disabled={!pending || busy} onChange={e => setCeiling(e.target.value)} /></label>}
-    <p className="state-note">{unpriced ? "This values claim is never converted into dollars." : "Leaving the value blank publishes a factual benefit with no monetary credit. The shopper's own valuation also caps any credit."}</p>
+    {!unpriced && <label style={{ display: "block", margin: "12px 0" }}>Max value (AUD, optional) <input type="number" min="0" step="0.01" value={ceiling} disabled={!pending || busy} onChange={e => setCeiling(e.target.value)} /></label>}
+    <p className="state-note">{unpriced ? "Published without a dollar value." : "Leave blank to publish without a dollar value."}</p>
     {error && <p className="state-error" role="alert">{error}</p>}
     {pending && <div style={{ display: "flex", gap: 12 }}><button className="upload-button" disabled={busy} onClick={() => act("save")}>Save draft</button><button className="upload-button" disabled={busy} onClick={() => act("approve")}>Approve and sign</button><button className="pill neutral" disabled={busy} onClick={() => act("reject")}>Reject</button></div>}
   </article>;
@@ -71,33 +71,33 @@ function MerchantBenefits({ merchant }: { merchant: string | null }) {
     const form = new FormData(); form.append("file", file);
     try {
       const body = await request(`/onboard/policies/${encodeURIComponent(merchant)}`, { method: "POST", body: form });
-      setState(body); setMessage(`OpenAI ${body.ai.model} extracted ${body.drafts.length} drafts. Response: ${body.ai.response_id}`);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Policy extraction failed."); }
+      setState(body); setMessage(`${body.drafts.length} drafts found. Review them below.`);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Upload failed."); }
     finally { setBusy(false); }
   }
   async function publish() {
     if (!merchant) return;
     setBusy(true); setError(null);
-    try { const body = await request(`/onboard/policies/${encodeURIComponent(merchant)}/publish`, { method: "POST" }); await reload(); setMessage(`${body.published} approved benefit records published to your catalogue.`); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Publication failed."); }
+    try { const body = await request(`/onboard/policies/${encodeURIComponent(merchant)}/publish`, { method: "POST" }); await reload(); setMessage(`${body.published} benefits published.`); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Publish failed."); }
     finally { setBusy(false); }
   }
 
   return <div className="content">
-    <div className="page-heading"><div><h1>Policies and benefit records</h1><p>Upload your actual terms. OpenAI extracts drafts; you review, sign and publish them.</p></div></div>
+    <div className="page-heading"><div><h1>Benefits</h1><p>Upload your policies, review the benefits found, then publish.</p></div></div>
     <section className="panel" style={{ padding: 20, marginBottom: 20 }}>
-      <h2>Upload a combined policy document</h2>
-      <p>PDF with selectable text, TXT or Markdown; up to 10 MB and 60,000 extracted characters. Include returns, warranty, delivery and loyalty terms as relevant.</p>
-      <p className="state-note">A new upload replaces the draft set. Existing published benefits stay live until you publish the reviewed replacement. Policy text is sent to OpenAI for extraction.</p>
+      <h2>Upload policy</h2>
+      <p>PDF, TXT or Markdown, up to 10 MB.</p>
+      <p className="state-note">Replaces current drafts. Published benefits stay live until you publish again. Text is sent to OpenAI.</p>
       <label className="upload-button"><input type="file" accept=".pdf,.txt,.md" disabled={busy || !merchant} onChange={e => { const file = e.target.files?.[0]; if (file) void upload(file); e.target.value = ""; }} />{busy ? "Processing…" : "Upload policy"}</label>
     </section>
     {error && <p className="state-error" role="alert">{error}</p>}{message && <p className="state-note" role="status">{message}</p>}
     {state && merchant && <>
-      <h2>Review drafts ({state.drafts.length})</h2>
-      {state.drafts.length === 0 && <p>No drafts yet. Upload a policy to extract its actual benefits.</p>}
+      <h2>Drafts ({state.drafts.length})</h2>
+      {state.drafts.length === 0 && <p>No drafts yet.</p>}
       {state.drafts.map(draft => <DraftCard key={`${merchant}:${draft.draft_id}:${draft.status}`} draft={draft} merchant={merchant} reload={reload} />)}
-      {state.drafts.length > 0 && <section className="panel" style={{ padding: 20, marginBottom: 20 }}><p>Publishing replaces the live set with approved records only; pending and rejected drafts are excluded.</p><button className="upload-button" disabled={busy || !state.drafts.some(d => d.status === "approved")} onClick={publish}>Publish approved benefits</button></section>}
-      <h2>Published records ({state.published_records.length})</h2>
+      {state.drafts.length > 0 && <section className="panel" style={{ padding: 20, marginBottom: 20 }}><p>Only approved drafts are published.</p><button className="upload-button" disabled={busy || !state.drafts.some(d => d.status === "approved")} onClick={publish}>Publish approved</button></section>}
+      <h2>Published ({state.published_records.length})</h2>
       {state.published_records.map(({ record, signed }) => <article className="panel" style={{ padding: 16, marginBottom: 12 }} key={record.record_id}><strong>{humanise(record.benefit_type)} · {signed ? "Signed" : "Unsigned"}</strong><p>{record.source_span}</p><small>{record.record_id}</small></article>)}
     </>}
   </div>;

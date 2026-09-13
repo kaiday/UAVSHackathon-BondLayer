@@ -9,11 +9,12 @@ primary_region = "syd"
   dockerfile = "Dockerfile.merchant"
 
 [env]
-  # Test data on: serves the bundled electronics.csv merchants and signed records.
-  # Uploads are still saved on the volume, but are not loaded while this is "1".
+  # Demo data on: every bundled merchant (synthetic with signed records, plus
+  # Big W, JB Hi-Fi, Kmart, Officeworks). Merchants onboarded on the volume
+  # still load on top. Remove it for an empty start.
   BONDLAYER_UPLOADS_DIR = "/data/uploads"
   BONDLAYER_AI_MODE = "openai"
-  BONDLAYER_TEST_DATA = "1"
+  BONDLAYER_DEMO_DATA = "1"
   BONDLAYER_REQUIRE_SERVICE_TOKEN = "1"
   # Set OPENAI_API_KEY and BONDLAYER_SERVICE_TOKEN with fly secrets.
 

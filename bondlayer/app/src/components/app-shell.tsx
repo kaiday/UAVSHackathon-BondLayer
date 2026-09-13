@@ -8,7 +8,7 @@ import type { LucideIcon } from "lucide-react";
 import { CircleHelp, ClipboardList, Gift, LayoutDashboard, Package, Settings, ShieldCheck } from "lucide-react";
 import { AskBar } from "./ask-bar";
 import { hasSeenTour, Walkthrough } from "@/components/walkthrough";
-import { MerchantSwitcher } from "./merchant-switcher";
+import { CurrentMerchant } from "./merchant-switcher";
 import { Failed, Loading } from "./states";
 import { useMerchants } from "@/lib/api";
 
@@ -79,7 +79,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
       <section className="workspace">
         <header className="topbar">
-          <MerchantSwitcher />
+          <CurrentMerchant />
           <div className="topbar-tools"><Link className="upload-button" href="/onboarding/">Add merchant</Link><button className="icon-button" type="button" aria-label="Replay the console tour" title="Replay the console tour" data-tour="help" onClick={startTour}><CircleHelp size={17} strokeWidth={2} /></button><div className="account"><span className="avatar"><Image src="/console/bondlayer-logo.svg" alt="" width={34} height={34} sizes="34px" /></span><div className="account-copy"><strong>Merchant console</strong><span>Your uploaded catalogues</span></div></div></div>
         </header>
         <div className="page-transition" key={pathname}>{children}</div>

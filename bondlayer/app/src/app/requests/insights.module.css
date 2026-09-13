@@ -82,5 +82,80 @@
 .coverage { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--muted); font-size: 11px; line-height: 1.7; }
 .coverage p { margin: 5px 0; }
 .page button:focus-visible, .page a:focus-visible, .page select:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
-@media (max-width: 1150px) { .opportunities, .demandGrid { grid-template-columns: 1fr; } .opportunity footer { margin-top: 0; } }
+/* --- Dashboard layout ---------------------------------------------------- */
+.filterEnd { display: flex; align-items: center; gap: 14px; margin-left: auto; }
+.filterEnd .updated { margin: 0; padding: 0; }
+.dashboard { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; transition: opacity .2s ease; }
+.refetching { opacity: .55; }
+.kpis { grid-column: span 12; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; min-width: 0; }
+/* Grid items default to min-width: auto, so a wide table would stretch the
+   whole grid past the screen; every cell may shrink and scroll inside itself. */
+.dashboard > * { min-width: 0; }
+.span4 { grid-column: span 4; }
+.span5 { grid-column: span 5; }
+.span7 { grid-column: span 7; }
+.span8 { grid-column: span 8; }
+.span12 { grid-column: span 12; }
+.footnote { margin: 12px 0 0; color: var(--muted); font-size: 11px; }
+
+.opportunityList { display: grid; margin: 0; padding: 0; list-style: none; }
+.opportunityList li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border); }
+.opportunityList li:first-child { border-top: 0; padding-top: 2px; }
+.rank { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: var(--muted); background: var(--quiet); font-size: 11px; font-weight: 700; }
+.opportunityBody { min-width: 0; }
+.opportunityTitle { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.opportunityTitle strong { font-size: 13px; }
+.opportunityBody p { margin: 3px 0 7px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.impactRow { display: flex; align-items: center; gap: 8px; }
+.impactTrack { display: block; flex: 0 1 180px; height: 6px; overflow: hidden; border-radius: 999px; background: var(--quiet); }
+.impactTrack span { display: block; height: 100%; border-radius: 999px; }
+.impactRow small { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.opportunityActions { display: grid; justify-items: end; gap: 6px; font-size: 12px; }
+.opportunityActions a { display: inline-flex; align-items: center; gap: 5px; color: var(--accent); font-weight: 600; text-decoration: none; white-space: nowrap; }
+.opportunityActions button { padding: 0; border: 0; color: var(--muted); background: transparent; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+.opportunityActions button:hover { color: var(--accent); }
+
+.requestsCard { padding: 18px 0 8px; border: 1px solid var(--border); border-radius: 13px; background: var(--paper); scroll-margin-top: 20px; }
+.requestsHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 0 20px 14px; }
+.requestsHeader h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.requestsHeader p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+.clearFocus { padding: 6px 12px; border: 1px solid var(--border); border-radius: 7px; color: var(--accent); background: var(--paper); font-size: 12px; font-weight: 600; }
+/* position: relative keeps the visually hidden "Details" header (absolutely
+   positioned) inside the scroll box instead of stretching the page on phones. */
+.tableScroll { position: relative; overflow-x: auto; }
+.requestTable { width: 100%; border-collapse: collapse; font-size: 12px; }
+.requestTable th { padding: 9px 12px; color: var(--muted); background: var(--quiet); font-size: 11px; font-weight: 650; text-align: left; white-space: nowrap; }
+.requestTable th:first-child, .requestTable td:first-child { padding-left: 20px; }
+/* The console's global td is nowrap; long questions must wrap inside their own column. */
+.requestTable td { padding: 12px; border-top: 1px solid var(--border); vertical-align: top; white-space: normal; }
+.cardEmpty { display: grid; place-content: center; justify-items: center; gap: 8px; min-height: 180px; height: calc(100% - 50px); color: var(--muted); font-size: 13px; text-align: center; }
+.cardEmpty p { margin: 0; }
+.cardEmpty a { display: inline-flex; align-items: center; gap: 5px; color: var(--accent); font-size: 12px; font-weight: 600; text-decoration: none; }
+.requestTable .question { min-width: 260px; max-width: 420px; line-height: 1.5; }
+.requestTable td small { display: block; margin-top: 2px; color: var(--muted); }
+.productName { display: block; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nowrap { white-space: nowrap; color: var(--muted); }
+.numeric { text-align: right; font-variant-numeric: tabular-nums; }
+.toggleCell { width: 44px; padding-right: 16px !important; text-align: right; }
+.rowToggle { display: inline-grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 7px; color: var(--muted); background: var(--paper); }
+.rowToggle:hover, .rowOpen .rowToggle { color: var(--accent); border-color: #b9ddd6; }
+.rowOpen td { background: #fbfcfd; }
+.detailRow td { padding: 0 20px 18px; border-top: 0; background: #fbfcfd; }
+.detailRow .evidence { margin-top: 0; }
+.detailGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.requestsCard .loadMore { margin: 14px auto 10px; }
+.dashboard .coverage { margin-top: 4px; }
+
+@media (max-width: 1150px) {
+  .opportunities, .demandGrid { grid-template-columns: 1fr; } .opportunity footer { margin-top: 0; }
+  .span4, .span5, .span7, .span8 { grid-column: span 12; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .filterEnd { width: 100%; margin-left: 0; justify-content: space-between; }
+  .kpis { grid-template-columns: 1fr 1fr; }
+  .opportunityList li { grid-template-columns: 22px minmax(0, 1fr); }
+  .opportunityActions { grid-column: 2; justify-items: start; grid-auto-flow: column; justify-content: start; gap: 14px; }
+  .detailGrid { grid-template-columns: 1fr; }
+}
 @media (max-width: 700px) { .heading { align-items: start; flex-direction: column; } .filters label { width: 100%; } .filters select { width: 100%; } .updated { margin-left: 0; } .metrics { grid-template-columns: 1fr 1fr !important; } .sectionHeading { align-items: start; flex-direction: column; } .benefitRows button { flex-wrap: wrap; } .focus { align-items: start; flex-direction: column; } .technical dl { grid-template-columns: 1fr; } }
