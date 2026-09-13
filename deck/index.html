@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BondLayer — UAVS Hackathon 2026 pitch</title>
+<style>
+/* ---------- embedded fonts (OFL) — no network needed ---------- */
+@font-face{font-family:"Press Start 2P";font-style:normal;font-weight:400;font-display:block;
+  src:url(data:font/woff2;base64,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) format("woff2")}
+@font-face{font-family:"Silkscreen";font-style:normal;font-weight:400;font-display:block;
+  src:url(data:font/woff2;base64,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) format("woff2")}
+@font-face{font-family:"Silkscreen";font-style:normal;font-weight:700;font-display:block;
+  src:url(data:font/woff2;base64,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) format("woff2")}
+
+/* ---------- palette: eGOV-style blue world, orange = BondLayer ---------- */
+:root{
+  --sky:#2AA4F2; --sky-2:#6FCBFF; --sky-3:#0E7FD6;
+  --navy:#111E7A; --ink:#0A1258; --white:#FFFFFF; --paper:#F3F9FF;
+  --yellow:#FFC72C; --magenta:#FF3E9A; --cyan:#3DF2FF; --lime:#9BE33A; --red:#FF4C4C;
+  --orange:#FF7A00; --orange-2:#FF8D31; --orange-3:#FFC27B;
+  --mute:#4A5AA8;
+  --pix:"Press Start 2P", "Silkscreen", monospace;
+  --silk:"Silkscreen", "Press Start 2P", monospace;
+  --body:ui-rounded, "SF Pro Rounded", "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--sky-3); color:var(--ink); font-family:var(--body); overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- viewport / stage ---------- */
+#viewport{position:fixed; inset:0; display:grid; place-items:center;
+  background:
+    radial-gradient(rgba(255,255,255,.28) 1.2px, transparent 1.8px) 0 0/16px 16px,
+    radial-gradient(120% 90% at 20% 0%, #6FD0FF 0%, var(--sky) 45%, var(--sky-3) 100%);
+}
+#stage{position:relative; width:1600px; height:900px; transform-origin:center center; overflow:hidden}
+.slide{position:absolute; inset:0; padding:72px 96px 88px; opacity:0; visibility:hidden;
+  transform:translateX(40px); transition:opacity .45s ease, transform .45s ease, visibility 0s .45s;}
+.slide.active{opacity:1; visibility:visible; transform:none; transition:opacity .45s ease, transform .45s ease, visibility 0s}
+.slide.prev{transform:translateX(-40px)}
+
+/* ---------- chrome ---------- */
+.brand-tl{position:absolute; left:48px; top:34px; display:flex; align-items:center; gap:14px; color:var(--white); font-family:var(--silk); font-weight:700; font-size:18px; letter-spacing:.5px; text-shadow:2px 2px 0 rgba(0,0,0,.25)}
+.brand-tl svg{width:34px;height:33px}
+.brand-tr{position:absolute; right:48px; top:34px; display:flex; gap:10px}
+.badge{font-family:var(--silk); font-weight:700; font-size:15px; letter-spacing:.5px; padding:8px 12px; background:var(--white); color:var(--navy); border:3px solid var(--ink); box-shadow:4px 4px 0 var(--ink)}
+.badge.uavs{background:var(--yellow)}
+.foot{position:absolute; left:48px; right:48px; bottom:28px; display:flex; justify-content:space-between; align-items:center; color:rgba(255,255,255,.9); font-family:var(--silk); font-size:15px; letter-spacing:.5px}
+.foot .t{opacity:.85}
+#counter{font-family:var(--silk); font-size:15px}
+#timer{position:absolute; right:48px; bottom:64px; font-family:var(--pix); font-size:26px; color:var(--white); background:var(--ink); border:3px solid var(--white); padding:12px 16px; box-shadow:6px 6px 0 rgba(0,0,0,.35); display:none; letter-spacing:1px}
+#timer.on{display:block}
+#timer.amber{color:var(--yellow)} #timer.red{color:var(--red); animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.35}}
+#help{position:absolute; left:48px; bottom:64px; font-family:var(--silk); font-size:13px; color:rgba(255,255,255,.85); background:rgba(10,18,88,.85); border:2px solid rgba(255,255,255,.6); padding:8px 10px; display:none}
+#help.on{display:block}
+
+/* ---------- type ---------- */
+.pix{font-family:var(--pix); text-transform:uppercase; line-height:1.25}
+.h1{font-family:var(--pix); font-size:64px; line-height:1.15; color:var(--white); text-transform:uppercase;
+  text-shadow:4px 0 var(--magenta), -4px 0 var(--cyan), 6px 6px 0 rgba(0,0,0,.28)}
+.h1 .navy{color:var(--navy); text-shadow:4px 0 var(--magenta), -4px 0 var(--cyan), 6px 6px 0 rgba(0,0,0,.18)}
+.h2{font-family:var(--pix); font-size:36px; line-height:1.3; color:var(--white); text-transform:uppercase; text-shadow:3px 0 var(--magenta), -3px 0 var(--cyan), 5px 5px 0 rgba(0,0,0,.25); margin:0 0 26px}
+.h2 .navy{color:var(--navy)}
+.kicker{font-family:var(--silk); font-weight:700; font-size:20px; color:var(--navy); letter-spacing:1px; margin:0 0 10px}
+.kicker.w{color:var(--white)}
+.code{font-family:var(--silk); font-weight:700; font-size:24px; color:var(--white); letter-spacing:.5px; text-shadow:2px 2px 0 rgba(0,0,0,.3)}
+.lead{font-size:26px; line-height:1.4; color:var(--white); max-width:1180px; text-shadow:1px 1px 0 rgba(0,0,0,.2)}
+.lead b{color:var(--yellow)}
+.small{font-size:17px; color:rgba(255,255,255,.85)}
+.mono{font-family:ui-monospace, Menlo, Consolas, monospace}
+
+/* ---------- pixel cards ---------- */
+.card{background:var(--white); border:4px solid var(--ink); box-shadow:8px 8px 0 var(--ink); padding:22px 26px; color:var(--ink)}
+.card.orange{border-color:var(--orange); box-shadow:8px 8px 0 var(--orange)}
+.card.yellow{background:var(--yellow)}
+.card.navy{background:var(--navy); color:var(--white)}
+.card.paper{background:var(--paper)}
+.card h3{font-family:var(--silk); font-weight:700; font-size:22px; margin:0 0 8px; letter-spacing:.5px}
+.card p{margin:0; font-size:19px; line-height:1.4}
+.card .big{font-family:var(--pix); font-size:54px; line-height:1; margin:6px 0 10px}
+.icon{width:58px;height:58px; border:3px solid var(--ink); display:grid; place-items:center; font-size:30px; box-shadow:4px 4px 0 var(--ink); flex:none}
+.icon.pink{background:#FF8AC0} .icon.blue{background:#7FD3FF} .icon.purple{background:#B79BFF} .icon.lime{background:var(--lime)} .icon.orange{background:var(--orange-3)} .icon.yellow{background:var(--yellow)}
+.row{display:flex; gap:24px; align-items:stretch}
+.col{flex:1; min-width:0}
+.pill{display:inline-block; font-family:var(--silk); font-weight:700; font-size:15px; padding:5px 10px; border:2px solid var(--ink); background:var(--white); letter-spacing:.5px; box-shadow:3px 3px 0 var(--ink)}
+.pill.o{background:var(--orange); color:var(--white); border-color:var(--ink)}
+.pill.y{background:var(--yellow)} .pill.m{background:var(--magenta); color:var(--white)} .pill.c{background:var(--cyan)} .pill.g{background:var(--lime)} .pill.grey{background:#DDE3F5; color:var(--mute)}
+.tag{font-family:var(--silk); font-weight:700; font-size:14px; letter-spacing:.5px; color:var(--mute)}
+
+/* stagger-in for lists */
+.stagger > *{opacity:0; transform:translateY(14px); transition:opacity .4s ease, transform .4s ease}
+.slide.active .stagger > *{opacity:1; transform:none}
+.slide.active .stagger > :nth-child(1){transition-delay:.15s}
+.slide.active .stagger > :nth-child(2){transition-delay:.3s}
+.slide.active .stagger > :nth-child(3){transition-delay:.45s}
+.slide.active .stagger > :nth-child(4){transition-delay:.6s}
+.slide.active .stagger > :nth-child(5){transition-delay:.75s}
+.slide.active .stagger > :nth-child(6){transition-delay:.9s}
+
+/* ---------- slide 1 ---------- */
+#s1 .title-wrap{position:absolute; left:96px; top:150px; width:1040px}
+#s1 .megaphone{display:inline-flex; align-items:center; gap:14px; background:var(--yellow); border:4px solid var(--ink); box-shadow:6px 6px 0 var(--ink); padding:10px 22px 10px 14px; font-family:var(--silk); font-weight:700; font-size:22px; color:var(--navy); letter-spacing:1px; margin-bottom:34px}
+#s1 .megaphone .ic{font-size:30px}
+#s1 .h1{font-size:92px; line-height:1.05}
+#s1 .h1 .line2{display:block; font-size:54px; margin-top:10px}
+#s1 .slogan{margin:30px 0 0; font-family:var(--silk); font-weight:700; font-size:25px; color:var(--white); text-shadow:3px 3px 0 rgba(0,0,0,.3); letter-spacing:.5px}
+#s1 .slogan b{color:var(--yellow)}
+#s1 .sub{margin-top:18px; font-size:21px; line-height:1.4; color:rgba(255,255,255,.95); max-width:960px}
+#s1 .logo{position:absolute; right:120px; top:230px; width:330px; height:auto; filter:drop-shadow(10px 12px 0 rgba(0,0,0,.28)); animation:float 4s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-14px)}}
+#s1 .meta{position:absolute; left:96px; bottom:96px; display:flex; gap:12px; flex-wrap:wrap}
+
+/* ---------- slide 2 ---------- */
+#s2 .stats{display:grid; grid-template-columns:1fr 1fr; gap:28px; margin:8px 0 30px; max-width:1180px}
+#s2 .machine{display:grid; grid-template-columns:repeat(4,1fr); gap:18px}
+#s2 .machine .card{padding:18px 20px} #s2 .machine .card p{font-size:17px}
+
+/* ---------- slide 3 ---------- */
+#s3 .query{font-size:30px; line-height:1.45; color:var(--white); background:var(--navy); border:4px solid var(--ink); box-shadow:8px 8px 0 var(--ink); padding:22px 28px; margin:0 0 26px; font-style:italic}
+#s3 .query b{color:var(--yellow); font-style:normal}
+.clauses{display:grid; grid-template-columns:1fr 1fr; gap:16px 22px}
+.clause{background:var(--white); border:3px solid var(--ink); box-shadow:5px 5px 0 var(--ink); padding:14px 18px; display:grid; grid-template-columns:150px 1fr; gap:14px; align-items:center}
+.clause .q{font-size:20px; line-height:1.3}
+.clause .ev{font-family:var(--silk); font-size:15px; letter-spacing:.3px; color:var(--mute); margin-top:6px}
+.clause .ev.no{color:var(--red)}
+.clause .ev.yes{color:#1B7A2B}
+#s3 .zero{display:flex; align-items:center; gap:28px; margin-top:26px}
+#s3 .zero .big{font-family:var(--pix); font-size:64px; color:var(--white); text-shadow:4px 0 var(--magenta), -4px 0 var(--cyan), 6px 6px 0 rgba(0,0,0,.28)}
+#s3 .zero p{font-size:22px; color:var(--white); margin:0; max-width:900px; line-height:1.4}
+
+/* ---------- slide 4 ---------- */
+#s4 .defn{font-size:26px; line-height:1.45; color:var(--white); max-width:1400px; margin:0 0 30px}
+#s4 .defn code{font-family:var(--silk); font-weight:700; color:var(--yellow); font-size:22px}
+#s4 .pillars{display:grid; grid-template-columns:repeat(3,1fr); gap:26px}
+#s4 .pillars .card{min-height:250px}
+#s4 .pillars .top{display:flex; gap:14px; align-items:center; margin-bottom:12px}
+#s4 .strip{margin-top:26px; display:flex; gap:14px; align-items:center; flex-wrap:wrap}
+
+/* ---------- slide 5 ---------- */
+.pipe{display:grid; grid-template-columns:repeat(5,1fr); gap:0; align-items:stretch; position:relative}
+.step{position:relative; padding:0 14px}
+.step .n{width:64px;height:64px; display:grid; place-items:center; font-family:var(--pix); font-size:24px; background:var(--yellow); color:var(--ink); border:4px solid var(--ink); box-shadow:5px 5px 0 var(--ink); margin-bottom:14px}
+.step.us .n{background:var(--orange); color:var(--white)}
+.step h3{font-family:var(--silk); font-weight:700; font-size:22px; margin:0 0 8px; color:var(--white); text-shadow:2px 2px 0 rgba(0,0,0,.3)}
+.step .card{padding:14px 16px; min-height:190px}
+.step .card p{font-size:16px; line-height:1.35}
+.step .card .m{font-family:var(--silk); font-size:13px; color:var(--mute); margin-top:8px; display:block; word-break:break-all}
+.step::after{content:"▶"; position:absolute; right:-10px; top:18px; color:var(--white); font-size:22px; text-shadow:2px 2px 0 rgba(0,0,0,.3)}
+.step:last-child::after{content:""}
+#s5 .note{margin-top:26px; display:flex; gap:16px; align-items:center}
+
+/* ---------- slide 6 (demo) ---------- */
+#s6 .demo{display:grid; grid-template-columns:600px 1fr; gap:26px; height:585px}
+#s6 .panel{background:var(--white); border:4px solid var(--ink); box-shadow:8px 8px 0 var(--ink); padding:18px 20px; overflow:hidden; display:flex; flex-direction:column}
+#s6 .switch-wrap{display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:14px}
+.switch{position:relative; width:250px; height:64px; border:4px solid var(--ink); background:#DDE3F5; cursor:pointer; box-shadow:5px 5px 0 var(--ink); user-select:none; flex:none}
+.switch .knob{position:absolute; top:4px; left:4px; width:118px; height:48px; background:var(--navy); transition:left .3s steps(6), background .3s}
+.switch .lab{position:absolute; top:0; height:100%; width:50%; display:grid; place-items:center; font-family:var(--silk); font-weight:700; font-size:16px; color:var(--mute); letter-spacing:.5px; z-index:1}
+.switch .lab.r{right:0}
+.switch .lab.on-lab{color:var(--navy)}
+.switch.on{background:var(--orange-3)} .switch.on .knob{left:calc(100% - 122px - 4px); background:var(--orange)}
+.switch.on .lab.r{color:var(--white)} .switch.on .lab.l{color:var(--mute)} .switch:not(.on) .lab.l{color:var(--white)}
+#s6 .hdr{font-family:ui-monospace,Menlo,monospace; font-size:13.5px; background:var(--paper); border:2px solid var(--ink); padding:8px 10px; line-height:1.45; word-break:break-all; margin-bottom:12px}
+#s6 .hdr .ext{color:var(--orange); font-weight:700}
+#s6 .hdr .ext.off{color:#B8BFDA; text-decoration:line-through}
+#s6 .utt{font-size:16px; line-height:1.35; font-style:italic; margin:0 0 8px; color:var(--ink)}
+#s6 .cl{display:grid; grid-template-columns:104px 1fr; gap:10px; align-items:start; padding:6px 0; border-top:2px dashed #C9D3F0}
+#s6 .cl .pill{font-size:12px; padding:4px 7px; box-shadow:2px 2px 0 var(--ink)}
+#s6 .cl .q{font-size:16px; line-height:1.3}
+#s6 .cl .ev{font-family:var(--silk); font-size:13px; letter-spacing:.3px; margin-top:4px; transition:color .3s}
+#s6 .cl .ev.no{color:var(--red)} #s6 .cl .ev.yes{color:#1B7A2B}
+#s6 .sum{margin-top:auto; font-family:var(--silk); font-weight:700; font-size:14.5px; padding:10px 12px; border:3px solid var(--ink); background:var(--paper); letter-spacing:.3px}
+#s6 .sum.ok{background:#E3FFD6} #s6 .sum.deg{background:#FFE7E7}
+#s6 .rank{display:flex; flex-direction:column; gap:12px; position:relative}
+#s6 .rk{display:grid; grid-template-columns:52px 1fr 250px; gap:14px; align-items:center; border:3px solid var(--ink); background:var(--white); padding:12px 16px; box-shadow:4px 4px 0 var(--ink); transition:transform .5s cubic-bezier(.2,.8,.2,1), background .3s, border-color .3s}
+#s6 .rk.win{background:#FFF3E5; border-color:var(--orange); box-shadow:4px 4px 0 var(--orange)}
+#s6 .rk .pos{font-family:var(--pix); font-size:22px}
+#s6 .rk .who{font-size:18px; line-height:1.3}
+#s6 .rk .who b{font-family:var(--silk); font-size:17px; letter-spacing:.3px}
+#s6 .rk .who .sku{font-family:ui-monospace,Menlo,monospace; font-size:14px; color:var(--mute)}
+#s6 .rk .price{text-align:right}
+#s6 .rk .shelf{font-size:15px; color:var(--mute)} #s6 .rk .shelf.strike{text-decoration:line-through}
+#s6 .rk .eff{font-family:var(--pix); font-size:20px; margin-top:4px}
+#s6 .rk.win .eff{color:var(--orange)}
+#s6 .rk .why{grid-column:2 / span 2; font-size:14px; color:var(--mute); line-height:1.35; border-top:2px dashed #C9D3F0; padding-top:6px; margin-top:2px}
+#s6 .rk .why .rec{font-family:ui-monospace,Menlo,monospace; color:var(--orange); font-weight:700}
+#s6 .rk.dim{opacity:.7; background:var(--paper)}
+#s6 .receipt{margin-top:auto; border:3px solid var(--ink); background:var(--navy); color:var(--white); padding:12px 16px; font-family:ui-monospace,Menlo,monospace; font-size:14px; line-height:1.5}
+#s6 .receipt .k{color:var(--cyan)} #s6 .receipt .ok{color:var(--lime)} #s6 .receipt .o{color:var(--orange-3)}
+#s6 .cue{position:absolute; left:96px; right:96px; bottom:54px; display:flex; justify-content:space-between; align-items:center; gap:16px}
+#s6 .cue .live{font-family:var(--silk); font-weight:700; font-size:16px; letter-spacing:.5px; background:var(--magenta); color:var(--white); border:3px solid var(--ink); box-shadow:4px 4px 0 var(--ink); padding:8px 14px}
+#s6 .tagdemo{font-family:var(--silk); font-size:13px; color:rgba(255,255,255,.9); letter-spacing:.3px}
+
+/* ---------- slide 7 ---------- */
+#s7 .grid{display:grid; grid-template-columns:repeat(4,1fr); gap:22px; margin-bottom:22px}
+#s7 .grid .card{padding:18px 20px}
+#s7 .grid .lab{font-family:var(--silk); font-weight:700; font-size:15px; color:var(--mute); letter-spacing:.5px}
+#s7 .grid .big{font-size:44px; margin:10px 0 8px}
+#s7 .grid .big.o{color:var(--orange)}
+#s7 .grid p{font-size:15.5px; line-height:1.35}
+#s7 .vs{display:grid; grid-template-columns:1fr 1fr; gap:22px}
+#s7 .bar{height:34px; border:3px solid var(--ink); background:var(--paper); position:relative; overflow:hidden; margin-top:10px}
+#s7 .bar i{position:absolute; left:0; top:0; bottom:0; width:0; background:var(--orange); transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
+#s7 .bar.ctrl i{background:#B8BFDA}
+#s7 .bar span{position:absolute; left:10px; top:0; bottom:0; display:flex; align-items:center; font-family:var(--silk); font-weight:700; font-size:15px; color:var(--ink); letter-spacing:.5px}
+.slide.active #s7-b1 i{width:83.3%} .slide.active #s7-b2 i{width:0%}
+#s7 .fine{margin-top:18px; font-size:16px; color:rgba(255,255,255,.92); line-height:1.4}
+#s7 .fine code{font-family:ui-monospace,Menlo,monospace; background:rgba(10,18,88,.6); padding:2px 6px; color:var(--white)}
+
+/* ---------- slide 8 ---------- */
+#s8 .states{display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-bottom:24px}
+#s8 .states .card{min-height:260px}
+#s8 .st{display:flex; align-items:center; gap:12px; margin-bottom:10px}
+#s8 .rec{font-family:ui-monospace,Menlo,monospace; font-size:14.5px; background:var(--paper); border:2px solid var(--ink); padding:8px 10px; margin:10px 0; line-height:1.4}
+#s8 .rec .k{color:var(--mute)} #s8 .rec .sig{color:#1B7A2B; font-weight:700} #s8 .rec .unsig{color:var(--red); font-weight:700}
+#s8 .verdict{font-family:var(--silk); font-weight:700; font-size:16px; letter-spacing:.3px}
+#s8 .tamper{display:grid; grid-template-columns:1fr 1fr; gap:24px}
+#s8 .tamper .card p{font-size:17px}
+
+/* ---------- slide 9 ---------- */
+#s9 table{width:100%; border-collapse:separate; border-spacing:0; background:var(--white); border:4px solid var(--ink); box-shadow:8px 8px 0 var(--ink); font-size:15.5px}
+#s9 th,#s9 td{padding:7px 12px; border-bottom:2px solid #DDE3F5; text-align:center; vertical-align:middle}
+#s9 th{font-family:var(--silk); font-weight:700; font-size:13px; letter-spacing:.5px; background:var(--navy); color:var(--white)}
+#s9 td:first-child,#s9 th:first-child{text-align:left}
+#s9 td:first-child{font-weight:700}
+#s9 td .sub,#s9 th .sub{display:block; font-weight:400; font-size:12.5px; color:var(--mute)}
+#s9 tr:last-child td{border-bottom:0}
+#s9 tr.us td{background:#FFF3E5}
+#s9 tr.us td:first-child{color:var(--orange)}
+#s9 .y{color:#1B7A2B; font-family:var(--pix); font-size:15px} #s9 .y small{font-family:var(--silk); font-size:13px; font-weight:700; display:block} #s9 .n{color:var(--red); font-family:var(--pix); font-size:16px} #s9 .p{color:#B8860B; font-family:var(--silk); font-weight:700; font-size:14px}
+#s9 .below{display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:20px}
+#s9 .below .card{padding:16px 22px} #s9 .below .card h3{font-size:19px} #s9 .below .card p{font-size:15.5px; line-height:1.35}
+
+/* ---------- slide 10 ---------- */
+#s10 .top{display:grid; grid-template-columns:1.25fr 1fr; gap:28px; margin-bottom:22px}
+#s10 .road{display:grid; grid-template-columns:repeat(4,1fr); gap:0}
+#s10 .road .rs{padding:0 10px 0 0; position:relative}
+#s10 .road .rs .n{width:44px;height:44px; display:grid; place-items:center; font-family:var(--pix); font-size:16px; background:var(--yellow); border:3px solid var(--ink); box-shadow:3px 3px 0 var(--ink); margin-bottom:10px}
+#s10 .road .rs:last-child .n{background:var(--orange); color:var(--white)}
+#s10 .road .rs h4{font-family:var(--silk); font-weight:700; font-size:16px; margin:0 0 6px; letter-spacing:.3px}
+#s10 .road .rs p{font-size:14.5px; line-height:1.35; margin:0}
+#s10 .ask{background:var(--orange); color:var(--white); border-color:var(--ink); box-shadow:8px 8px 0 var(--ink)}
+#s10 .ask h3{color:var(--white); font-size:20px}
+#s10 .ask p{font-size:18px}
+#s10 .ask code{font-family:var(--silk); font-weight:700; color:var(--ink); background:var(--white); padding:2px 6px; font-size:15px}
+#s10 .scope{font-family:var(--silk); font-size:13.5px; color:rgba(255,255,255,.9); letter-spacing:.3px; margin-top:12px}
+#s10 .team{display:grid; grid-template-columns:repeat(5,1fr); gap:16px}
+#s10 .team .card{padding:14px 16px; text-align:center}
+#s10 .team .av{width:56px;height:56px; margin:0 auto 10px; border:3px solid var(--ink); background:var(--sky-2); display:grid; place-items:center; font-family:var(--pix); font-size:18px; color:var(--navy); box-shadow:3px 3px 0 var(--ink)}
+#s10 .team h4{font-size:16px; margin:0 0 4px; line-height:1.25}
+#s10 .team p{font-size:13.5px; color:var(--mute)}
+#s10 .close{margin-top:18px; font-family:var(--silk); font-weight:700; font-size:26px; color:var(--white); text-shadow:3px 3px 0 rgba(0,0,0,.3); text-align:center}
+#s10 .close b{color:var(--yellow)}
+
+/* ---------- pixel decorations ---------- */
+.deco{position:absolute; font-size:44px; filter:drop-shadow(4px 4px 0 rgba(0,0,0,.25)); pointer-events:none}
+.pxarrow{position:absolute; width:0;height:0; pointer-events:none}
+
+/* ---------- print ---------- */
+@media print{
+  body{overflow:visible; background:var(--sky)}
+  #viewport{position:static; display:block}
+  #stage{transform:none !important; width:1600px; height:auto}
+  .slide{position:relative; opacity:1 !important; visibility:visible !important; transform:none !important; height:900px; page-break-after:always; break-after:page; background:radial-gradient(rgba(255,255,255,.28) 1.2px, transparent 1.8px) 0 0/16px 16px, radial-gradient(120% 90% at 20% 0%, #6FD0FF 0%, var(--sky) 45%, var(--sky-3) 100%)}
+  .stagger > *{opacity:1 !important; transform:none !important}
+  #timer,#help,.brand-tl,.brand-tr,.foot{display:none !important}
+  @page{size:1600px 900px; margin:0}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important; transition:none !important}
+}
+</style>
+</head>
+<body>
+<div id="viewport">
+<div id="stage">
+
+<!-- ===== chrome ===== -->
+<div class="brand-tl">
+  <svg viewBox="0 0 561 540" aria-hidden="true"><defs><linearGradient id="lg" x1="128" y1="203" x2="515" y2="540" gradientUnits="userSpaceOnUse"><stop stop-color="#FF8D31"/><stop offset="1" stop-color="#FFC27B"/></linearGradient></defs><path d="M495 356l60 30c8 4 8 15 0 19L290 538c-6 3-13 3-19 0L6 405c-8-4-8-15 0-19l60-30 186 93c18 9 39 9 57 0l186-93zM271 2c6-3 13-3 19 0l265 133c8 4 8 15 0 19L290 286c-6 3-13 3-19 0L6 154c-8-4-8-15 0-19L271 2z" fill="url(#lg)"/><path d="M495 231l60 30c8 4 8 15 0 19L290 412c-6 3-13 3-19 0L6 280c-8-4-8-15 0-19l60-30 186 93c18 9 39 9 57 0l186-93z" fill="#FF7A00"/></svg>
+  BondLayer
+</div>
+<div class="brand-tr"><span class="badge uavs">UAVS HACKATHON 2026</span><span class="badge">FPT AUSTRALASIA · B2A</span></div>
+<div class="foot"><span class="t" id="foot-t"></span><span id="counter"></span></div>
+<div id="timer">10:00</div>
+<div id="help">← → space · T timer · R reset · P pause · S switch · F fullscreen · H help</div>
+
+<!-- ===== 1 · TITLE ===== -->
+<section class="slide" id="s1" data-t="0:00–0:30">
+  <div class="title-wrap">
+    <div class="megaphone"><span class="ic">📣</span> GALA PITCH · THE B2A SHIFT</div>
+    <h1 class="h1">BondLayer<span class="line2 navy">for AI shopping agents</span></h1>
+    <p class="slogan">&lt;IN A ROOM FULL OF AGENTS, WE BUILD <b>THE THING AGENTS READ</b>/&gt;</p>
+    <p class="sub">A merchant-side layer that makes a retailer's real offer — returns, warranty, repairs, member value — legible and <b>verifiable</b> to the machine doing the buying.</p>
+  </div>
+  <svg class="logo" viewBox="0 0 561 540" aria-label="BondLayer logo"><defs><linearGradient id="lg2" x1="128" y1="203" x2="515" y2="540" gradientUnits="userSpaceOnUse"><stop stop-color="#FF8D31"/><stop offset="1" stop-color="#FFC27B"/></linearGradient></defs><path d="M495 356l60 30c8 4 8 15 0 19L290 538c-6 3-13 3-19 0L6 405c-8-4-8-15 0-19l60-30 186 93c18 9 39 9 57 0l186-93zM271 2c6-3 13-3 19 0l265 133c8 4 8 15 0 19L290 286c-6 3-13 3-19 0L6 154c-8-4-8-15 0-19L271 2z" fill="url(#lg2)"/><path d="M495 231l60 30c8 4 8 15 0 19L290 412c-6 3-13 3-19 0L6 280c-8-4-8-15 0-19l60-30 186 93c18 9 39 9 57 0l186-93z" fill="#FF7A00"/></svg>
+  <div class="meta">
+    <span class="pill y">TEAM BONDLAYER · UNIVERSITY OF WOLLONGONG</span>
+    <span class="pill">MERCHANT-SIDE · UCP + SIGNED EXTENSION</span>
+    <span class="pill o">LIVE DEMO INSIDE</span>
+  </div>
+  <span class="deco" style="right:130px; bottom:170px">⚡</span>
+</section>
+
+<!-- ===== 2 · THE CUSTOMER IS A MACHINE ===== -->
+<section class="slide" id="s2" data-t="0:30–1:15">
+  <p class="kicker w">01 · THE SHIFT</p>
+  <h2 class="h2">Your next customer <span class="navy">is a machine</span></h2>
+  <p class="lead">Shoppers are handing the comparing to an agent. The agent does not see your storefront — it reads structured data, checks facts, and executes on the shopper's constraints.</p>
+  <div class="stats stagger">
+    <div class="card"><div style="display:flex;gap:16px;align-items:center"><div class="icon lime">🇦🇺</div><div><div class="big" style="color:var(--navy)">44%</div><p>of Australian businesses are already <b>advocates</b> of agentic commerce.</p></div></div><p class="tag" style="margin-top:10px">Australia Post eCommerce Report 2026</p></div>
+    <div class="card"><div style="display:flex;gap:16px;align-items:center"><div class="icon blue">🛠️</div><div><div class="big" style="color:var(--navy)">85%</div><p>are <b>preparing</b> for it. The buyer's side is moving first.</p></div></div><p class="tag" style="margin-top:10px">Australia Post eCommerce Report 2026</p></div>
+  </div>
+  <p class="code" style="margin:0 0 12px">&lt;WHAT A MACHINE HITS ON A SITE BUILT FOR HUMANS/&gt;</p>
+  <div class="machine stagger">
+    <div class="card"><div class="icon pink" style="margin-bottom:8px">🧩</div><h3>CAPTCHAs</h3><p>Built to stop exactly the visitor that is now your buyer.</p></div>
+    <div class="card"><div class="icon purple" style="margin-bottom:8px">🪟</div><h3>Pop-ups &amp; modals</h3><p>Interruptions that mean nothing without eyes.</p></div>
+    <div class="card"><div class="icon yellow" style="margin-bottom:8px">📄</div><h3>Policy prose</h3><p>Returns, warranty, repairs live in PDFs an agent cannot weigh.</p></div>
+    <div class="card orange"><div class="icon orange" style="margin-bottom:8px">❓</div><h3>Unverifiable claims</h3><p>"Best warranty in Australia" — says who? An agent has no way to check.</p></div>
+  </div>
+</section>
+
+<!-- ===== 3 · WHAT AGENTS CAN'T READ ===== -->
+<section class="slide" id="s3" data-t="1:15–2:00">
+  <p class="kicker w">02 · THE PROBLEM</p>
+  <h2 class="h2">Half the request <span class="navy">has no column</span></h2>
+  <p class="query">"A laptop <b>under $1,500</b> I can <b>return easily</b> if it turns out not to suit my work, from a brand that <b>actually repairs things</b>."</p>
+  <div class="clauses stagger">
+    <div class="clause"><span class="pill c">HARD</span><div><div class="q">under $1,500</div><div class="ev yes">✓ catalogue attribute: shelf_price</div></div></div>
+    <div class="clause"><span class="pill g">SOFT</span><div><div class="q">suits my work</div><div class="ev yes">✓ catalogue attribute: ram_gb · weight_kg</div></div></div>
+    <div class="clause"><span class="pill m">SERVICE</span><div><div class="q">return easily</div><div class="ev no">← no catalogue attribute answers this</div></div></div>
+    <div class="clause"><span class="pill y">VALUES</span><div><div class="q">brand that actually repairs things</div><div class="ev no">← no catalogue attribute answers this</div></div></div>
+  </div>
+  <div class="zero">
+    <div class="big"><span class="cnt" data-to="0">0</span>/18</div>
+    <p>On our frozen 30-request set, a plain product feed answers <b>none</b> of the 18 service &amp; values clauses. Price and RAM every team will handle. The clauses that decide loyalty are invisible — or, worse, guessed.</p>
+  </div>
+  <span class="deco" style="right:120px; top:110px">👾</span>
+</section>
+
+<!-- ===== 4 · BONDLAYER ===== -->
+<section class="slide" id="s4" data-t="2:00–2:45">
+  <p class="kicker w">03 · THE SOLUTION</p>
+  <h2 class="h2">BondLayer: <span class="navy">publish · prove · decode</span></h2>
+  <p class="defn">A merchant-side layer that serves the catalogue as <code>UCP</code> already expects it — plus a signed extension, <code>org.bondlayer.benefit_value</code>, that turns policy prose into typed, verifiable, priced records on the same call an agent already makes. <b style="color:var(--yellow)">Nothing is installed on the agent side.</b></p>
+  <div class="pillars stagger">
+    <div class="card"><div class="top"><div class="icon blue">🔌</div><h3>PUBLISH</h3></div><p>Speak the Universal Commerce Protocol out of the box. Catalogue CSV in → normalised, agent-ready <span class="mono">catalog.search</span> / <span class="mono">lookup</span> out. Capability negotiation: an agent that doesn't know us gets plain, conformant UCP.</p></div>
+    <div class="card orange"><div class="top"><div class="icon orange">🔏</div><h3>PROVE</h3></div><p>Returns, warranty, repairs, member value become <b>signed records</b> (ES256 over canonical JSON) with a declared value ceiling. Unsigned claims are shown — and never credited. Keys published in <span class="mono">/.well-known/ucp</span>.</p></div>
+    <div class="card"><div class="top"><div class="icon lime">🧠</div><h3>DECODE</h3></div><p>An intent interpreter splits the shopper's sentence into HARD / SOFT / SERVICE / VALUES clauses and justifies each one against an attribute or a verified record — or says honestly that nothing answers it.</p></div>
+  </div>
+  <div class="strip">
+    <span class="pill">NOT A SHOPPING ASSISTANT — MERCHANT SIDE ONLY</span>
+    <span class="pill">CONTROL = SAME SERVER, EXTENSION OFF</span>
+    <span class="pill o">THE SHOPPER'S POLICY NEVER LEAVES THE AGENT</span>
+  </div>
+</section>
+
+<!-- ===== 5 · HOW IT WORKS ===== -->
+<section class="slide" id="s5" data-t="2:45–3:30">
+  <p class="kicker w">04 · HOW IT WORKS · BUILT AGAINST FPT'S FIVE-STEP DESIRED OUTCOME</p>
+  <h2 class="h2">Receive → decode → analyse <span class="navy">→ return → close</span></h2>
+  <div class="pipe stagger">
+    <div class="step us"><div class="n">1</div><h3>RECEIVE</h3><div class="card"><p>The agent's multi-constraint query arrives over UCP. With <b>intent_match</b> negotiated, the merchant receives the utterance verbatim on its own wire.</p><span class="m">POST /{merchant}/ucp/intent/propose</span></div></div>
+    <div class="step us"><div class="n">2</div><h3>DECODE</h3><div class="card"><p>Deterministic parser → typed constraints. Four kinds; the bottom two have no catalogue column and must resolve against records.</p><span class="m">interpreter/parser.py · describe.py</span></div></div>
+    <div class="step us"><div class="n">3</div><h3>ANALYSE</h3><div class="card"><p>Resolver cites one attribute or one <b>verified</b> record per clause. Bundler composes sets ("everything to start a podcast" → 5 items, one rationale).</p><span class="m">interpreter/resolver.py · bundle/compose.py</span></div></div>
+    <div class="step us"><div class="n">4</div><h3>RETURN</h3><div class="card"><p>Not a SKU list — a proposal with a reason per line, an honest <b>unsatisfied</b> list, and signed evidence the agent can re-verify and cache.</p><span class="m">proposals[].resolved · extensions</span></div></div>
+    <div class="step us"><div class="n">5</div><h3>CLOSE</h3><div class="card"><p>Agent checks out the winner citing the records it relied on; merchant re-verifies and binds the honoured ones into the order. Payment out of scope.</p><span class="m">POST /{merchant}/ucp/checkout</span></div></div>
+  </div>
+  <div class="note">
+    <span class="pill">AGENT SIDE KEEPS: VALUATION · WEIGHTS · CROSS-MERCHANT RANKING</span>
+    <span class="pill o">MERCHANT SIDE GETS: THE QUESTION, NEVER THE POLICY</span>
+    <span class="pill grey">NO MODEL ON ANY DECISION PATH</span>
+  </div>
+</section>
+
+<!-- ===== 6 · DEMO: THE FLIP ===== -->
+<section class="slide" id="s6" data-t="3:30–4:15 · then LIVE 4:15–7:15">
+  <p class="kicker w">05 · DEMO · SAME QUERY, SAME SERVER, ONE SWITCH</p>
+  <h2 class="h2" style="margin-bottom:18px">Watch the ranking <span class="navy">flip</span></h2>
+  <div class="demo">
+    <div class="panel">
+      <div class="switch-wrap">
+        <div class="switch" id="sw" role="switch" aria-checked="false" tabindex="0"><div class="knob"></div><span class="lab l">CONTROL</span><span class="lab r">BONDLAYER</span></div>
+        <span class="tag">press S or click</span>
+      </div>
+      <div class="hdr">UCP-Agent: dev.ucp.shopping.catalog.search;<br>dev.ucp.shopping.catalog.lookup;<span class="ext off" id="hdr-ext">org.bondlayer.benefit_value</span></div>
+      <p class="utt">"A laptop under $1,500 I can return easily if it turns out not to suit my work, from a brand that actually repairs things."</p>
+      <div class="cl"><span class="pill c">HARD</span><div><div class="q">under $1,500</div><div class="ev yes">✓ attribute shelf_price ≤ 1500</div></div></div>
+      <div class="cl"><span class="pill g">SOFT</span><div><div class="q">suits my work</div><div class="ev yes">✓ attribute ram_gb · weight_kg (ordering signal)</div></div></div>
+      <div class="cl"><span class="pill m">SERVICE</span><div><div class="q">return easily</div><div class="ev no" id="ev-service">← no catalogue attribute answers this</div></div></div>
+      <div class="cl"><span class="pill y">VALUES</span><div><div class="q">brand that actually repairs things</div><div class="ev no" id="ev-values">← no catalogue attribute answers this</div></div></div>
+      <div class="sum deg" id="sum">[resolve: degraded] 2 of 4 constraints answered; 0 answered only by a verified record.</div>
+    </div>
+    <div class="panel">
+      <div class="rank" id="rank">
+        <div class="rk" id="rk-cit"><div class="pos">1</div><div class="who"><b>CITYCIRCUIT</b> · 14" i5 laptop <span class="sku">CIT-0032</span><br><span class="tag">control merchant · plain feed</span></div><div class="price"><div class="shelf">shelf $1,066.00</div><div class="eff">$1,066.00</div></div><div class="why" id="why-cit">Cheapest shelf price that passes the HARD filter. No records published — nothing to credit, nothing to cite.</div></div>
+        <div class="rk" id="rk-vol"><div class="pos">2</div><div class="who"><b>VOLTWAY</b> · 14" laptop <span class="sku">VOL-0031</span><br><span class="tag">BondLayer merchant</span></div><div class="price"><div class="shelf" id="vol-shelf">shelf $1,142.96</div><div class="eff" id="vol-eff">$1,142.96</div></div><div class="why" id="why-vol">Passes HARD + SOFT. Never the cheapest shelf price anywhere in the catalogue.</div></div>
+        <div class="rk dim"><div class="pos">3</div><div class="who"><b>+10 MORE</b> listings across NorthGear, CityCircuit, Voltway<br><span class="tag">12 candidates pass the price filter</span></div><div class="price"><div class="shelf">ranked below</div></div></div>
+      </div>
+      <div class="receipt" id="receipt"><span class="k">close the loop</span> → POST /citycircuit/ucp/checkout<br>CIT-0032 · plain UCP order · <span class="o">binds no records</span> · payment: out_of_scope</div>
+    </div>
+  </div>
+  <div class="cue">
+    <span class="tagdemo">DEMO · replay of <span class="mono">trace_run.py</span> R01 · synthetic 148-SKU catalogue · frozen-run figures</span>
+    <span class="live">▶ NOW CUT TO THE LIVE APP · buyer-agent :8001 · /console · ≈3:00</span>
+  </div>
+</section>
+
+<!-- ===== 7 · PROOF ===== -->
+<section class="slide" id="s7" data-t="7:15–7:55">
+  <p class="kicker w">06 · PROOF · 30 REQUESTS, FROZEN BEFORE THE FEED EXISTED</p>
+  <h2 class="h2">Measured, <span class="navy">not asserted</span></h2>
+  <div class="grid stagger">
+    <div class="card orange"><div class="lab">SERVICE + VALUES CLAUSES ANSWERED</div><div class="big pix o"><span class="cnt" data-to="15">0</span>/18</div><p>vs <b>0/18</b> for the same server with the extension off. The whole gap is in the clauses no export has a column for.</p></div>
+    <div class="card"><div class="lab">CITATION PRECISION</div><div class="big pix"><span class="cnt" data-to="154">0</span>/154</div><p>Every evidence id the system cites exists and verifies. The runner exits non-zero if this ever drops below 1.00.</p></div>
+    <div class="card"><div class="lab">DECODE · PRECISION / RECALL</div><div class="big pix" style="font-size:30px; white-space:nowrap">0.91 / 0.97</div><p><b>22/30</b> perfect decodes against human-labelled clauses. Misses are reported, not fixed around.</p></div>
+    <div class="card"><div class="lab">GOLD RECALL</div><div class="big pix">0.99</div><p>Hard precision 0.875 — the losses are bundle requests, where the right answer is a set, and one request naming no category.</p></div>
+  </div>
+  <div class="vs">
+    <div class="card"><h3>BONDLAYER · extension on</h3><div class="bar" id="s7-b1"><i></i><span>15 / 18 · 83%</span></div></div>
+    <div class="card paper"><h3>CONTROL · same code, extension off</h3><div class="bar ctrl" id="s7-b2"><i></i><span>0 / 18 · 0% — reported honestly as unsatisfied</span></div></div>
+  </div>
+  <p class="fine">Deterministic and offline: no model, no network, no clock, no seed. Reproduce with <code>cd bondlayer && pip install -e '.[dev]' && pytest -q && python scripts/eval_run.py</code> · 270+ tests · one command from a clean clone. Bundles: "everything to start a podcast" → 5 items, 5/5 in gold, $723.08 all up.</p>
+</section>
+
+<!-- ===== 8 · TRUST ===== -->
+<section class="slide" id="s8" data-t="7:55–8:30">
+  <p class="kicker w">07 · TRUST · WHY AN AGENT CAN BELIEVE US</p>
+  <h2 class="h2">Signed is cited. <span class="navy">Unsigned earns nothing.</span></h2>
+  <div class="states stagger">
+    <div class="card orange"><div class="st"><div class="icon orange">✅</div><h3>SIGNED + PRICED</h3></div><div class="rec"><span class="k">id</span> vw-returns-60<br><span class="k">type</span> free_returns · 60 days<br><span class="k">ceiling</span> AUD (declared)<br><span class="k">sig</span> <span class="sig">ES256 ✓ verifies</span></div><p class="verdict">→ CITED and CREDITED — capped by the shopper's own policy value</p></div>
+    <div class="card"><div class="st"><div class="icon yellow">🌱</div><h3>SIGNED + UNPRICED</h3></div><div class="rec"><span class="k">id</span> vw-repairability-parts-5y<br><span class="k">type</span> repairability (values)<br><span class="k">ceiling</span> none — by design<br><span class="k">sig</span> <span class="sig">ES256 ✓ verifies</span></div><p class="verdict">→ CITED as evidence, worth exactly $0. Ethics do not convert to dollars.</p></div>
+    <div class="card paper"><div class="st"><div class="icon pink">🚫</div><h3>UNSIGNED</h3></div><div class="rec"><span class="k">id</span> ng-sustainability-claim<br><span class="k">type</span> sustainability<br><span class="k">claim</span> "most sustainable phone"<br><span class="k">sig</span> <span class="unsig">none</span></div><p class="verdict">→ DISPLAYED, never cited, never credited. Cannot win request R12.</p></div>
+  </div>
+  <div class="tamper stagger">
+    <div class="card navy"><h3>🧪 TAMPER TESTS, NOT SLIDES</h3><p>Inflate an unsigned claim → ranking does not move. Inflate a signed ceiling to $9,999 → still only a ceiling; the shopper's policy caps it. Tamper one byte of a signed record → verify fails. All three run in <span class="mono">tests/test_invariants.py</span>.</p></div>
+    <div class="card"><h3>🔒 WHAT NEVER CROSSES THE WIRE</h3><p>The shopper's valuation policy, benefit weights and the cross-merchant comparison stay in the agent. Send a <span class="mono">shopper_policy</span> field to checkout and the merchant answers <b>422</b> — refused, not silently read. No PII; synthetic member data only.</p></div>
+  </div>
+</section>
+
+<!-- ===== 9 · MARKET ===== -->
+<section class="slide" id="s9" data-t="8:30–9:10">
+  <p class="kicker w">08 · MARKET · WHERE THIS SITS</p>
+  <h2 class="h2">Others transport. <span class="navy">We verify and value.</span></h2>
+  <table>
+    <thead><tr><th>Approach</th><th>Journey stage</th><th>Machine-readable</th><th>Signed / verifiable</th><th>Valued under shopper's policy</th><th>Service facts<span class="sub" style="color:rgba(255,255,255,.75)">warranty · returns · repairs</span></th><th>Any stack</th></tr></thead>
+    <tbody>
+      <tr><td>schema.org rich snippets<span class="sub">MerchantReturnPolicy, ShippingDeliveryTime</span></td><td>Discovery</td><td class="y">✓</td><td class="n">✗</td><td class="n">✗</td><td class="p">PARTIAL</td><td class="y">✓</td></tr>
+      <tr><td>Shopify agentic storefront<span class="sub">platform-native feeds &amp; checkout</span></td><td>Discovery → checkout</td><td class="y">✓</td><td class="n">✗</td><td class="n">✗</td><td class="n">✗</td><td class="n">✗</td></tr>
+      <tr><td>Talon.One UIP<span class="sub">loyalty &amp; promotions via MCP / UCP ext.</span></td><td>Discovery · incentives</td><td class="y">✓</td><td class="n">✗</td><td class="n">✗</td><td class="n">✗</td><td class="n">✗</td></tr>
+      <tr><td>UCP Identity Linking<span class="sub">OAuth account linking</span></td><td>Checkout, after choice</td><td class="y">✓</td><td class="p">TRANSPORT</td><td class="n">✗</td><td class="n">✗</td><td class="y">✓</td></tr>
+      <tr><td>Raw UCP<span class="sub">catalog + checkout, no extension</span></td><td>Discovery → checkout</td><td class="y">✓</td><td class="p">TRANSPORT</td><td class="n">✗</td><td class="n">✗</td><td class="y">✓</td></tr>
+      <tr class="us"><td>BondLayer<span class="sub">UCP + org.bondlayer.benefit_value</span></td><td>Comparison → checkout</td><td class="y">✓</td><td class="y">✓<small>OBJECT-LEVEL ES256</small></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+    </tbody>
+  </table>
+  <div class="below stagger">
+    <div class="card"><h3>🎯 WHO IT IS FOR</h3><p>Mid-market retailers with a catalogue export and a policy PDF, no integration team, and a loyalty program now judged by a decision-maker it was never built to persuade. Our adapter already ingests real public policy pages as sourced fixtures (e.g. a national electronics retailer's returns policy) — no scores claimed on them yet.</p></div>
+    <div class="card orange"><h3>🚚 HOW IT REACHES THEM</h3><p>Through systems integrators already inside retail transformation work — FPT's retail delivery practice first — then e-commerce agencies, then a UCP platform listing once the extension has adoption evidence behind it.</p></div>
+  </div>
+</section>
+
+<!-- ===== 10 · ROADMAP · ASK · TEAM ===== -->
+<section class="slide" id="s10" data-t="9:10–10:00">
+  <p class="kicker w">09 · ROADMAP · THE ASK · THE TEAM</p>
+  <h2 class="h2" style="margin-bottom:18px">From prototype <span class="navy">to protocol</span></h2>
+  <div class="top">
+    <div class="card">
+      <div class="road stagger">
+        <div class="rs"><div class="n">1</div><h4>SHADOW PILOT</h4><p>One mid-market electronics retailer, shadow mode: measure legible share &amp; credited value per request.</p></div>
+        <div class="rs"><div class="n">2</div><h4>CONFORMANCE</h4><p>Certify against the UCP conformance suite; key rotation, expiry and audit hardened.</p></div>
+        <div class="rs"><div class="n">3</div><h4>AGENT SDK</h4><p>Open valuation library so a sceptical agent re-derives every credited figure itself.</p></div>
+        <div class="rs"><div class="n">4</div><h4>UPSTREAM</h4><p>Propose the benefit extension to UCP as an open contribution once real merchants have exercised it.</p></div>
+      </div>
+      <p class="scope" style="color:var(--mute); margin-top:16px">DELIBERATELY OUT OF SCOPE: real payment · negotiation / counter-offer protocol · live merchant integration · 100+ request eval (we ship 30, frozen, and say so)</p>
+    </div>
+    <div class="card ask"><h3>🙏 THE ASK</h3><p>Back us to take <code>org.bondlayer.benefit_value</code> <b>upstream to the UCP Tech Council</b> — the durable answer to two-sided adoption. FPT's retail practice as the first integrator that carries it into a client engagement.</p></div>
+  </div>
+  <div class="team stagger">
+    <div class="card"><div class="av">NP</div><h4>Thanh Nha Phan</h4><p>Product Manager</p></div>
+    <div class="card"><div class="av">HN</div><h4>Hoang Manh Nguyen</h4><p>Software Engineer</p></div>
+    <div class="card"><div class="av">HT</div><h4>Minh Hieu Tran</h4><p>ML Engineer</p></div>
+    <div class="card"><div class="av">BL</div><h4>Thanh Bach Ly</h4><p>Software Engineer</p></div>
+    <div class="card"><div class="av">MT</div><h4>Ha Anh Minh Truong</h4><p>UX/UI Designer</p></div>
+  </div>
+  <p class="close">&lt;IN A ROOM FULL OF AGENTS, WE ARE BUILDING <b>THE THING AGENTS READ</b>/&gt; · UNIVERSITY OF WOLLONGONG</p>
+</section>
+
+</div><!-- /stage -->
+</div><!-- /viewport -->
+
+<script>
+(function(){
+  const slides=[...document.querySelectorAll('.slide')];
+  const stage=document.getElementById('stage');
+  const counter=document.getElementById('counter');
+  const footT=document.getElementById('foot-t');
+  let i=0;
+
+  /* ---- scale 1600x900 stage to viewport ---- */
+  function fit(){
+    const s=Math.min(innerWidth/1600, innerHeight/900);
+    stage.style.transform=`scale(${s})`;
+  }
+  addEventListener('resize',fit); fit();
+
+  /* ---- navigation ---- */
+  function show(n, dir){
+    n=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>{ s.classList.toggle('active',k===n); s.classList.toggle('prev',k<n); });
+    i=n; location.hash='#'+(n+1);
+    counter.textContent=`${String(n+1).padStart(2,'0')} / ${String(slides.length).padStart(2,'0')}`;
+    footT.textContent='⏱ '+(slides[n].dataset.t||'');
+    runCounters(slides[n]);
+  }
+  function runCounters(slide){
+    slide.querySelectorAll('.cnt').forEach(el=>{
+      const to=+el.dataset.to; const t0=performance.now(); const dur=900;
+      (function tick(now){ const p=Math.min(1,(now-t0)/dur); const e=1-Math.pow(1-p,3); el.textContent=Math.round(to*e); if(p<1) requestAnimationFrame(tick); })(t0);
+    });
+  }
+  const start=parseInt((location.hash||'#1').slice(1),10)||1;
+  show(start-1);
+
+  /* ---- timer ---- */
+  const timer=document.getElementById('timer');
+  let tOn=false, tRun=false, tLeft=600, tid=null, tStart=0, tBase=600;
+  function paint(){
+    const m=Math.floor(tLeft/60), s=Math.floor(tLeft%60);
+    timer.textContent=`${m}:${String(s).padStart(2,'0')}`;
+    timer.classList.toggle('amber', tLeft<=90 && tLeft>30);
+    timer.classList.toggle('red', tLeft<=30);
+  }
+  function tickT(){ tLeft=Math.max(0, tBase-(performance.now()-tStart)/1000); paint(); if(tLeft<=0){clearInterval(tid); tRun=false;} }
+  function startT(){ if(tRun) return; tRun=true; tStart=performance.now(); tBase=tLeft; tid=setInterval(tickT,250); }
+  function pauseT(){ if(!tRun) return; tRun=false; clearInterval(tid); }
+  function resetT(){ pauseT(); tLeft=600; paint(); }
+  paint();
+
+  /* ---- demo switch ---- */
+  const sw=document.getElementById('sw');
+  const rank=document.getElementById('rank');
+  const rkCit=document.getElementById('rk-cit'), rkVol=document.getElementById('rk-vol');
+  let on=false;
+  function flip(state){
+    on=state;
+    sw.classList.toggle('on',on); sw.setAttribute('aria-checked',on);
+    document.getElementById('hdr-ext').classList.toggle('off',!on);
+    const evS=document.getElementById('ev-service'), evV=document.getElementById('ev-values'), sum=document.getElementById('sum');
+    if(on){
+      evS.textContent='✓ cited verified record vw-returns-60'; evS.className='ev yes';
+      evV.textContent='✓ cited verified record vw-repairability-parts-5y'; evV.className='ev yes';
+      sum.textContent='[resolve: ok] 4 of 4 constraints answered; 2 answered only by a verified record.'; sum.className='sum ok';
+      document.getElementById('vol-eff').textContent='$933.01';
+      document.getElementById('vol-shelf').textContent='shelf $1,142.96 → effective';
+      document.getElementById('why-vol').innerHTML='Signed records credited under the shopper\'s own policy: <span class="rec">vw-returns-60</span> · warranty · member price · delivery · points. Repairability cited, worth $0 by design.';
+      document.getElementById('why-cit').textContent='Still the cheapest shelf. Publishes no records — nothing to credit, so effective cost = shelf.';
+      document.getElementById('receipt').innerHTML='<span class="k">close the loop</span> → POST /voltway/ucp/checkout<br>VOL-0031 · confirmed_awaiting_payment · subtotal $1,142.96 · <span class="ok">6/6 cited records honoured</span> and bound into the order · payment: out_of_scope';
+    } else {
+      evS.textContent='← no catalogue attribute answers this'; evS.className='ev no';
+      evV.textContent='← no catalogue attribute answers this'; evV.className='ev no';
+      sum.textContent='[resolve: degraded] 2 of 4 constraints answered; 0 answered only by a verified record.'; sum.className='sum deg';
+      document.getElementById('vol-eff').textContent='$1,142.96';
+      document.getElementById('vol-shelf').textContent='shelf $1,142.96';
+      document.getElementById('why-vol').textContent='Passes HARD + SOFT. Never the cheapest shelf price anywhere in the catalogue.';
+      document.getElementById('why-cit').textContent='Cheapest shelf price that passes the HARD filter. No records published — nothing to credit, nothing to cite.';
+      document.getElementById('receipt').innerHTML='<span class="k">close the loop</span> → POST /citycircuit/ucp/checkout<br>CIT-0032 · plain UCP order · <span class="o">binds no records</span> · payment: out_of_scope';
+    }
+    // FLIP reorder
+    const first={cit:rkCit.getBoundingClientRect(), vol:rkVol.getBoundingClientRect()};
+    if(on){ rank.insertBefore(rkVol, rkCit); } else { rank.insertBefore(rkCit, rkVol); }
+    rkVol.classList.toggle('win',on); rkCit.classList.toggle('win',!on);
+    rkVol.querySelector('.pos').textContent=on?'1':'2'; rkCit.querySelector('.pos').textContent=on?'2':'1';
+    const sc=stage.getBoundingClientRect().width/1600;
+    [[rkCit,first.cit],[rkVol,first.vol]].forEach(([el,f])=>{
+      const l=el.getBoundingClientRect(); const dy=(f.top-l.top)/sc;
+      el.style.transition='none'; el.style.transform=`translateY(${dy}px)`;
+      requestAnimationFrame(()=>{ el.style.transition=''; el.style.transform=''; });
+    });
+  }
+  if(/[?&]on=1/.test(location.search)) setTimeout(()=>flip(true),50);
+  sw.addEventListener('click',()=>flip(!on));
+  sw.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault(); flip(!on);} });
+
+  /* ---- keys ---- */
+  const help=document.getElementById('help');
+  addEventListener('keydown',e=>{
+    if(e.metaKey||e.ctrlKey||e.altKey) return;
+    switch(e.key){
+      case 'ArrowRight': case 'PageDown': case ' ': case 'Enter': e.preventDefault(); show(i+1); break;
+      case 'ArrowLeft': case 'PageUp': case 'Backspace': e.preventDefault(); show(i-1); break;
+      case 'Home': show(0); break;
+      case 'End': show(slides.length-1); break;
+      case 't': case 'T': tOn=!tOn; timer.classList.toggle('on',tOn); if(tOn&&!tRun&&tLeft===600) startT(); break;
+      case 'p': case 'P': tRun?pauseT():startT(); break;
+      case 'r': case 'R': resetT(); break;
+      case 's': case 'S': flip(!on); if(i!==5) show(5); break;
+      case 'f': case 'F': document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen(); break;
+      case 'h': case 'H': case '?': help.classList.toggle('on'); break;
+    }
+  });
+  addEventListener('hashchange',()=>{ const n=parseInt(location.hash.slice(1),10)-1; if(!isNaN(n)&&n!==i) show(n); });
+  // click / tap navigation (right half forward, left half back), ignoring the switch
+  stage.addEventListener('click',e=>{
+    if(e.target.closest('#sw')) return;
+    const r=stage.getBoundingClientRect();
+    (e.clientX-r.left)/r.width>0.5 ? show(i+1) : show(i-1);
+  });
+})();
+</script>
+</body>
+</html>
