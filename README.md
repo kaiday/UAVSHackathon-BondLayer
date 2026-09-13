@@ -388,11 +388,11 @@ proposal.
 
 ## Problem Setter input
 
-See [`docs/notes/PROBLEM-SETTER-NOTES.md`](docs/notes/PROBLEM-SETTER-NOTES.md) for the questions put
-to FPT in the 15:30 window, Ford's answers, and the concrete change each one caused. The
-adaptations made from the team's own re-reading of the full case study — ahead of and
-independent of that window — are recorded there too, since both count toward the Round 2
-"Adaptation & upgrade" criterion (10 points).
+The questions put to FPT in the 15:30 window, Ford's answers, the concrete change each one
+caused, and the adaptations made from the team's own re-reading of the full case study were
+recorded in `docs/notes/PROBLEM-SETTER-NOTES.md`. That note was removed from the tree in the
+13/09 cleanup and is kept in git history (`git show 074e51c:docs/notes/PROBLEM-SETTER-NOTES.md`);
+both count toward the Round 2 "Adaptation & upgrade" criterion (10 points).
 
 ## Deliberately not attempted
 
@@ -411,20 +411,18 @@ beats a larger one nobody on the team can defend in Q&A.
 bondlayer/          the product -- merchant-side UCP server, adapter, signed records,
                      valuation, intent interpreter, composition root, dashboard
 buyer-agent/         the buyer-agent stand-in used in the demo -- not the product
-docs/notes/          working notes: the Day 2 plan, pitch outline, architecture
-archive/             pre-hackathon reference material -- see below
+docs/notes/          working notes: the Day 2 plan and pitch outline
 docs/                problem statement, rulebook, team crosswalk, this README's sources
 scripts/             scripts/clean_clone_check.sh -- the clean-clone verification WS-C built
 run.sh, run.ps1      one command from a clean clone to the running demo
 ```
 
-`archive/pre-hackathon-spikes/` holds two Round 1 feasibility spikes, kept for reference
-only: `bach-demo/`, committed 02/09/2026, and `demo/`, committed 12/09/2026 at 09:45 — 45
-minutes after the 09:00 Hackathon code cutoff, and declared pre-work in its own `DECISIONS.md`
-rather than submission code. **No submitted code imports from either folder** — see
-`archive/README.md` for the grep that checks this and what each spike's specification, data
-design and demo-script ideas contributed, re-derived and re-implemented inside the
-competition window, to the product that actually shipped.
+Two Round 1 feasibility spikes used to sit in `archive/pre-hackathon-spikes/`: `bach-demo/`,
+committed 02/09/2026, and `demo/`, committed 12/09/2026 at 09:45 — 45 minutes after the
+09:00 Hackathon code cutoff, and declared pre-work in its own `DECISIONS.md` rather than
+submission code. **No submitted code imported from either folder.** Both, with
+`archive/README.md` (the grep that checked this and what each spike contributed), were removed
+from the tree in the 13/09 cleanup and remain in git history at commit `074e51c`.
 
 ## Team
 

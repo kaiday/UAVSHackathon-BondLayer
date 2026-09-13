@@ -9,6 +9,6 @@ Day 2 plan, rulings and workstream briefs: `docs/notes/DAY2-PLAN.md`
 
 The product is `bondlayer/` (merchant-side UCP server, adapter, signed records,
 dashboard). `buyer-agent/` is the buyer-agent stand-in used in the demo.
-`archive/pre-hackathon-spikes/` is Round 1 spike code kept for reference only;
-nothing submitted imports from it. Never edit `bondlayer/src/bondlayer/types.py`
+Round 1 spike code was removed from the tree on 13/09 (git history, commit
+`074e51c`); nothing submitted imported from it. Never edit `bondlayer/src/bondlayer/types.py`
 on a feature branch. No network calls at runtime.

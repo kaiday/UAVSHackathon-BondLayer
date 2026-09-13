@@ -4,7 +4,9 @@ Four different naming schemes have been used for the same five people across thi
 repository's documents: the handover's internal nicknames, the names submitted on the
 Round 1 `main.tex` (source of truth for registration), the Round 2 git branches, and the
 Day 1 `WORKPLAN.md` owner labels. This file is the crosswalk. If a document elsewhere
-names someone inconsistently, this file wins.
+names someone inconsistently, this file wins. (The handover, `WORKPLAN.md` and the Day 1
+progress notes cited below were removed from the tree in the 13/09 cleanup; they are in git
+history at commit `074e51c`.)
 
 ## The crosswalk
 
@@ -40,8 +42,8 @@ All five: University of Wollongong.
   §2 records that by 13:05 on Day 1 the actual work had moved: `feat/nguyen-ucp-head` became
   the dashboard, `feat/bach-records-signing` became the chat app, `feat/hieu-interpreter`
   became RAG/DAO before settling back onto the intent interpreter. The team's decision was to
-  leave the names as they were rather than rename mid-hackathon. `docs/notes/README.md` "Day 1
-  branches → what they became" is the authoritative map from branch to what it actually holds.
+  leave the names as they were rather than rename mid-hackathon. The Day 1 branches have since
+  been merged into `round2/dev` and deleted.
 
 ## Q&A card assignments, in the real names
 

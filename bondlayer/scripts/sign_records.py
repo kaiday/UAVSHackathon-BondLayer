@@ -1,6 +1,6 @@
 """Author, sign and publish the benefit records the merchants serve.
 
-This is the WORKPLAN's 14:30 fallback taken deliberately rather than in a
+This is the Day 1 work plan's 14:30 fallback taken deliberately rather than in a
 panic: a **curated** record set, authored against the policy prose, so that the
 interpreter and the comparison have something real to run on whether or not the
 converter lands. Every record below carries the sentence it came from in

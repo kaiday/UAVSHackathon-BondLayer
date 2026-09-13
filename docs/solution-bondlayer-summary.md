@@ -69,9 +69,9 @@ decision, and returns the same published facts to every caller.
 **This is a position, not an apology.** A publishing layer has no
 per-comparison latency budget, no real-time dependency at the moment of
 decision, and no privacy story to defend — because the merchant never learns it
-was compared. The agentic version is designed and deliberately deferred; see
-`archive/pre-hackathon-spikes/bach-demo/docs/deferred-retention-engine.md` for
-what it would cost (a Round 1 spike document, kept for reference; see
-`archive/README.md`).
+was compared. The agentic version is designed and deliberately deferred; what it
+would cost is written up in the Round 1 spike document
+`archive/pre-hackathon-spikes/bach-demo/docs/deferred-retention-engine.md`
+(removed from the tree on 13/09; in git history at commit `074e51c`).
 
 > In a room full of agents, we are building the thing agents read.

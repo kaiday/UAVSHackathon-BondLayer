@@ -27,7 +27,7 @@ spoken on stage only if it is in that file with a commit hash.
 
 ## Q&A drill cards
 
-Ten cards, carried over from `BondLayer_PROJECT_HANDOVER.md` §9 and rewritten for the
+Ten cards, carried over from the pre-hackathon handover §9 (git history, commit `074e51c`) and rewritten for the
 build that actually shipped: ES256 detached object signatures, not Ed25519; two
 applications (`bondlayer/` and `buyer-agent/`), not five surfaces; a 30-request frozen
 evaluation set, not the 100+ promised in the Round 1 proposal's Phase 4; and the 13:16
