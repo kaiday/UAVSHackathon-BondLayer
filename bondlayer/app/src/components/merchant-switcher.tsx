@@ -35,7 +35,7 @@ export function ComparisonStrip() {
   if (!data) return null;
 
   return (
-    <section className="metrics" aria-label="Merchant comparison">
+    <section className="metrics" aria-label="Merchant comparison" data-tour="comparison">
       {data.map((merchant) => (
         <article
           className={`metric ${merchant.merchant === selected ? "metric-selected" : ""}`}

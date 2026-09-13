@@ -32,7 +32,7 @@ export default function Home() {
       {report && (
         <>
           <section className="metrics" aria-label="Readiness detail">
-            <article className="metric">
+            <article className="metric" data-tour="readiness">
               <p>Agent readiness</p>
               <strong>{report.readiness}%</strong>
               <div className="metric-trend">
@@ -64,7 +64,7 @@ export default function Home() {
 
           <section className="dashboard-grid">
             <div className="dashboard-primary">
-              <article className="panel">
+              <article className="panel" data-tour="worst-first">
                 <div className="panel-heading">
                   <div>
                     <h2>Worst first</h2>
