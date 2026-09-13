@@ -424,12 +424,16 @@ Declared in full, as the rules require, so nothing here is an undisclosed depend
   namespaced under `org.bondlayer.*` rather than `dev.ucp.*` because `dev.ucp.*` is reserved
   for capabilities governed by the UCP Tech Council itself (`bondlayer/docs/stage1-agent-ready-catalog.md`
   §5.6) — a third party may extend UCP only inside its own namespace.
-- **OpenAI, optional, prose-only** — if `OPENAI_API_KEY` is set, the buyer-agent stand-in asks
-  a model for one paragraph of rationale generated from the already-computed trace; if it is
-  not set, a template sentence is rendered instead and the trace records
-  `"prose: template (no model key)"`. No code path on the ranking or valuation side ever calls
-  a model, and `buyer-agent/src/agent/llm.py` never raises for a missing key or a failed
-  model call — both fall back to the template sentence. To opt in, copy
+- **OpenAI, required, and load-bearing in the buyer agent** — `OPENAI_API_KEY` is required to
+  run `buyer-agent/`. The model decodes the shopper's sentence, carries the conversation and
+  **decides the ranking** there: it is shown each offer's shelf price and its verified terms,
+  never an effective cost, and its order is the order (`buyer-agent/src/agent/rank.py`).
+  Without a key, `/query` and `/chat` return `503` rather than an answer the model never gave.
+  This is a deliberate trade and it is **scoped to the buyer agent only**: `bondlayer/` calls
+  no model anywhere, and the deterministic effective-cost ranking it computes is still what
+  `bondlayer/scripts/trace_run.py` and `bondlayer/scripts/eval_run.py` measure. The two will
+  disagree about winners, and the buyer agent shows both figures side by side when they do.
+  To set it up, copy
   `buyer-agent/.env.example` to `buyer-agent/.env` (gitignored), set the key and restart the
   agent. This makes an external API call containing the request and computed comparison;
   leave the key unset for offline operation. Rankings do not depend on a model.

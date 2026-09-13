@@ -1,18 +1,19 @@
-"""The buyer-agent stand-in.
+"""The shopping agent.
 
-**Not a consumer product** -- a stand-in for the agent side of the protocol,
-so the demo can show what a real UCP shopping agent would see and do.
+The model is load-bearing. It decodes the shopper's sentence, it decides the
+ranking, and it carries the conversation. ``bondlayer`` still does everything
+that must not be guessed at: the UCP fan-out, signature verification, record
+citation, the merchant's own decode, bundling and checkout. What it no longer
+does here is pick the winner.
 
-Ranking is deterministic, always: ``bondlayer.agent.composition.run_request``
-computes effective cost from records that actually verified, over the same
-merchant server (``bondlayer/``, on :8000) the trace CLI in
-``bondlayer/scripts/trace_run.py`` runs against. This process never runs its
-own merchant, its own data, or its own valuation -- there is one of each, in
-``bondlayer/``.
+That is a deliberate trade, made knowingly. The deterministic effective-cost
+path still exists and is still what ``bondlayer/scripts/trace_run.py`` and the
+evaluation measure; this agent no longer runs it. A number this process shows
+is therefore the model's judgement, not the evaluation's arithmetic, and the
+two will disagree.
 
-The one place a model appears is ``llm.narrate``: one paragraph of prose
-*after* the ranking is already decided, template-only when no key is
-configured, and never able to change a winner (D4).
+This process still never runs its own merchant, its own data or its own
+signing keys -- there is one of each, in ``bondlayer/``.
 
 Run it::
 
@@ -22,6 +23,7 @@ Run it::
 
 from __future__ import annotations
 
+import inspect
 import sys
 from pathlib import Path
 
@@ -44,12 +46,12 @@ from bondlayer.agent.merchant_decode import merchant_decode_step, run_with_merch
 from bondlayer.agent.trace import AgentRun
 from bondlayer.bundle import CategoryBundler, bundle_payload
 
-from . import llm, ucp_client
+from . import llm, rank, ucp_client
 
 app = FastAPI(
     title="BondLayer agent service",
-    description="Buyer-agent stand-in -- not a consumer product.",
-    version="0.3.0",
+    description="A shopping agent over UCP, with the model deciding the ranking.",
+    version="0.4.0",
 )
 
 app.add_middleware(
@@ -166,6 +168,48 @@ def _http_client():
     return httpx.Client(base_url=ucp_client.MERCHANT_BASE_URL, timeout=10)
 
 
+def _sanitise(exc: Exception) -> str:
+    """The failure, named by type and nothing else.
+
+    A provider error can carry the prompt, a key fragment or a raw upstream
+    body. The type is enough to debug from with the server log open, and is
+    safe to put on a screen that is being projected.
+    """
+    return f"The agent could not complete this request ({type(exc).__name__})."
+
+
+def _fetcher(http: httpx.Client, plan_override: dict | None = None):
+    """The UCP fetcher, with the model's decode preferred over the interpreter's.
+
+    ``run_request`` still computes its own typed plan and still passes it; where
+    the model named a category or a ceiling those win, and the interpreter's
+    plan backfills whatever the model left empty. A model that returns nothing
+    usable therefore degrades to the old search rather than to no search.
+    """
+    base = ucp_client.make_fetcher(http)
+    if not plan_override:
+        return base
+
+    # A caller may substitute a fetcher that predates typed plans (the tests do
+    # exactly that). Wrapping one must not turn "this fetcher ignores plans"
+    # into a 502, so ask before passing the argument.
+    accepts_plan = "plan" in inspect.signature(base).parameters
+
+    def fetch(merchant: str, query: str, *, extension: bool, plan: dict | None = None) -> dict:
+        if not accepts_plan:
+            return base(merchant, query, extension=extension)
+        merged = dict(plan or {})
+        for key, value in plan_override.items():
+            if value not in (None, [], ""):
+                merged[key] = value
+        return base(merchant, query, extension=extension, plan=merged)
+
+    for attr in ("client", "owns_client"):
+        if hasattr(base, attr):
+            setattr(fetch, attr, getattr(base, attr))
+    return fetch
+
+
 @app.post("/query")
 def handle_query(request: ShoppingQuery) -> dict:
     try:
@@ -173,11 +217,29 @@ def handle_query(request: ShoppingQuery) -> dict:
             return _handle_query(request, http)
     except httpx.HTTPError as exc:
         raise HTTPException(503, "Merchant service is unavailable. Start it and retry.") from exc
+    except llm.LLMUnavailable as exc:
+        # The model decides the ranking now, so without a key there is no run.
+        # Say that plainly instead of returning an answer the model never gave.
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=_sanitise(exc)) from exc
 
 
 def _handle_query(request: ShoppingQuery, http: httpx.Client) -> dict:
     merchants = ucp_client.discover_merchants(http)
-    fetch = ucp_client.make_fetcher(http)
+
+    # (1) decode the sentence -- live model call, and it drives the search below.
+    # Skipped entirely when nothing is onboarded: there is nothing to search, and
+    # the onboarding prompt should not need a model key to appear.
+    if merchants:
+        intent = rank.parse_intent(request.query)
+    else:
+        intent = {"summary": request.query, "category": None, "max_price_aud": None,
+                  "must_have": [], "note": "no merchants onboarded; nothing decoded"}
+
+    fetch = _fetcher(http, rank.plan_from_intent(intent) if merchants else None)
     verify = ucp_client.make_verifier(http, merchants=merchants)
 
     # ``run_request`` unchanged, then the shopper's sentence goes to every
@@ -200,9 +262,27 @@ def _handle_query(request: ShoppingQuery, http: httpx.Client) -> dict:
         bundler=CategoryBundler(),
         **ucp_client.interpret_kwargs(run_request),
     )
+    # (2) the model ranks. It is handed the shelf price and the verified terms
+    # and never the effective cost, so what comes back is its judgement of what
+    # the terms are worth rather than its agreement with arithmetic it was shown.
+    # ``apply_ranking`` reorders ``run.ranked`` in place, which is why every step
+    # below -- the checkout above all -- follows the model's pick.
+    if run.ranked:
+        ranking = rank.rank_offers(request.query, run)
+        model_notes = rank.apply_ranking(run, ranking)
+        recommendation = ranking.get("recommendation") or ""
+    else:
+        # Nothing to rank, so no model call: an empty shelf is not a judgement.
+        model_notes = {}
+        recommendation = (
+            "No merchants have been onboarded. Add a merchant and upload a catalogue to start."
+            if not merchants else
+            "No merchant returned a matching, priced listing for this request."
+        )
+
     # Step 5: the winning offer becomes an order (POST /ucp/checkout), citing
-    # exactly the record ids the agent relied on. One more step on the trace;
-    # the ranking above is already decided and nothing here reads back into it.
+    # exactly the record ids the agent relied on. Deliberately after the
+    # reorder: the offer checked out is the one the model chose.
     # A merchant that cannot be reached at checkout is recorded as a degraded
     # last step, never a 500: the ranking is not the checkout's to lose.
     try:
@@ -214,12 +294,13 @@ def _handle_query(request: ShoppingQuery, http: httpx.Client) -> dict:
         {"phase": s.phase.value, "outcome": s.outcome.value, "summary": s.summary, "detail": s.detail}
         for s in run.steps
     ]
-    prose = llm.narrate(run) if run.ranked else {
-        "text": ("No merchants have been onboarded. Add a merchant and upload a catalogue to start."
-                 if not merchants else "No merchant returned a matching, priced listing for this request."),
-        "source": "template", "note": "No ranked products; no model called.",
-    }
-    steps.append({"phase": "prose", "outcome": prose["source"], "summary": prose["note"], "detail": {}})
+    steps.insert(0, {"phase": "intent_parse", "outcome": "ok",
+                     "summary": "Model decoded the request.", "detail": intent})
+    if run.ranked:
+        steps.append({"phase": "rank", "outcome": "ok",
+                      "summary": f"Model ranked {len(run.ranked)} offer(s) from the verified "
+                                 f"terms and decided for itself what they are worth.",
+                      "detail": {"model": llm.DEFAULT_MODEL}})
 
     ranked = [
         {
@@ -235,6 +316,11 @@ def _handle_query(request: ShoppingQuery, http: httpx.Client) -> dict:
             "resolved": _resolved_payload(r),
             "unsatisfied": [{"text": c.text, "kind": c.kind.value}
                             for c in r.unsatisfied],
+            # The model's own account of this offer: the verified terms it says
+            # moved the decision, and its sentence. Empty when it did not rank
+            # this offer.
+            "decisive_terms": model_notes.get(r.sku_id, {}).get("decisive_terms", []),
+            "reasoning": model_notes.get(r.sku_id, {}).get("reasoning", ""),
         }
         for r in run.ranked
     ]
@@ -268,6 +354,8 @@ def _handle_query(request: ShoppingQuery, http: httpx.Client) -> dict:
     return {
         "user_query": request.query,
         "onboarding_required": not merchants,
+        # The model's decode of the sentence, which drove the search above.
+        "intent": intent,
         "bondlayer_enabled": request.bondlayer_enabled,
         "ucp_agent_header": ucp_client.agent_header(request.bondlayer_enabled),
         "constraints": run.constraints,
@@ -276,7 +364,7 @@ def _handle_query(request: ShoppingQuery, http: httpx.Client) -> dict:
         "winner": winner,
         "cheapest_shelf": cheapest_shelf,
         "flipped": flipped,
-        "recommendation": prose["text"],
+        "recommendation": recommendation,
         # The set, best first. Each item carries its own notes, because the
         # bundle's rationale deliberately says nothing about why any individual
         # item fits -- that is already written on the item.
@@ -292,6 +380,82 @@ def _handle_query(request: ShoppingQuery, http: httpx.Client) -> dict:
         "audit": _audit(run),
         "transcript": llm.transcript_payload(),
     }
+
+
+ROUTER_SYSTEM = """You are a shopping agent talking to a customer. Decide what to \
+do with the conversation so far.
+
+If the customer has told you enough to go and compare offers -- roughly, what kind \
+of thing they want, and any budget or requirement that matters -- choose "search" \
+and write the single sentence you would send to the merchants. Fold in everything \
+the customer has said across the whole conversation, not just their last message.
+
+If you genuinely cannot search yet, choose "reply" and ask one short question -- the \
+one that unblocks you. Do not interrogate the customer; one good question beats \
+three. If they are making small talk or asking something that is not a shopping \
+request, choose "reply" and just answer them.
+
+Reply as JSON: {"action": "search" or "reply", "utterance": "the sentence to send \
+to merchants, when action is search", "reply": "what to say to the customer, when \
+action is reply"}"""
+
+
+class ChatTurn(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatTurn]
+    bondlayer_enabled: bool = True
+
+
+@app.post("/chat")
+def handle_chat(request: ChatRequest) -> dict:
+    """One conversational turn: decide whether to answer or to go shopping.
+
+    Deliberately does not run the search itself. The page shows the A/B --
+    BondLayer off beside BondLayer on -- which is two ``/query`` runs, and
+    running a third here just to produce the same paragraph would triple the
+    model calls behind one message. So this returns the decision, and the page
+    spends the runs it actually renders.
+
+    Returns ``{"action", "reply", "utterance"}``: ``action`` is ``"search"``
+    (then ``utterance`` is the sentence to send to merchants) or ``"reply"``
+    (then ``reply`` is what to say to the customer).
+    """
+    thread = [{"role": t.role, "content": t.content} for t in request.messages]
+    if not thread:
+        raise HTTPException(status_code=400, detail="No messages in the conversation.")
+
+    try:
+        decision = llm.complete_json(
+            "route",
+            ROUTER_SYSTEM,
+            "Conversation so far:\n"
+            + "\n".join(f'{t["role"]}: {t["content"]}' for t in thread),
+        )
+        if not isinstance(decision, dict):
+            decision = {}
+
+        utterance = str(decision.get("utterance") or "").strip()
+        if decision.get("action") == "search" and utterance:
+            return {"action": "search", "reply": "", "utterance": utterance,
+                    "transcript": llm.transcript_payload()}
+
+        reply = str(decision.get("reply") or "").strip()
+        if not reply:
+            # The router answered unusably. Rather than inventing a line, let the
+            # model speak for itself over the same thread.
+            reply = llm.chat("converse", ROUTER_SYSTEM, thread)
+        return {"action": "reply", "reply": reply, "utterance": None,
+                "transcript": llm.transcript_payload()}
+    except llm.LLMUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=_sanitise(exc)) from exc
 
 
 if __name__ == "__main__":

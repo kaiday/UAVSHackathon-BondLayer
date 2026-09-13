@@ -9,7 +9,11 @@ from src.agent import main
 
 
 @pytest.fixture
-def apps(tmp_path, monkeypatch):
+def apps(tmp_path, monkeypatch, stub_model):
+    # The model decides the ranking, so these run against a stub rather than a
+    # provider. It answers in the order it was given, which is run_request's, so
+    # the winners these tests assert on are still the arithmetic's.
+    stub_model()
     with monkeypatch.context() as patch:
         patch.delenv("BONDLAYER_TEST_DATA", raising=False)
         patch.delenv("OPENAI_API_KEY", raising=False)

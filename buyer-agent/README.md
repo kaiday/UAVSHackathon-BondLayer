@@ -1,8 +1,14 @@
-# BondLayer chat app — the buyer-agent stand-in
+# BondLayer chat app — the shopping agent
 
-Not a consumer product. This is a stand-in for the agent side of the UCP
-protocol, so a judge can watch what a real shopping agent would see and do
-against `bondlayer/`'s merchant service.
+A conversational buyer agent, so a judge can watch what a real shopping agent
+would see and do against `bondlayer/`'s merchant service.
+
+`POST /chat` carries the conversation: it takes the thread so far and either
+asks one clarifying question or folds the whole conversation into a single
+sentence to send to the merchants. `POST /query` is that search, and can still
+be called directly with a complete request. The page uses both -- it talks, and
+when it searches it runs `/query` twice, once with the extension declared and
+once without, which is the A/B.
 
 **There is one merchant service and one valuation library, and this process
 owns none of them.** They all live in `bondlayer/`. This app is a client: it
@@ -17,7 +23,8 @@ crediting and ranking. Nothing here re-implements any of that.
 src/agent/
   main.py         FastAPI app, :8001 -- the only service this folder runs
   ucp_client.py   the switch: declares capabilities, fetches, verifies
-  llm.py          optional prose over an already-decided ranking (D4)
+  llm.py          the model client: decode, rank and converse
+  rank.py         the two load-bearing calls -- decode the sentence, decide the order
   static/index.html   two panes (control | BondLayer), one query
 ```
 
@@ -70,10 +77,11 @@ No bundled demo merchant is used in normal operation. An empty registry returns
 Search follows catalogue pagination. A newly uploaded merchant is catalogue-only,
 so both comparison panes use its real shelf prices and credit no invented benefits.
 
-No API key, no wifi required: with `OPENAI_API_KEY` unset, `/query` still
-returns a full ranking, credited amounts and a template sentence explaining
-the winner (`llm.narrate`, D4 -- prose is optional and never on the ranking
-path). Set `BONDLAYER_MERCHANT_URL` if the merchant bound a different port
+**An API key is required.** The model decides the ranking, so with
+`OPENAI_API_KEY` unset `/query` and `/chat` return `503` rather than an answer
+the model never gave. Put a real key in `buyer-agent/.env`.
+
+Set `BONDLAYER_MERCHANT_URL` if the merchant bound a different port
 than :8000 (`run_server.py` moves up automatically if :8000 is busy, and
 prints the URL it actually bound).
 
@@ -137,15 +145,24 @@ checkout's to lose.
 `steps`, `ranked` and `flipped` are `bondlayer.agent.trace.AgentRun` rendered
 as JSON -- the same object `bondlayer/scripts/trace_run.py` prints as text.
 `audit` is kept from the original P6 design (what verified, what was ignored,
-and why) and returned *alongside* the deterministic ranking, never instead of
-it (D1). `recommendation` is the one place a model can appear, and it cannot
-change `ranked` -- there is no path from `llm.py` back into `run_request`.
+and why) and returned *alongside* the ranking, never instead of it (D1).
+
+`ranked` is in the **model's** order. `run_request` still computes an effective
+cost for every offer and it is still reported per offer, but it no longer
+decides anything here: `rank.apply_ranking` reorders `run.ranked` in place, so
+`winner` -- and the checkout that follows it -- is the model's pick. Where the
+model and the arithmetic disagree, the offer card shows both, and that
+disagreement is the point.
 
 ## The UI
 
-Two panes, one query: control (no extension declared) on the left, BondLayer
-(extension declared) on the right, run side by side from the same submitted
-text so the comparison never depends on remembering to ask twice. Per
+A chat thread with the prompt bar pinned to the bottom edge, and an **Evidence**
+widget beside it holding everything that is not the answer: the model's decode,
+the trace, each merchant's own reading, every offer's signed records and clause
+resolution, the checkout receipt, and every model call with its prompt and
+completion. A toggle at the top of that widget switches between the BondLayer
+run and the control, which are the same sentence asked twice -- so the
+comparison never depends on remembering to ask twice. Per
 published record: three visually distinct states -- signed and priced
 (green, cited, credited $X), signed and unpriced (purple, cited, verified,
 $0 -- a values claim, worth stating but never a price), and unsigned (grey,
