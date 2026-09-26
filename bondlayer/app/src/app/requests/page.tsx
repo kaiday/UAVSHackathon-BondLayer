@@ -138,10 +138,6 @@ function MerchantInsights({ merchant }: { merchant: string | null }) {
   const recent = data?.recent.filter((r) => !focus || focus.ids.includes(r.request_id)) ?? [];
 
   return <div className={`content ${styles.page}`}>
-    <div className={`page-heading ${styles.heading}`}>
-      <div><h1>Shopping insights</h1><p>What shoppers asked for, and what to improve.</p></div>
-    </div>
-
     <div className={styles.filters}>
       <label>Period<select aria-label="Period" value={days} onChange={(e) => { setDays(Number(e.target.value)); resetView(); }}><option value={7}>Last 7 days</option><option value={30}>Last 30 days</option><option value={90}>Last 90 days</option><option value={0}>All time</option></select></label>
       <label>View<select aria-label="View" value={mode} onChange={(e) => { setMode(e.target.value as ComparisonMode); resetView(); }}><option value="enabled">With benefits</option><option value="control">Catalogue only</option><option value="all">All runs</option></select></label>

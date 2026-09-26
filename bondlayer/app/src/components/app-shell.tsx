@@ -24,6 +24,15 @@ const manageLinks = [
   { href: "/settings", label: "Settings", icon: Settings, tour: "nav-settings" },
 ];
 
+const pageContext: Record<string, { title: string; description: string }> = {
+  "/": { title: "Overview", description: "Issues that stop AI shopping agents from finding your products." },
+  "/catalogue": { title: "Catalogue", description: "Every issue in your catalogue. Fix blockers first." },
+  "/requests": { title: "Shopping insights", description: "What shoppers asked for, and what to improve." },
+  "/quality": { title: "Data quality", description: "Issues grouped by type. Fix one type to clear every row it affects." },
+  "/benefits": { title: "Benefits", description: "Upload policies, review the benefits found, then publish." },
+  "/settings": { title: "Settings", description: "Manage merchant details, AI access and agent endpoints." },
+};
+
 function Navigation({ links }: { links: Array<{ href: string; label: string; icon: LucideIcon; tour: string }> }) {
   const pathname = usePathname();
 
@@ -59,6 +68,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (pathname !== "/") router.push("/");
     setTouring(true);
   };
+  const context = pageContext[pathname] ?? pageContext["/"];
 
   if (pathname.startsWith("/onboarding")) {
     return <>{children}</>;
@@ -79,6 +89,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
       <section className="workspace">
         <header className="topbar">
+          <div className="topbar-page-context">
+            <h1>{context.title}</h1>
+            <p>{context.description}</p>
+          </div>
           <CurrentMerchant />
           <div className="topbar-tools"><Link className="upload-button" href="/onboarding/">Add merchant</Link><button className="icon-button" type="button" aria-label="Replay the console tour" title="Replay the console tour" data-tour="help" onClick={startTour}><CircleHelp size={17} strokeWidth={2} /></button><div className="account"><span className="avatar"><Image src="/console/bondlayer-logo.svg" alt="" width={34} height={34} sizes="34px" /></span><div className="account-copy"><strong>Merchant console</strong><span>Your uploaded catalogues</span></div></div></div>
         </header>

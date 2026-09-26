@@ -84,7 +84,6 @@ function MerchantBenefits({ merchant }: { merchant: string | null }) {
   }
 
   return <div className="content">
-    <div className="page-heading"><div><h1>Benefits</h1><p>Upload your policies, review the benefits found, then publish.</p></div></div>
     <section className="panel" style={{ padding: 20, marginBottom: 20 }}>
       <h2>Upload policy</h2>
       <p>PDF, TXT or Markdown, up to 10 MB.</p>

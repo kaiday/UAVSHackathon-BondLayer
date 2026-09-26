@@ -46,15 +46,23 @@ export default function SettingsPage() {
     finally { setChecking(false); }
   }
   return <div className="content">
-    <div className="page-heading"><div><h1>Settings</h1></div></div>
     <div className="settings-grid">
-      <section className="panel" style={{ padding: 20 }}><h2>Merchant profile</h2>{profile && merchant && <ProfileForm key={merchant} merchant={merchant} name={profile.display_name} website={profile.domain} />}</section>
-      <section className="panel" style={{ padding: 20 }}><h2>OpenAI connection</h2>
-        {status && <><p>Mode: {status.mode} · Model: {status.model}</p><p>{status.live_verified ? "Connected" : status.configured ? "Key set. Test to confirm." : "No API key. Set OPENAI_API_KEY on the server and restart."}</p>{status.ai && <code>{status.ai.response_id}</code>}</>}
-        <button className="upload-button" disabled={checking} onClick={check}>{checking ? "Testing…" : "Test OpenAI connection"}</button>
-        {error && <p className="state-error" role="alert">{error}</p>}
+      <section className="panel">
+        <div className="panel-heading"><div><h2>Merchant profile</h2><p>Business information shown in this workspace</p></div></div>
+        <div className="settings-panel-body">{profile && merchant && <ProfileForm key={merchant} merchant={merchant} name={profile.display_name} website={profile.domain} />}</div>
       </section>
-      <section className="panel" style={{ padding: 20 }}><h2>Agent access</h2>{merchant && <div className="setting-list"><a href={`/${merchant}/.well-known/ucp`}>UCP profile</a><a href={`/${merchant}/ucp/catalog/search`}>Catalogue search</a><a href={`/onboard/report/${merchant}`}>Readiness report</a></div>}</section>
+      <section className="panel">
+        <div className="panel-heading"><div><h2>OpenAI connection</h2><p>Server-side model configuration</p></div></div>
+        <div className="settings-panel-body">
+          {status && <><p>Mode: {status.mode} · Model: {status.model}</p><p>{status.live_verified ? "Connected" : status.configured ? "Key set. Test to confirm." : "No API key. Set OPENAI_API_KEY on the server and restart."}</p>{status.ai && <code>{status.ai.response_id}</code>}</>}
+          <button className="upload-button" disabled={checking} onClick={check}>{checking ? "Testing…" : "Test OpenAI connection"}</button>
+          {error && <p className="state-error" role="alert">{error}</p>}
+        </div>
+      </section>
+      <section className="panel">
+        <div className="panel-heading"><div><h2>Agent access</h2><p>Published endpoints for the selected merchant</p></div></div>
+        <div className="settings-panel-body">{merchant && <div className="setting-list"><a href={`/${merchant}/.well-known/ucp`}>UCP profile</a><a href={`/${merchant}/ucp/catalog/search`}>Catalogue search</a><a href={`/onboard/report/${merchant}`}>Readiness report</a></div>}</div>
+      </section>
     </div>
   </div>;
 }

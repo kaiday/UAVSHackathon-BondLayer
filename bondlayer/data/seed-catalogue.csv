@@ -1,0 +1,21 @@
+sku,title,category,price,currency,brand,stock,ram,storage,weight_kg,battery_wh
+SEED-LAP-001,Aster Air 13 Laptop,laptop,1099,AUD,Aster,in_stock,16GB,512GB,1.24,52
+SEED-LAP-002,Aster Air 15 Laptop,laptop,1299,AUD,Aster,in_stock,16GB,1TB,1.58,63
+SEED-LAP-003,Northstar Pro 14 Laptop,laptop,1499,AUD,Northstar,limited_stock,32GB,1TB,1.46,68
+SEED-LAP-004,Northstar Work 16 Laptop,laptop,1399,AUD,Northstar,in_stock,16GB,1TB,1.82,75
+SEED-LAP-005,Harbour Lite 14 Laptop,laptop,749,AUD,Harbour,in_stock,8GB,256GB,1.39,45
+SEED-LAP-006,Harbour Study 15 Laptop,laptop,899,AUD,Harbour,18,16GB,512GB,1.61,54
+SEED-LAP-007,Summit Creator 15 Laptop,laptop,1799,AUD,Summit,7,32GB,1TB,1.74,72
+SEED-LAP-008,Summit Compact 13 Laptop,laptop,1249,AUD,Summit,in_stock,16GB,512GB,1.18,49
+SEED-PHN-001,Aster One 5G Phone,phone,699,AUD,Aster,in_stock,8GB,256GB,0.19,19
+SEED-PHN-002,Aster One Mini 5G Phone,phone,549,AUD,Aster,24,8GB,128GB,0.17,17
+SEED-PHN-003,Northstar View 5G Phone,phone,899,AUD,Northstar,limited_stock,12GB,256GB,0.21,20
+SEED-PHN-004,Harbour Essential Phone,phone,399,AUD,Harbour,in_stock,6GB,128GB,0.18,18
+SEED-AUD-001,Aster Quiet Wireless Headphones,audio,249,AUD,Aster,in_stock,,,0.27,
+SEED-AUD-002,Northstar Studio Headphones,audio,329,AUD,Northstar,9,,,0.31,
+SEED-AUD-003,Harbour Pocket Bluetooth Speaker,audio,89.95,AUD,Harbour,in_stock,,,0.42,
+SEED-AUD-004,Summit Room Bluetooth Speaker,audio,179,AUD,Summit,limited_stock,,,0.86,
+SEED-ACC-001,Aster USB-C 65W Charger,accessory,69.95,AUD,Aster,in_stock,,,0.16,
+SEED-ACC-002,Northstar USB-C Travel Dock,accessory,129,AUD,Northstar,15,,,0.22,
+SEED-ACC-003,Harbour Wireless Mouse,accessory,39.95,AUD,Harbour,in_stock,,,0.09,
+SEED-ACC-004,Summit Laptop Stand,accessory,79.95,AUD,Summit,in_stock,,,0.74,

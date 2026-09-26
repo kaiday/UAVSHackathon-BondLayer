@@ -41,11 +41,7 @@ export default function CataloguePage() {
 
   return (
     <div className="content">
-      <div className="page-heading">
-        <div>
-          <h1>Catalogue</h1>
-          <p>Every issue in your catalogue. Fix blockers first.</p>
-        </div>
+      <div className="page-action-row">
         <label className="upload-button">
           <input type="file" aria-label="Replace catalogue" accept=".csv,text/csv" onChange={upload} disabled={uploading || !merchant} />
           {uploading ? "Processing…" : "Replace catalogue"}
@@ -71,10 +67,11 @@ export default function CataloguePage() {
                 (value) => value === "all" || value in report.by_severity,
               ).map((value) => (
                 <button
-                  className={`pill ${filter === value ? "success" : "neutral"}`}
+                  className={`filter-pill ${filter === value ? "active" : ""}`}
                   key={value}
                   onClick={() => setFilter(value)}
                   type="button"
+                  aria-pressed={filter === value}
                 >
                   {value === "all"
                     ? `All ${report.diagnostics.length}`

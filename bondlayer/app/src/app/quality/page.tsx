@@ -26,14 +26,7 @@ export default function QualityPage() {
 
   return (
     <div className="content">
-      <div className="page-heading">
-        <div>
-          <h1>Data quality</h1>
-          <p>Issues grouped by type. Fix one type to clear every row it affects.</p>
-        </div>
-      </div>
-
-      <ComparisonStrip />
+      <ComparisonStrip report={report} />
 
       {error && <Failed what="the merchant report" error={error} />}
       {!report && !error && <Loading what="the merchant report" />}

@@ -72,7 +72,7 @@
 .muted { color: var(--muted); font-size: 12px; line-height: 1.7; }
 .empty { display: grid; justify-items: center; padding: 46px 24px; text-align: center; }
 .empty > svg { color: var(--accent); }
-.empty h2 { font-size: 24px; margin: 16px 0 8px; }
+.empty h2 { margin: 16px 0 8px; font-size: 21px; font-weight: 600; line-height: 1.2; letter-spacing: -.025em; }
 .empty p { max-width: 570px; color: var(--muted); font-size: 13px; line-height: 1.8; }
 .empty > div { display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 22px; margin-top: 16px; }
 .empty a:first-child { color: white; }
