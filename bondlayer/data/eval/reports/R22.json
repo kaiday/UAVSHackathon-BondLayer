@@ -1,0 +1,191 @@
+{
+  "request_id": "R22",
+  "utterance": "Rice cooker, cheapest one, but I want it to last",
+  "bundle": false,
+  "expect_unsatisfied": false,
+  "constraints": [
+    {
+      "text": "Rice cooker",
+      "kind": "hard"
+    },
+    {
+      "text": "cheapest",
+      "kind": "soft"
+    },
+    {
+      "text": "I want it to last",
+      "kind": "values"
+    }
+  ],
+  "metrics": {
+    "hard_precision": 1.0,
+    "gold_recall": 1.0,
+    "precision_at_gold": 1.0,
+    "citations": [
+      7,
+      7
+    ],
+    "clauses_answered": [
+      1,
+      1
+    ],
+    "clauses_answered_control": [
+      0,
+      1
+    ]
+  },
+  "unsatisfied": [
+    "I want it to last"
+  ],
+  "bundle_composed": {
+    "bundle_id": "bnd-citycircuit-appliance-23286768",
+    "merchant": "citycircuit",
+    "items": [
+      "CIT-0121"
+    ],
+    "roles": [
+      "appliance"
+    ],
+    "combined_shelf_price": "222.13",
+    "in_gold": 1,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": null
+  },
+  "merchants": [
+    {
+      "request_id": "R22",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 9,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; voltway won on effective cost.",
+      "sku_id": "CIT-0121",
+      "shelf_price": "222.13",
+      "effective_cost": "222.13",
+      "unsatisfied": [
+        "I want it to last"
+      ]
+    },
+    {
+      "request_id": "R22",
+      "merchant": "northgear",
+      "control_merchant": false,
+      "fields_exposed": 9,
+      "legible_share": 0.6667,
+      "value_credited_aud": "68.95",
+      "value_withheld_aud": "330",
+      "won": false,
+      "lost_because": "Published value the wire did not carry: $330 was withheld as unverified, unattested or out of scope, so voltway won on effective cost.",
+      "sku_id": "NOR-0123",
+      "shelf_price": "249.00",
+      "effective_cost": "180.05",
+      "unsatisfied": [
+        "I want it to last"
+      ]
+    },
+    {
+      "request_id": "R22",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 9,
+      "legible_share": 1.0,
+      "value_credited_aud": "209.95",
+      "value_withheld_aud": "1310.00",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "VOL-0120",
+      "shelf_price": "238.20",
+      "effective_cost": "28.25",
+      "unsatisfied": []
+    }
+  ],
+  "control": [
+    {
+      "request_id": "R22",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 9,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "CIT-0121",
+      "shelf_price": "222.13",
+      "effective_cost": "222.13",
+      "unsatisfied": [
+        "I want it to last"
+      ]
+    },
+    {
+      "request_id": "R22",
+      "merchant": "northgear",
+      "control_merchant": false,
+      "fields_exposed": 9,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "398.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "NOR-0123",
+      "shelf_price": "249.00",
+      "effective_cost": "249.00",
+      "unsatisfied": [
+        "I want it to last"
+      ]
+    },
+    {
+      "request_id": "R22",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 9,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "1519.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "VOL-0120",
+      "shelf_price": "238.20",
+      "effective_cost": "238.20",
+      "unsatisfied": [
+        "I want it to last"
+      ]
+    }
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 3,
+    "gold_total": 3,
+    "parsed_total": 3,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "rice cooker",
+        "gold_kind": "HARD",
+        "parsed": "Rice cooker",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "cheapest",
+        "gold_kind": "SOFT",
+        "parsed": "cheapest",
+        "parsed_kind": "soft"
+      },
+      {
+        "gold": "I want it to last",
+        "gold_kind": "VALUES",
+        "parsed": "I want it to last",
+        "parsed_kind": "values"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
+}

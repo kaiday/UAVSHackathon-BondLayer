@@ -1,0 +1,113 @@
+{
+  "merchant": "jb-hifi",
+  "records": [
+    {
+      "record": {
+        "benefit_type": "member_price",
+        "conditions": [
+          "member",
+          "new_member"
+        ],
+        "expires_at": "2026-10-13T00:00:00.000000Z",
+        "fact": {
+          "program": "JB Perks",
+          "valid_days": 28,
+          "welcome_coupon_aud": 10
+        },
+        "issued_at": "2026-09-13T00:00:00.000000Z",
+        "issuer": "jbhifi.com.au",
+        "record_id": "jbhifi-perks-welcome-10",
+        "sku_id": null,
+        "source_span": "Get a $10 Perks coupon when you join. Valid for 28 days from issue.",
+        "value_ceiling_aud": "10"
+      },
+      "signature": null,
+      "key_id": null
+    },
+    {
+      "record": {
+        "benefit_type": "member_price",
+        "conditions": [
+          "member"
+        ],
+        "expires_at": "2026-10-13T00:00:00.000000Z",
+        "fact": {
+          "member_exclusive_offers": true,
+          "program": "JB Perks"
+        },
+        "issued_at": "2026-09-13T00:00:00.000000Z",
+        "issuer": "jbhifi.com.au",
+        "record_id": "jbhifi-perks-exclusive-offers",
+        "sku_id": null,
+        "source_span": "Get it for less with Perks members only sales and offers.",
+        "value_ceiling_aud": null
+      },
+      "signature": null,
+      "key_id": null
+    },
+    {
+      "record": {
+        "benefit_type": "member_price",
+        "conditions": [
+          "member"
+        ],
+        "expires_at": "2026-10-13T00:00:00.000000Z",
+        "fact": {
+          "early_sales_access": true,
+          "program": "JB Perks"
+        },
+        "issued_at": "2026-09-13T00:00:00.000000Z",
+        "issuer": "jbhifi.com.au",
+        "record_id": "jbhifi-perks-early-sales",
+        "sku_id": null,
+        "source_span": "Get priority access to our biggest and best sales.",
+        "value_ceiling_aud": null
+      },
+      "signature": null,
+      "key_id": null
+    },
+    {
+      "record": {
+        "benefit_type": "member_price",
+        "conditions": [
+          "member",
+          "birth_month_provided"
+        ],
+        "expires_at": "2026-10-13T00:00:00.000000Z",
+        "fact": {
+          "birthday_perk": true,
+          "program": "JB Perks"
+        },
+        "issued_at": "2026-09-13T00:00:00.000000Z",
+        "issuer": "jbhifi.com.au",
+        "record_id": "jbhifi-perks-birthday",
+        "sku_id": null,
+        "source_span": "Tell us when it’s your birthday month and we’ll send you a gift to celebrate.",
+        "value_ceiling_aud": null
+      },
+      "signature": null,
+      "key_id": null
+    },
+    {
+      "record": {
+        "benefit_type": "member_price",
+        "conditions": [
+          "member"
+        ],
+        "expires_at": "2026-10-13T00:00:00.000000Z",
+        "fact": {
+          "digital_receipts_saved": true,
+          "program": "JB Perks"
+        },
+        "issued_at": "2026-09-13T00:00:00.000000Z",
+        "issuer": "jbhifi.com.au",
+        "record_id": "jbhifi-perks-digital-receipts",
+        "sku_id": null,
+        "source_span": "Have any in-store digital receipts automatically saved to your account",
+        "value_ceiling_aud": null
+      },
+      "signature": null,
+      "key_id": null
+    }
+  ]
+}

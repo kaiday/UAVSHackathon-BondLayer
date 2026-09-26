@@ -1,0 +1,155 @@
+{
+  "request_id": "R30",
+  "utterance": "Anything under $100 that would make a good gift",
+  "bundle": false,
+  "expect_unsatisfied": false,
+  "constraints": [
+    {
+      "text": "under $100",
+      "kind": "hard"
+    },
+    {
+      "text": "good gift",
+      "kind": "soft"
+    }
+  ],
+  "metrics": {
+    "hard_precision": 1.0,
+    "gold_recall": 1.0,
+    "precision_at_gold": 1.0,
+    "citations": [
+      0,
+      0
+    ],
+    "clauses_answered": [
+      0,
+      0
+    ],
+    "clauses_answered_control": [
+      0,
+      0
+    ]
+  },
+  "unsatisfied": [],
+  "bundle_composed": null,
+  "merchants": [
+    {
+      "request_id": "R30",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 9,
+      "legible_share": 0.5,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; northgear won on effective cost.",
+      "sku_id": "CIT-0081",
+      "shelf_price": "28.10",
+      "effective_cost": "28.10",
+      "unsatisfied": []
+    },
+    {
+      "request_id": "R30",
+      "merchant": "northgear",
+      "control_merchant": false,
+      "fields_exposed": 9,
+      "legible_share": 0.5,
+      "value_credited_aud": "29.00",
+      "value_withheld_aud": "369.95",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "NOR-0082",
+      "shelf_price": "29.00",
+      "effective_cost": "0.00",
+      "unsatisfied": []
+    },
+    {
+      "request_id": "R30",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 9,
+      "legible_share": 0.5,
+      "value_credited_aud": "30.16",
+      "value_withheld_aud": "1489.79",
+      "won": false,
+      "lost_because": "Published value the wire did not carry: $1489.79 was withheld as unverified, unattested or out of scope, so northgear won on effective cost.",
+      "sku_id": "VOL-0080",
+      "shelf_price": "30.16",
+      "effective_cost": "0.00",
+      "unsatisfied": []
+    }
+  ],
+  "control": [
+    {
+      "request_id": "R30",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 9,
+      "legible_share": 0.5,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "CIT-0081",
+      "shelf_price": "28.10",
+      "effective_cost": "28.10",
+      "unsatisfied": []
+    },
+    {
+      "request_id": "R30",
+      "merchant": "northgear",
+      "control_merchant": false,
+      "fields_exposed": 9,
+      "legible_share": 0.5,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "398.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "NOR-0082",
+      "shelf_price": "29.00",
+      "effective_cost": "29.00",
+      "unsatisfied": []
+    },
+    {
+      "request_id": "R30",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 9,
+      "legible_share": 0.5,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "1519.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "VOL-0080",
+      "shelf_price": "30.16",
+      "effective_cost": "30.16",
+      "unsatisfied": []
+    }
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 2,
+    "gold_total": 2,
+    "parsed_total": 2,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "under $100",
+        "gold_kind": "HARD",
+        "parsed": "under $100",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "a good gift",
+        "gold_kind": "SOFT",
+        "parsed": "good gift",
+        "parsed_kind": "soft"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
+}

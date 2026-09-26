@@ -1,0 +1,147 @@
+{
+  "request_id": "R05",
+  "utterance": "A phone under $1,000 from a company that lets you fix it yourself",
+  "bundle": false,
+  "expect_unsatisfied": false,
+  "constraints": [
+    {
+      "text": "phone under $1,000",
+      "kind": "hard"
+    },
+    {
+      "text": "lets you fix it yourself",
+      "kind": "values"
+    }
+  ],
+  "metrics": {
+    "hard_precision": 1.0,
+    "gold_recall": 1.0,
+    "precision_at_gold": 1.0,
+    "citations": [
+      2,
+      2
+    ],
+    "clauses_answered": [
+      1,
+      1
+    ],
+    "clauses_answered_control": [
+      0,
+      1
+    ]
+  },
+  "unsatisfied": [
+    "lets you fix it yourself"
+  ],
+  "bundle_composed": {
+    "bundle_id": "bnd-voltway-phone-c73df830",
+    "merchant": "voltway",
+    "items": [
+      "VOL-0049"
+    ],
+    "roles": [
+      "phone"
+    ],
+    "combined_shelf_price": "570.96",
+    "in_gold": 1,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": true
+  },
+  "merchants": [
+    {
+      "request_id": "R05",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 14,
+      "legible_share": 0.5,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; voltway won on effective cost.",
+      "sku_id": "CIT-0050",
+      "shelf_price": "532.50",
+      "effective_cost": "532.50",
+      "unsatisfied": [
+        "lets you fix it yourself"
+      ]
+    },
+    {
+      "request_id": "R05",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 1.0,
+      "value_credited_aud": "209.95",
+      "value_withheld_aud": "1310.00",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "VOL-0049",
+      "shelf_price": "570.96",
+      "effective_cost": "361.01",
+      "unsatisfied": []
+    }
+  ],
+  "control": [
+    {
+      "request_id": "R05",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 14,
+      "legible_share": 0.5,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "CIT-0050",
+      "shelf_price": "532.50",
+      "effective_cost": "532.50",
+      "unsatisfied": [
+        "lets you fix it yourself"
+      ]
+    },
+    {
+      "request_id": "R05",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 14,
+      "legible_share": 0.5,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "1519.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "VOL-0049",
+      "shelf_price": "570.96",
+      "effective_cost": "570.96",
+      "unsatisfied": [
+        "lets you fix it yourself"
+      ]
+    }
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 2,
+    "gold_total": 2,
+    "parsed_total": 2,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "under $1,000",
+        "gold_kind": "HARD",
+        "parsed": "phone under $1,000",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "lets you fix it yourself",
+        "gold_kind": "VALUES",
+        "parsed": "lets you fix it yourself",
+        "parsed_kind": "values"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
+}

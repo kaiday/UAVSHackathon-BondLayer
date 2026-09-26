@@ -48,6 +48,14 @@ Members receive **member pricing** on selected lines, typically **5% below the
 shelf price**, and the discount is applied automatically at checkout. Member
 pricing does not stack with clearance pricing.
 
+### Personal offers
+
+From time to time we make an offer to one member rather than to the programme —
+a thank-you credit after a run of orders, or a standing **10% below the shelf
+price** for a long-standing member. A personal offer **names the member it
+belongs to and is not transferable**, and we publish it only to that member.
+An agent that has not been told who it is shopping for will not be shown one.
+
 ## Trade-in
 
 We accept trade-ins on phones, laptops and tablets. Trade-in credit is assessed

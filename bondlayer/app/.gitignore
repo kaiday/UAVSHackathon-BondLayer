@@ -1,0 +1,15 @@
+# Build inputs and caches: never committed.
+node_modules/
+.next/
+/build
+/.npm-cache
+*.log
+*.tsbuildinfo
+.env*
+!.env.example
+.DS_Store
+
+# NOTE: `out/` is deliberately NOT ignored. It is the deployable — the static
+# export the FastAPI server mounts at /console — so a judge with no Node and no
+# network still gets the console from a fresh clone. Rebuild it with:
+#   cd bondlayer/app && npm install && npm run build

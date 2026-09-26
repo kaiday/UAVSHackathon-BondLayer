@@ -1,0 +1,45 @@
+# BondLayer merchant server (bondlayer/) for Fly.io. Build context: repo root.
+#
+# Build the console from this checkout, so a cloud deploy cannot ship an old UI.
+FROM node:22-slim AS console
+WORKDIR /console
+COPY bondlayer/app/package.json bondlayer/app/package-lock.json ./
+RUN npm ci
+COPY bondlayer/app/ ./
+RUN npm run build
+
+# Editable installation retains the source-relative data/key paths used by the app.
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONUTF8=1 \
+    PYTHONPATH=/app/bondlayer/src \
+    BONDLAYER_UPLOADS_DIR=/data/uploads \
+    BONDLAYER_AI_MODE=openai \
+    BONDLAYER_DEMO_DATA=1 \
+    BONDLAYER_REQUIRE_SERVICE_TOKEN=1
+
+WORKDIR /app
+
+COPY bondlayer bondlayer
+RUN pip install --no-cache-dir -e ./bondlayer
+COPY --from=console /console/out bondlayer/app/out
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends util-linux \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home app \
+    && mkdir -p /data/uploads \
+    && chown -R app /data bondlayer/data
+
+EXPOSE 8080
+# The server starts with no merchants; everything onboarded is saved under
+# BONDLAYER_UPLOADS_DIR. On Fly that is a persistent volume mounted at /data
+# (fly.merchant.toml), which arrives owned by root. So the container starts as
+# root only long enough to hand that directory to the app user, then runs the
+# server as that user.
+#
+# uvicorn directly, not run_server.py: that launcher binds 127.0.0.1, which
+# Fly's proxy cannot reach.
+CMD ["sh", "-c", "mkdir -p \"$BONDLAYER_UPLOADS_DIR\" && chown -R app \"$BONDLAYER_UPLOADS_DIR\" && exec setpriv --reuid=app --regid=app --init-groups uvicorn bondlayer.ucp.server:app --host 0.0.0.0 --port 8080 --proxy-headers --forwarded-allow-ips '*'"]

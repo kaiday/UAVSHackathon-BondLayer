@@ -1,0 +1,39 @@
+# Fly.io app: BondLayer buyer-agent stand-in (chat page, /chat and /query).
+# Deploy from the repo root, AFTER the merchant app is up:
+#   fly deploy --config fly.agent.toml
+# See docs/deploy-fly.md.
+app = "bondlayer-agent"
+primary_region = "syd"
+
+[build]
+  dockerfile = "Dockerfile.agent"
+
+[env]
+  # Must be the merchant app's public URL. Change it if you renamed that app.
+  BONDLAYER_MERCHANT_URL = "https://bondlayer-merchant.fly.dev"
+  BONDLAYER_AI_MODE = "openai"
+  BONDLAYER_TEST_DATA = "1"
+  # Set OPENAI_API_KEY and the SAME BONDLAYER_SERVICE_TOKEN as the merchant
+  # using fly secrets. The agent sends reports over HTTP; it needs no volume.
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Always on, like the merchant: no cold start when someone opens the page.
+  # To pause it (no running cost): fly scale count 0 --config fly.agent.toml
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "15s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "512mb"

@@ -34,3 +34,9 @@ node_modules/
 # Logs
 logs/
 *.log
+<<<<<<< HEAD
+=======
+
+# run.sh / run.ps1 logs
+.run/
+>>>>>>> 9bc6fe07d5e1a11a0885f1c1d1c0e443896d5cc0

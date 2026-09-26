@@ -1,0 +1,178 @@
+{
+  "merchant": {
+    "id": "jb-hifi",
+    "display_name": "JB Hi-Fi",
+    "domain": "jbhifi.com.au",
+    "country": "AU"
+  },
+  "retrieved_at": "2026-09-13",
+  "verification_status": "public_source_only",
+  "merchant_signed": false,
+  "refresh_required_before_purchase": true,
+  "policies": [
+    {
+      "id": "jb-acl-consumer-guarantees",
+      "type": "warranty",
+      "scope": ["goods", "services"],
+      "facts": {
+        "major_failure_remedy": ["replacement", "refund"],
+        "non_major_failure_remedy": ["repair", "replacement"],
+        "fixed_time_limit": false
+      },
+      "conditions": [
+        "Duration depends on reasonable expectations including cost, quality, and representations.",
+        "Australian Consumer Law rights cannot be excluded."
+      ],
+      "source_url": "https://support.jbhifi.com.au/hc/en-au/articles/360053783213-Manufacturers-warranties"
+    },
+    {
+      "id": "jb-warranty-claim-paths",
+      "type": "warranty_claim",
+      "scope": ["products_purchased_directly_from_jb_hifi"],
+      "facts": {
+        "manufacturer_contact_optional": true,
+        "in_store_assessment": true,
+        "proof_of_purchase_required": true,
+        "free_return_courier_may_be_available": true,
+        "large_item_in_home_assessment_may_be_available": true
+      },
+      "conditions": [
+        "Manufacturer assessment may be required before a remedy is offered.",
+        "Collection and delivery exceptions may apply in remote areas."
+      ],
+      "source_url": "https://support.jbhifi.com.au/hc/en-au/articles/360053005334-How-do-I-make-a-warranty-claim"
+    },
+    {
+      "id": "jb-faulty-return-direct",
+      "type": "returns",
+      "scope": ["products_purchased_directly_from_jb_hifi"],
+      "facts": {
+        "in_store_return": true,
+        "proof_of_purchase_required": true,
+        "free_return_courier_available_by_request": true,
+        "assessment_before_remedy": true
+      },
+      "conditions": [],
+      "source_url": "https://support.jbhifi.com.au/hc/en-au/articles/360053783513-How-do-I-return-faulty-goods"
+    },
+    {
+      "id": "jb-marketplace-return-routing",
+      "type": "returns",
+      "scope": ["marketplace_products"],
+      "facts": {
+        "return_party": "third_party_seller",
+        "jb_direct_refund_warranty_policy_applies": false,
+        "australian_consumer_law_rights_apply": true
+      },
+      "conditions": ["JB Hi-Fi support can connect the customer with the Marketplace seller."],
+      "source_url": "https://support.jbhifi.com.au/hc/en-au/articles/360053783513-How-do-I-return-faulty-goods"
+    },
+    {
+      "id": "jb-headphones-wearables-change-of-mind",
+      "type": "returns",
+      "scope": ["headphones", "selected_wearables"],
+      "facts": {
+        "window_days": 30,
+        "must_be_unopened": true,
+        "must_be_unused": true,
+        "must_be_sealed": true,
+        "faulty_goods_use_standard_policy": true
+      },
+      "conditions": ["The 30-day rule is for change-of-mind refunds."],
+      "source_url": "https://support.jbhifi.com.au/hc/en-au/articles/360053783453-What-is-JB-Hi-Fi-s-returns-policy-on-earphones-and-headphones"
+    },
+    {
+      "id": "jb-extra-care-replacement",
+      "type": "extended_warranty",
+      "scope": ["eligible_products_at_or_below_1000_aud"],
+      "facts": {
+        "purchase_price_ceiling_aud": 1000,
+        "cover_starts_months_after_delivery_or_collection": 12,
+        "cover_ends_years_after_delivery_or_collection": 3,
+        "replacement_limit": 1,
+        "fallback": ["gift_card", "store_credit"]
+      },
+      "conditions": [
+        "Cover can end earlier when the first replacement or equivalent payment is provided.",
+        "The full Extra Care terms control exclusions and limitations."
+      ],
+      "source_url": "https://www.jbhifi.com.au/pages/extracare"
+    },
+    {
+      "id": "jb-extra-care-repair",
+      "type": "extended_warranty",
+      "scope": ["eligible_products_above_1000_aud"],
+      "facts": {
+        "purchase_price_above_aud": 1000,
+        "cover_starts_after": "later_of_manufacturer_or_jb_minimum_voluntary_warranty_expiry",
+        "cover_ends_years_after_purchase_or_delivery": 5
+      },
+      "conditions": [
+        "Cover can end earlier when the first replacement or equivalent payment is provided.",
+        "The full Extra Care terms control exclusions and limitations."
+      ],
+      "source_url": "https://www.jbhifi.com.au/pages/extracare"
+    },
+    {
+      "id": "jb-uber-delivery",
+      "type": "delivery",
+      "scope": ["eligible_small_to_medium_products"],
+      "facts": {
+        "maximum_store_distance_km": 20,
+        "live_tracking": true,
+        "delivery_pin": "last_four_mobile_digits",
+        "missed_delivery_destination": "store"
+      },
+      "conditions": [
+        "Shown only when checkout determines that the store, stock, time, item, and address are eligible."
+      ],
+      "source_url": "https://support.jbhifi.com.au/hc/en-au/articles/5644090872719-How-do-Uber-deliveries-work"
+    },
+    {
+      "id": "jb-price-match-enquiry",
+      "type": "price_match",
+      "scope": ["product_and_price_enquiries"],
+      "facts": {
+        "automatic_match": false,
+        "contact_channels": ["live_chat", "online_request", "sales_line"]
+      },
+      "conditions": [
+        "No universal match formula is asserted by this fixture; request a current quote."
+      ],
+      "source_url": "https://support.jbhifi.com.au/hc/en-au/articles/360057328914-How-can-I-contact-JB"
+    },
+    {
+      "id": "jb-perks-membership",
+      "type": "membership",
+      "scope": ["jb_perks_members"],
+      "facts": {
+        "program_name": "JB Perks",
+        "membership_fee_aud": 0,
+        "welcome_coupon_aud": 10,
+        "welcome_coupon_valid_days": 28,
+        "member_exclusive_offers": true,
+        "early_sales_access_or_notification": true,
+        "birthday_perk": true,
+        "member_exclusive_competitions": true,
+        "in_store_digital_receipts_saved_to_account": true,
+        "published_points_earning_rate": null
+      },
+      "eligibility": {
+        "jb_hifi_account_required": true,
+        "australian_mobile_number_required": true,
+        "birth_month_required_for_birthday_perk": true
+      },
+      "conditions": [
+        "Joining includes agreement to the JB Perks terms, privacy policy, and JB Hi-Fi marketing and Perks communications.",
+        "The welcome coupon expires 28 days after issue.",
+        "Values and availability of birthday perks, member offers, and competitions are not guaranteed by the summary pages and should be checked against the current offer.",
+        "No points-earning rate is published on the cited program pages."
+      ],
+      "source_urls": [
+        "https://www.jbhifi.com.au/pages/perks",
+        "https://support.jbhifi.com.au/hc/en-au/articles/5824932866447-What-is-JB-Hi-Fi-Perks",
+        "https://www.jbhifi.com.au/pages/perks-deals"
+      ]
+    }
+  ]
+}

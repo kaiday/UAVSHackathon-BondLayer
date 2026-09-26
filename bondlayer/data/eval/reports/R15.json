@@ -1,0 +1,193 @@
+{
+  "request_id": "R15",
+  "utterance": "Something to record interviews on the go, under $500, easy to return if the audio is no good",
+  "bundle": false,
+  "expect_unsatisfied": false,
+  "constraints": [
+    {
+      "text": "record interviews on the go",
+      "kind": "soft"
+    },
+    {
+      "text": "under $500",
+      "kind": "hard"
+    },
+    {
+      "text": "easy to return if the audio is no good",
+      "kind": "service"
+    }
+  ],
+  "metrics": {
+    "hard_precision": 0.4194,
+    "gold_recall": 1.0,
+    "precision_at_gold": 1.0,
+    "citations": [
+      44,
+      44
+    ],
+    "clauses_answered": [
+      1,
+      1
+    ],
+    "clauses_answered_control": [
+      0,
+      1
+    ]
+  },
+  "unsatisfied": [
+    "easy to return if the audio is no good"
+  ],
+  "bundle_composed": {
+    "bundle_id": "bnd-voltway-podcasting-e45b7e41",
+    "merchant": "voltway",
+    "items": [
+      "VOL-0060",
+      "VOL-0074",
+      "VOL-0080"
+    ],
+    "roles": [
+      "microphone",
+      "headphones",
+      "cable"
+    ],
+    "combined_shelf_price": "340.08",
+    "in_gold": 3,
+    "outside_gold": [],
+    "gold_precision": 1.0,
+    "combined_ceiling_met": true
+  },
+  "merchants": [
+    {
+      "request_id": "R15",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 9,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; northgear won on effective cost.",
+      "sku_id": "CIT-0081",
+      "shelf_price": "28.10",
+      "effective_cost": "28.10",
+      "unsatisfied": [
+        "easy to return if the audio is no good"
+      ]
+    },
+    {
+      "request_id": "R15",
+      "merchant": "northgear",
+      "control_merchant": false,
+      "fields_exposed": 9,
+      "legible_share": 1.0,
+      "value_credited_aud": "29.00",
+      "value_withheld_aud": "369.95",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "NOR-0082",
+      "shelf_price": "29.00",
+      "effective_cost": "0.00",
+      "unsatisfied": []
+    },
+    {
+      "request_id": "R15",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 9,
+      "legible_share": 1.0,
+      "value_credited_aud": "30.16",
+      "value_withheld_aud": "1489.79",
+      "won": false,
+      "lost_because": "Published value the wire did not carry: $1489.79 was withheld as unverified, unattested or out of scope, so northgear won on effective cost.",
+      "sku_id": "VOL-0080",
+      "shelf_price": "30.16",
+      "effective_cost": "0.00",
+      "unsatisfied": []
+    }
+  ],
+  "control": [
+    {
+      "request_id": "R15",
+      "merchant": "citycircuit",
+      "control_merchant": true,
+      "fields_exposed": 9,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "0",
+      "won": true,
+      "lost_because": null,
+      "sku_id": "CIT-0081",
+      "shelf_price": "28.10",
+      "effective_cost": "28.10",
+      "unsatisfied": [
+        "easy to return if the audio is no good"
+      ]
+    },
+    {
+      "request_id": "R15",
+      "merchant": "northgear",
+      "control_merchant": false,
+      "fields_exposed": 9,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "398.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "NOR-0082",
+      "shelf_price": "29.00",
+      "effective_cost": "29.00",
+      "unsatisfied": [
+        "easy to return if the audio is no good"
+      ]
+    },
+    {
+      "request_id": "R15",
+      "merchant": "voltway",
+      "control_merchant": false,
+      "fields_exposed": 9,
+      "legible_share": 0.6667,
+      "value_credited_aud": "0",
+      "value_withheld_aud": "1519.95",
+      "won": false,
+      "lost_because": "Published no machine-readable benefit records, so nothing could be credited and the offer was ranked on shelf price alone; citycircuit won on effective cost.",
+      "sku_id": "VOL-0080",
+      "shelf_price": "30.16",
+      "effective_cost": "30.16",
+      "unsatisfied": [
+        "easy to return if the audio is no good"
+      ]
+    }
+  ],
+  "decode": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "kind_accuracy": 1.0,
+    "matched": 3,
+    "gold_total": 3,
+    "parsed_total": 3,
+    "perfect": true,
+    "pairs": [
+      {
+        "gold": "under $500",
+        "gold_kind": "HARD",
+        "parsed": "under $500",
+        "parsed_kind": "hard"
+      },
+      {
+        "gold": "record interviews on the go",
+        "gold_kind": "SOFT",
+        "parsed": "record interviews on the go",
+        "parsed_kind": "soft"
+      },
+      {
+        "gold": "easy to return",
+        "gold_kind": "SERVICE",
+        "parsed": "easy to return if the audio is no good",
+        "parsed_kind": "service"
+      }
+    ],
+    "misses": [],
+    "extras": [],
+    "kind_confusions": []
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "merchant": "officeworks",
+  "program_id": "officeworks-onepass",
+  "name": "OnePass at Officeworks",
+  "program_type": "paid_consumer_membership",
+  "status": "active",
+  "collected_at": "2026-09-13",
+  "pricing": {
+    "currency": "AUD",
+    "monthly_fee": "4.00",
+    "annual_fee": "40.00",
+    "new_member_trial_days": 30,
+    "cancel_anytime": true
+  },
+  "loyalty": {
+    "unit": "flybuys_points",
+    "earn_rates": [
+      {
+        "units_per_aud": 5,
+        "scope": "eligible_in_store_and_click_and_collect_purchases",
+        "detail": "5x consists of 1 standard Flybuys point and 4 bonus points per AUD 1 spent."
+      }
+    ],
+    "redeem_rate_aud_per_unit": null,
+    "redeem_minimum_units": null,
+    "points_expire_months": null
+  },
+  "benefits": [
+    {
+      "benefit_type": "delivery",
+      "fact": {
+        "standard_delivery_fee_aud": "0.00",
+        "minimum_spend_aud": "0.00",
+        "channel": "online"
+      },
+      "conditions": [
+        "active_onepass_membership",
+        "eligible_item",
+        "eligible_delivery_area"
+      ],
+      "exclusions": [
+        "rural areas",
+        "large items",
+        "some Print & Create items",
+        "orders placed in store",
+        "third-party marketplace purchases",
+        "Officeworks business-account transactions"
+      ]
+    },
+    {
+      "benefit_type": "points_earn",
+      "fact": {
+        "points_per_dollar": 5,
+        "program": "Flybuys",
+        "channels": ["in_store", "click_and_collect"]
+      },
+      "conditions": [
+        "active_onepass_membership",
+        "onepass_linked_to_officeworks",
+        "flybuys_linked_to_onepass",
+        "flybuys_number_saved_or_scanned"
+      ],
+      "exclusions": [
+        "gift cards",
+        "print and copy cards",
+        "iTunes cards",
+        "mobile plans and recharge cards",
+        "donations",
+        "services",
+        "Print & Create services",
+        "delivery charges",
+        "third-party marketplace purchases",
+        "Officeworks business-account transactions"
+      ]
+    },
+    {
+      "benefit_type": "free_returns",
+      "fact": {
+        "change_of_mind_days": 365,
+        "channel": "in_store"
+      },
+      "conditions": [
+        "active_onepass_membership",
+        "receipt_provided",
+        "item_resaleable",
+        "original_packaging_retained",
+        "item_unused"
+      ],
+      "exclusions": [
+        "technology products",
+        "perishable goods including ink cartridges",
+        "custom and personalised Print & Create products",
+        "gift cards",
+        "online returns application",
+        "Customer Service Centre returns",
+        "third-party marketplace purchases",
+        "Officeworks business-account transactions"
+      ]
+    }
+  ],
+  "enrolment": {
+    "requires_consent": true,
+    "eligibility": ["consumer_account", "new_member_for_free_trial"],
+    "identity_proof": "identity_linking",
+    "required_links": [
+      "OnePass account to Officeworks account",
+      "Flybuys account to OnePass account",
+      "Flybuys number to Officeworks account"
+    ]
+  },
+  "business_account_note": {
+    "program": "Officeworks for Business",
+    "classification": "free_business_purchasing_account",
+    "not_onepass_eligible": true,
+    "headline_benefits": [
+      "5% savings on eligible business essentials",
+      "exclusive business pricing",
+      "multiple users and consolidated invoices",
+      "optional 30-day payment terms subject to approval"
+    ]
+  },
+  "sources": [
+    {
+      "title": "OnePass | Officeworks",
+      "url": "https://www.officeworks.com.au/information/policies/onepass"
+    },
+    {
+      "title": "Officeworks for Business",
+      "url": "https://www.officeworks.com.au/campaigns/officeworksforbusiness"
+    },
+    {
+      "title": "Officeworks Business Accounts Help Centre",
+      "url": "https://www.officeworks.com.au/help-centre/business-accounts-online"
+    }
+  ]
+}

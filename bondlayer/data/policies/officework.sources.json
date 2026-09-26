@@ -1,0 +1,99 @@
+{
+  "merchant": {
+    "id": "officeworks",
+    "display_name": "Officeworks",
+    "domain": "officeworks.com.au",
+    "country": "AU"
+  },
+  "retrieved_at": "2026-09-13",
+  "verification_status": "public_source_only",
+  "merchant_signed": false,
+  "refresh_required_before_purchase": true,
+  "policies": [
+    {
+      "id": "officeworks-change-of-mind-30",
+      "type": "returns",
+      "facts": {
+        "window_days": 30,
+        "return_channel": "in_store",
+        "proof_of_purchase_required": true,
+        "unused_and_resaleable_required": true,
+        "original_packaging_required_if_any": true,
+        "government_id_required_over_aud": 50
+      },
+      "conditions": [
+        "Exclusions apply to software, downloads, activated prepaid services, gift cards, special orders, custom print products, and trading cards.",
+        "Australian Consumer Law rights continue to apply to faulty goods."
+      ],
+      "source_url": "https://www.officeworks.com.au/information/policies/return-policy"
+    },
+    {
+      "id": "officeworks-acl-warranty",
+      "type": "warranty",
+      "facts": {
+        "major_failure_remedy": ["refund", "replacement"],
+        "non_major_failure_remedy": ["repair_or_rectification"],
+        "fixed_time_limit": false,
+        "manufacturer_warranty_varies_by_product": true
+      },
+      "conditions": [
+        "Technology products may be sent away for assessment or repair."
+      ],
+      "source_url": "https://www.officeworks.com.au/information/policies/terms-of-use"
+    },
+    {
+      "id": "officeworks-price-beat-5",
+      "type": "price_match",
+      "facts": {
+        "beat_percent": 5,
+        "request_channels": ["store", "phone"],
+        "online_store_request": false,
+        "max_products_per_customer_per_offer": 2
+      },
+      "conditions": [
+        "The product must be identical, stocked by Officeworks, and in stock with the competitor.",
+        "Brand, model, SKU, condition, warranty, and inclusions must match.",
+        "Coupon, cashback, bundle, liquidation, paid-membership, grey-import, refurbished, second-hand, and marketplace exclusions apply."
+      ],
+      "source_url": "https://www.officeworks.com.au/information/policies/price-beat-guarantee"
+    },
+    {
+      "id": "officeworks-delivery",
+      "type": "delivery",
+      "facts": {
+        "metro_free_over_aud": 65,
+        "metro_fee_under_aud": 7.95,
+        "regional_fee_aud": 9.95,
+        "rural_fee_aud": 25.95,
+        "click_and_collect_fee_aud": 0,
+        "click_and_collect_available_all_stores": true
+      },
+      "conditions": [
+        "Final delivery eligibility, timing, and fees are calculated at checkout.",
+        "Large items have separate delivery fees."
+      ],
+      "source_url": "https://www.officeworks.com.au/information/policies/delivery-offer"
+    },
+    {
+      "id": "officeworks-onepass",
+      "type": "membership",
+      "facts": {
+        "program_name": "OnePass",
+        "trial_days": 30,
+        "monthly_fee_aud": 4,
+        "annual_fee_aud": 40,
+        "cancel_anytime": true,
+        "free_standard_delivery_no_minimum_spend": true,
+        "flybuys_points_per_dollar": 5,
+        "change_of_mind_window_days": 365
+      },
+      "conditions": [
+        "Link OnePass and Officeworks accounts; link Flybuys for points.",
+        "5x Flybuys applies to eligible in-store and Click & Collect purchases.",
+        "365-day returns are in store with a receipt and exclude technology and perishable goods.",
+        "Not available for business-account transactions or third-party Marketplace purchases."
+      ],
+      "source_url": "https://www.officeworks.com.au/information/policies/onepass"
+    }
+  ]
+}

@@ -230,3 +230,16 @@ class ValuationLibrary(Protocol):
     def effective_cost(
         self, sku: Sku, records: list[SignedRecord], policy: ShopperPolicy,
     ) -> EffectiveCost: ...
+
+
+class Bundler(Protocol):
+    """Composes matched Proposals into Bundles against the decoded intent.
+
+    Takes the interpreter's output; never re-does the matching. A bundle of
+    one is a valid degenerate case, so an implementation may return a single
+    one-item bundle when nothing complements the best match.
+    """
+
+    def compose(
+        self, constraints: list[Constraint], proposals: list[Proposal],
+    ) -> list[Bundle]: ...

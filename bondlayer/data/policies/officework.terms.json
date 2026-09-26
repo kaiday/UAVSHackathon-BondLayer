@@ -1,0 +1,136 @@
+{
+  "merchant": "officeworks",
+  "document": "Terms of Use",
+  "source_url": "https://www.officeworks.com.au/information/policies/terms-of-use",
+  "retrieved_at": "2026-09-13",
+  "verification_status": "public_source_only",
+  "merchant_signed": false,
+  "terms": [
+    {
+      "id": "website-information",
+      "type": "disclaimer",
+      "facts": {
+        "accuracy_guaranteed": false,
+        "currency_guaranteed": false,
+        "virus_free_guaranteed": false
+      },
+      "conditions": [
+        "Australian Consumer Law rights still apply."
+      ]
+    },
+    {
+      "id": "order-limits",
+      "type": "ordering",
+      "facts": {
+        "sales_may_be_limited": true,
+        "reseller_sales_may_be_prohibited": true,
+        "fraudulent_or_unlawful_payment_prohibited": true
+      }
+    },
+    {
+      "id": "title-and-risk",
+      "type": "ownership",
+      "facts": {
+        "title_passes": "after full payment",
+        "risk_passes": "upon delivery"
+      }
+    },
+    {
+      "id": "consumer-law-remedies",
+      "type": "consumer_law",
+      "facts": {
+        "major_goods_failure": [
+          "refund",
+          "replacement"
+        ],
+        "major_service_failure": [
+          "cancel_service",
+          "refund_unused_portion",
+          "compensation"
+        ],
+        "non_major_failure": "rectify within a reasonable time",
+        "foreseeable_loss_compensation": true
+      }
+    },
+    {
+      "id": "account-security",
+      "type": "account",
+      "facts": {
+        "account_optional_for_browsing": true,
+        "account_may_be_required_for_purchase": true,
+        "registration_data_must_be_current": true,
+        "shared_accounts_prohibited": true,
+        "automated_account_creation_prohibited": true
+      },
+      "conditions": [
+        "Keep credentials confidential.",
+        "Report unauthorised account access."
+      ]
+    },
+    {
+      "id": "privacy-and-cookies",
+      "type": "privacy",
+      "facts": {
+        "cookies_used": true,
+        "website_visits_may_be_recorded": true,
+        "page_usage_may_be_analysed": true,
+        "marketing_personalisation_may_occur": true
+      }
+    },
+    {
+      "id": "third-party-services",
+      "type": "third_party",
+      "facts": {
+        "prepaid_business_services_may_use_third_party_providers": true,
+        "provider_terms_may_apply": true,
+        "default_activation_window_months": 12,
+        "default_use_window_months": 12
+      }
+    },
+    {
+      "id": "ask-ollie",
+      "type": "ai_assistant",
+      "facts": {
+        "powered_by": "Google",
+        "available_to_guest_users": true,
+        "available_to_logged_in_users": true,
+        "responses_generated_by_software": true,
+        "officeworks_not_responsible_for_purchase_decisions": true,
+        "personal_information_should_not_be_provided": true,
+        "inputs_may_be_shared_with_google": true
+      }
+    },
+    {
+      "id": "onepass",
+      "type": "membership",
+      "source_url": "https://www.officeworks.com.au/information/policies/onepass",
+      "facts": {
+        "free_trial_days": 30,
+        "monthly_price_aud": 4,
+        "annual_price_aud": 40,
+        "business_accounts_excluded": true,
+        "customer_service_centre_orders_excluded": true,
+        "free_delivery_exclusions": [
+          "rural deliveries",
+          "large items",
+          "some Print & Create orders",
+          "in-store purchases"
+        ],
+        "five_x_flybuys_exclusions": [
+          "gift cards",
+          "print and copy cards",
+          "iTunes cards",
+          "mobile plans and recharges",
+          "donations",
+          "services",
+          "Print & Create",
+          "delivery charges"
+        ],
+        "365_day_return_exclusions": [
+          "technology products",
+          "perishable products"
+        ]
+      }
+    }
+  ]
+}
