@@ -1,6 +1,7 @@
 "use client";
 
-import { ComparisonStrip } from "@/components/merchant-switcher";
+import { Check, CircleAlert, Sparkles } from "lucide-react";
+import { CurrentMerchant } from "@/components/merchant-switcher";
 import { Failed, Loading } from "@/components/states";
 import { humanise, severityTone, useReport, useSelectedMerchant } from "@/lib/api";
 
@@ -26,35 +27,39 @@ export default function QualityPage() {
 
   return (
     <div className="content">
-      <ComparisonStrip report={report} />
+      <div className="page-action-row catalogue-actions"><div className="catalogue-merchant-heading"><CurrentMerchant /></div></div>
 
       {error && <Failed what="the merchant report" error={error} />}
       {!report && !error && <Loading what="the merchant report" />}
 
       {report && (
         <>
-          <div className="metrics compact-metrics">
-            <article className="metric">
+          <div className="metrics">
+            <article className="metric quality-metric">
               <p>Agent readiness</p>
               <strong>{report.readiness}%</strong>
+              <span className={`quality-status ${report.readiness === 100 ? "positive" : "attention"}`}>{report.readiness === 100 ? <Check size={12} /> : <CircleAlert size={12} />}{report.readiness === 100 ? "Fully ready" : "Needs work"}</span>
             </article>
-            <article className="metric">
+            <article className="metric quality-metric">
               <p>Products live</p>
               <strong className="fraction-value">
                 <span className="metric-main">{report.skus}</span>
                 <span className="metric-denominator">/ {report.rows_read}</span>
               </strong>
               <span>of rows uploaded</span>
+              <span className={`quality-status ${report.rows_rejected === 0 ? "positive" : "attention"}`}>{report.rows_rejected === 0 ? <Check size={12} /> : <CircleAlert size={12} />}{report.rows_rejected === 0 ? "All accepted" : `${report.rows_rejected} rejected`}</span>
             </article>
-            <article className="metric">
+            <article className="metric quality-metric">
               <p>Blockers</p>
               <strong>{report.by_severity.blocker ?? 0}</strong>
               <span>Hidden from agent filters</span>
+              <span className={`quality-status ${(report.by_severity.blocker ?? 0) === 0 ? "positive" : "attention"}`}>{(report.by_severity.blocker ?? 0) === 0 ? <Check size={12} /> : <CircleAlert size={12} />}{(report.by_severity.blocker ?? 0) === 0 ? "Clear" : "Fix first"}</span>
             </article>
-            <article className="metric">
+            <article className="metric quality-metric">
               <p>Auto-fixed</p>
               <strong>{report.attributes_fixed}</strong>
               <span>Values cleaned on upload</span>
+              <span className={`quality-status ${report.attributes_fixed > 0 ? "positive" : "neutral"}`}><Sparkles size={12} />{report.attributes_fixed > 0 ? "Cleaned" : "No auto-fixes"}</span>
             </article>
           </div>
 

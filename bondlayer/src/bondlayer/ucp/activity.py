@@ -22,7 +22,7 @@ class MerchantObservation(BaseModel):
 class ObservedReport(BaseModel):
     model_config = ConfigDict(extra="allow")
     request_id: str = Field(pattern=r"^live-[a-f0-9]{32}$")
-    source: Literal["live"]
+    source: Literal["live", "demo"]
     created_at: AwareDatetime
     utterance: str = Field(min_length=1, max_length=4000)
     merchants: list[MerchantObservation] = Field(min_length=1)

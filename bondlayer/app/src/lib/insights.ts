@@ -31,7 +31,7 @@ export type ShoppingInsights = {
   opportunities: Opportunity[];
   benefits: { label: string; state: string; state_label: string; requests: number; request_ids: string[] }[];
   recent: ShoppingRequest[];
-  coverage: { source: string; retained_report_limit: number; excluded_undated_or_future: number; note: string };
+  coverage: { source: string; retained_report_limit: number; excluded_undated_or_future: number; note: string; demo_requests?: number };
 };
 
 export function useShoppingInsights(merchant: string | null, days: number, mode: ComparisonMode) {

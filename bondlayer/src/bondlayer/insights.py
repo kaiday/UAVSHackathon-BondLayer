@@ -179,13 +179,13 @@ def _legacy_checkout(report: dict, merchant: str) -> dict:
 
 def build_insights(reports: dict[str, dict], merchant: str, *, days: int = 30,
                    mode: str = "enabled", now: datetime | None = None) -> dict:
-    """Use live, dated, merchant-specific reports only; fixture scenarios never count."""
+    """Use dated merchant observations, with explicitly imported demos labelled separately."""
     current = now or datetime.now(timezone.utc)
     since = current - timedelta(days=days) if days else None
     eligible = []
     skipped_dates = 0
     for report in reports.values():
-        if report.get("source") != "live":
+        if report.get("source") not in {"live", "demo"}:
             continue
         row = next((r for r in report.get("merchants", []) if r.get("merchant") == merchant), None)
         if row is None:
@@ -220,7 +220,7 @@ def build_insights(reports: dict[str, dict], merchant: str, *, days: int = 30,
         detailed = observation.get("version") == 1
         has_offer = bool(row.get("sku_id"))
         selected = observation.get("selected") if detailed else (
-            row.get("won") if row.get("won") is True or any(r.get("won") is True for r in report.get("merchants", [])) else None
+            row.get("won") if row.get("won") is True or any(r.get("won") is True for r in report.get("merchants", [])) or (report.get("source") == "demo" and report.get("comparison_winner_known")) else None
         )
         checkout = observation.get("checkout") if detailed else _legacy_checkout(report, merchant)
         checkout = checkout or {"status": "unknown"}
@@ -283,6 +283,7 @@ def build_insights(reports: dict[str, dict], merchant: str, *, days: int = 30,
                      for (label, state), ids in sorted(benefit_counts.items())],
         "recent": recent,
         "coverage": {"source": "Buyer-agent comparisons", "retained_report_limit": 500,
+                     "demo_requests": sum(report.get("source") == "demo" for _, report, _ in eligible),
                      "excluded_undated_or_future": skipped_dates,
                      "note": "Counts are agent comparison runs, not shoppers or sales."},
     }

@@ -58,6 +58,15 @@ def test_missing_outcome_never_becomes_lost_or_a_paid_sale():
     assert result["recent"][0]["outcome"] == "Another offer selected by agent"
     assert result["metrics"]["checkout_confirmations"] == 0
     assert "1234.56" not in json.dumps(result)
+
+
+def test_imported_demo_is_labelled_and_does_not_invent_checkout():
+    demo = {**report("demo", selected=False), "source": "demo", "comparison_winner_known": True}
+    result = build_insights({"demo": demo}, "store", now=NOW)
+    assert result["coverage"]["demo_requests"] == 1
+    assert result["metrics"]["requests"] == 1
+    assert result["metrics"]["selection_known"] == 1
+    assert result["metrics"]["checkout_confirmations"] == 0
     assert "lost_revenue" not in result["metrics"]
 
 

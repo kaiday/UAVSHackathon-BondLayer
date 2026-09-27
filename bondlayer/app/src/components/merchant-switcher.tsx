@@ -46,8 +46,7 @@ function ActivityLine({ values }: { values: number[] }) {
 }
 
 /**
- * The merchant being viewed, shown in the topbar as plain text. Switching
- * happens on the merchant cards; every merchant listed comes from
+ * Merchant dropdown used in the Catalogue page's action row. Every merchant comes from
  * `GET /onboard/merchants`, so a merchant added to the server appears without
  * a rebuild.
  */
@@ -67,21 +66,36 @@ export function CurrentMerchant() {
   if (!current) return <span />;
 
   return (
-    <div className="current-merchant" ref={rootRef}>
+    <div className={`current-merchant ${open ? "is-open" : ""}`} ref={rootRef} onKeyDown={event => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        rootRef.current?.querySelector<HTMLButtonElement>(".merchant-trigger")?.focus();
+      }
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        setOpen(true);
+        requestAnimationFrame(() => {
+          const options = Array.from(rootRef.current?.querySelectorAll<HTMLButtonElement>(".merchant-menu button") ?? []);
+          const index = options.indexOf(document.activeElement as HTMLButtonElement);
+          options[(index + (event.key === "ArrowDown" ? 1 : -1) + options.length) % options.length]?.focus();
+        });
+      }
+    }}>
       <button type="button" className="merchant-trigger" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(!open)}>
         <span>Merchant</span>
         <strong>{current.display_name || humanise(current.merchant)}</strong>
         <ChevronDown size={15} aria-hidden="true" />
       </button>
-      {open && <div className="merchant-menu" role="listbox" aria-label="Choose merchant">
-        {data?.map((merchant) => (
+      <div className="merchant-menu" role="listbox" aria-label="Choose merchant" inert={!open}>
+        {data?.map((merchant, index) => (
           <button type="button" role="option" aria-selected={merchant.merchant === current.merchant} className={merchant.merchant === current.merchant ? "selected" : ""} key={merchant.merchant}
-            onClick={() => { setMerchant(merchant.merchant); setOpen(false); }}>
+            style={{ transitionDelay: open ? `${index * 35}ms` : "0ms" }}
+            onClick={() => { setMerchant(merchant.merchant); setOpen(false); rootRef.current?.querySelector<HTMLButtonElement>(".merchant-trigger")?.focus(); }}>
+            <i className="merchant-option-mark" aria-hidden="true">{merchant.merchant === current.merchant && <Check size={12} />}</i>
             <span>{merchant.display_name || humanise(merchant.merchant)}</span>
-            {merchant.merchant === current.merchant && <Check size={14} aria-hidden="true" />}
           </button>
         ))}
-      </div>}
+      </div>
     </div>
   );
 }

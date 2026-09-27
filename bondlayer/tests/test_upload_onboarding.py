@@ -121,3 +121,42 @@ def test_template_contains_no_sample_products(empty_app):
     response = empty_app.get("/onboard/catalog/template")
     assert response.status_code == 200
     assert len(response.text.strip().splitlines()) == 1
+
+
+def test_append_preview_publish_and_restart(empty_app, tmp_path):
+    assert upload(empty_app).status_code == 200
+    extra = "sku,title,category,price,brand\nLAP-2,New laptop,laptop,899,Aster\n"
+    before = (tmp_path / "my-store.merchant.json").read_bytes()
+    preview = upload(empty_app, extra, append=True, preview=True)
+    assert preview.status_code == 200
+    assert preview.json()["report"]["skus"] == 2
+    assert preview.json()["added_rows"] == 1
+    assert (tmp_path / "my-store.merchant.json").read_bytes() == before
+    result = upload(empty_app, extra, append=True, revision=preview.json()["revision"])
+    assert result.status_code == 200
+    server.create_app()
+    products = empty_app.get("/my-store/ucp/catalog/search").json()["products"]
+    assert {p["id"] for p in products} == {"LAP-1", "LAP-2"}
+    assert next(p for p in products if p["id"] == "LAP-1")["attributes"]["stock"] == 3
+
+
+@pytest.mark.parametrize("extra", [
+    "sku,title,category,price\nLAP-1,Duplicate,laptop,100\n",
+    "sku,title,category,price\nLAP-2,New,laptop,100\nLAP-2,Duplicate,laptop,200\n",
+    "sku,title,category,price\n,Missing,laptop,100\nLAP-2,New,laptop,200\n",
+    "sku,merchant,title,category,price\nLAP-2,other,New,laptop,100\n",
+])
+def test_append_invalid_skus_leave_catalogue_intact(empty_app, tmp_path, extra):
+    assert upload(empty_app).status_code == 200
+    before = (tmp_path / "my-store.merchant.json").read_bytes()
+    assert upload(empty_app, extra, append=True, preview=True).status_code == 400
+    assert (tmp_path / "my-store.merchant.json").read_bytes() == before
+
+
+def test_append_requires_current_preview(empty_app):
+    assert upload(empty_app).status_code == 200
+    extra = CSV.replace("LAP-1", "LAP-2")
+    preview = upload(empty_app, extra, append=True, preview=True).json()
+    assert upload(empty_app, extra, append=True).status_code == 409
+    assert upload(empty_app, CSV.replace("599.00", "699.00")).status_code == 200
+    assert upload(empty_app, extra, append=True, revision=preview["revision"]).status_code == 409

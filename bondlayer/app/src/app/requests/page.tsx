@@ -148,6 +148,7 @@ function MerchantInsights({ merchant }: { merchant: string | null }) {
     </div>
 
     {error && <Failed what="shopping insights" error={error} />}
+    {!!data?.coverage.demo_requests && <p className="state-note">Demo activity · {data.coverage.demo_requests} benchmark comparisons with simulated dates. These are not real shopper visits or sales.</p>}
     {!data && !error && <Loading what="shopping insights" />}
     {data && <Dashboard data={data} mode={mode} loading={loading} focus={focus} recent={recent} visible={visible}
       onShowRequests={showRequests} onClearFocus={resetView} onMore={() => setVisible(visible + 10)} />}

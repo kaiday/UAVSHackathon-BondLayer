@@ -39,7 +39,7 @@ function ShoppingSummary({ data }: { data: ShoppingInsights }) {
       <div className="overview-insights-heading">
         <div>
           <h2 id="shopping-summary-title">Shopping summary</h2>
-          <p>Last 30 days · with published benefits</p>
+          <p>Last 30 days · with published benefits{data.coverage.demo_requests ? " · demo activity (simulated dates)" : ""}</p>
         </div>
         <Link href="/requests">View shopping insights →</Link>
       </div>

@@ -8,7 +8,6 @@ import type { LucideIcon } from "lucide-react";
 import { CircleHelp, ClipboardList, Gift, LayoutDashboard, Package, Settings, ShieldCheck } from "lucide-react";
 import { AskBar } from "./ask-bar";
 import { hasSeenTour, Walkthrough } from "@/components/walkthrough";
-import { CurrentMerchant } from "./merchant-switcher";
 import { Failed, Loading } from "./states";
 import { useMerchants } from "@/lib/api";
 
@@ -34,7 +33,7 @@ const pageContext: Record<string, { title: string; description: string }> = {
 };
 
 function Navigation({ links }: { links: Array<{ href: string; label: string; icon: LucideIcon; tour: string }> }) {
-  const pathname = usePathname();
+  const pathname = usePathname().replace(/\/+$/, "") || "/";
 
   return (
     <nav>
@@ -48,7 +47,7 @@ function Navigation({ links }: { links: Array<{ href: string; label: string; ico
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
+  const pathname = usePathname().replace(/\/+$/, "") || "/";
   const router = useRouter();
   const [touring, setTouring] = useState(false);
   const merchants = useMerchants();
@@ -93,7 +92,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             <h1>{context.title}</h1>
             <p>{context.description}</p>
           </div>
-          <CurrentMerchant />
           <div className="topbar-tools"><Link className="upload-button" href="/onboarding/">Add merchant</Link><button className="icon-button" type="button" aria-label="Replay the console tour" title="Replay the console tour" data-tour="help" onClick={startTour}><CircleHelp size={17} strokeWidth={2} /></button><div className="account"><span className="avatar"><Image src="/console/bondlayer-logo.svg" alt="" width={34} height={34} sizes="34px" /></span><div className="account-copy"><strong>Merchant console</strong><span>Your uploaded catalogues</span></div></div></div>
         </header>
         <div className="page-transition" key={pathname}>{children}</div>

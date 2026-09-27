@@ -10,6 +10,8 @@ from cryptography.hazmat.primitives import serialization
 
 from bondlayer.policy import PolicyOnboardingService, PolicyStore
 from bondlayer.policy_ai import OpenAIPolicyConverter
+from bondlayer.policy_demo import DemoPolicyConverter
+from bondlayer import ai
 from bondlayer.records import ES256Signer
 from bondlayer.records.serialise import signed_to_json
 from bondlayer.ucp.storage import validate_id
@@ -61,7 +63,7 @@ def service(merchant: str) -> PolicyOnboardingService:
             atomic_json(root / "key.json", signer.public_key_jwk())
         jwk = json.loads((root / "key.json").read_text(encoding="utf-8"))
         signer = ES256Signer(serialization.load_pem_private_key(key_path.read_bytes(), password=None), key_id=jwk["kid"], issuer=issuer)
-    converter = OpenAIPolicyConverter(
+    converter = DemoPolicyConverter(issuer, profile.display_name, server.DATA / "policies" / "jb-hihi-demo-policy.txt") if ai.mode() == "rules" else OpenAIPolicyConverter(
         issuer, [sku.sku_id for sku in server._catalog[merchant]],
         sorted({sku.category for sku in server._catalog[merchant]}),
     )

@@ -17,7 +17,7 @@
 .callout,.readinessIssues aside{background:var(--accent-soft)}
 .readinessIssues aside{border-left-color:var(--accent)}
 .checkbox input{accent-color:var(--accent)}
-.footer button,.welcome footer button,.complete a{border-color:var(--accent);background:var(--accent-gradient)}
+.footer button,.welcome footer button,.complete a{border-color:var(--accent);background:var(--accent)}
 .emptyReview button{border-color:var(--accent)}
 
 /* Make the orange brand mark read clearly against the pale onboarding surface. */

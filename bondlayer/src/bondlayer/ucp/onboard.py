@@ -11,6 +11,7 @@ should not have been.
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import json
 from dataclasses import asdict
@@ -159,7 +160,8 @@ def catalogue_template() -> Response:
 async def upload_catalog(
     merchant: str | None = None, file: UploadFile = File(...),
     display_name: str | None = Form(default=None), domain: str | None = Form(default=None),
-    preview: bool = False, create: bool = False,
+    preview: bool = False, create: bool = False, append: bool = False,
+    revision: str | None = None,
 ) -> dict:
     """Validate first, then atomically persist and publish a real catalogue.
 
@@ -196,6 +198,62 @@ async def upload_catalog(
 
     with _publish_lock:
         existing = server._merchants.get(merchant)
+        added_rows = 0
+        current_revision = None
+        if append:
+            if create or existing is None:
+                raise HTTPException(404, "Choose an existing merchant before adding products.")
+            saved = server.UPLOADS / f"{merchant}.merchant.json"
+            legacy = server.UPLOADS / f"{merchant}.csv"
+            if saved.exists():
+                original = json.loads(saved.read_text(encoding="utf-8"))["catalogue"]
+            elif legacy.exists():
+                original = legacy.read_text(encoding="utf-8-sig")
+            else:
+                source = server.RETAILER_CATALOG if merchant in server.DEMO_RETAILERS else server.CATALOG
+                original = source.read_text(encoding="utf-8-sig")
+            current_revision = hashlib.sha256(original.encode()).hexdigest()
+            if not preview and revision != current_revision:
+                raise HTTPException(409, "Catalogue changed. Validate your CSV again before publishing.")
+            try:
+                old_reader = csv.DictReader(io.StringIO(original))
+                old_rows = [row for row in old_reader if not row.get("merchant") or row["merchant"].strip() == merchant]
+                new_reader = csv.DictReader(io.StringIO(text))
+                new_rows = list(new_reader)
+                if not new_rows:
+                    raise ValueError("CSV contains no products to add")
+                seen = {(row.get("sku") or "").strip() for row in old_rows}
+                issues = []
+                for number, row in enumerate(new_rows, 2):
+                    sku = (row.get("sku") or "").strip()
+                    if not sku:
+                        issues.append(f"Row {number}: missing SKU")
+                    elif sku in seen:
+                        issues.append(f"Row {number}: duplicate SKU {sku}")
+                    seen.add(sku)
+                    if row.get("merchant") and row["merchant"].strip() != merchant:
+                        issues.append(f"Row {number}: merchant must be {merchant}")
+                    if None in row:
+                        issues.append(f"Row {number}: too many CSV columns")
+                if issues:
+                    raise ValueError("; ".join(issues[:20]))
+                fields = list(dict.fromkeys([*(old_reader.fieldnames or []), *(new_reader.fieldnames or [])]))
+                merged = io.StringIO()
+                writer = csv.DictWriter(merged, fieldnames=fields)
+                writer.writeheader()
+                for row in old_rows + new_rows:
+                    if "merchant" in fields:
+                        row["merchant"] = merchant
+                    writer.writerow(row)
+                text = merged.getvalue()
+                if len(text.encode("utf-8")) > MAX_UPLOAD_BYTES:
+                    raise ValueError("combined catalogue must be 10 MB or smaller")
+                analysed = CsvCatalogAdapter(None, merchant=merchant, text=text).analyse()
+                if analysed.rows_rejected:
+                    raise ValueError("Combined catalogue has rejected rows. Fix the CSV before publishing.")
+                added_rows = len(new_rows)
+            except (ValueError, KeyError, csv.Error) as exc:
+                raise HTTPException(400, str(exc)) from exc
         if existing and existing.signs_records and domain is not None and domain != existing.domain:
             raise HTTPException(409, "The website identifies published signed records; keep it unchanged when replacing the catalogue.")
         if create and existing is not None:
@@ -205,6 +263,8 @@ async def upload_catalog(
             display_name=display_name.strip() if display_name is not None else (existing.display_name if existing else ""),
             domain=domain if domain is not None else (existing.domain if existing else ""),
         )
+        if append:
+            profile = existing
         if not preview:
             try:
                 save_upload(server.UPLOADS, profile, text)
@@ -217,7 +277,8 @@ async def upload_catalog(
             from bondlayer.ucp.benefits import restore
             restore(merchant)
     return {"merchant": merchant, "display_name": profile.display_name,
-            "report": _serialise(analysed), "published": not preview}
+            "report": _serialise(analysed), "published": not preview,
+            "added_rows": added_rows, "revision": current_revision}
 
 
 # --- "why we lost": the per-request console (WS-E) --------------------------

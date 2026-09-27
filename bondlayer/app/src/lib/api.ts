@@ -195,15 +195,17 @@ export function refreshMerchants() {
   window.dispatchEvent(new Event("bondlayer:merchants-changed"));
 }
 
-export type CatalogueUpload = { merchant: string; display_name: string; report: MerchantReport; published: boolean };
+export type CatalogueUpload = { merchant: string; display_name: string; report: MerchantReport; published: boolean; added_rows?: number; revision?: string };
 
 export async function uploadCatalogue(file: File, options: {
-  merchant?: string; displayName?: string; domain?: string; preview?: boolean; create?: boolean;
+  merchant?: string; displayName?: string; domain?: string; preview?: boolean; create?: boolean; append?: boolean; revision?: string;
 } = {}): Promise<CatalogueUpload> {
   const params = new URLSearchParams();
   if (options.merchant) params.set("merchant", options.merchant);
   if (options.preview) params.set("preview", "true");
   if (options.create) params.set("create", "true");
+  if (options.append) params.set("append", "true");
+  if (options.revision) params.set("revision", options.revision);
   const form = new FormData();
   form.append("file", file);
   if (options.displayName !== undefined) form.append("display_name", options.displayName);
