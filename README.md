@@ -64,44 +64,12 @@ Across 30 test requests, service and values needs answered rose from **0% to 83%
 
 ## Architecture
 
-We sketched the system on a whiteboard first; the diagram beside it is the same shape,
-traced through the components we built. Merchant inputs are processed and stored, a data
-layer feeds the merchant service alongside loyalty and shopper identity, and everything an
-agent needs crosses a single UCP layer — with each comparison flowing back to the merchant
-as insight.
+Merchant catalogue and policy inputs become validated, signed, agent-readable commerce
+data. Shopping-agent comparisons return to the merchant as activity and improvement insights.
 
-<table>
-<tr>
-<th>Whiteboard sketch</th>
-<th>System flow</th>
-</tr>
-<tr>
-<td width="38%" valign="top"><img src="docs/PLAN.png" alt="Whiteboard sketch of the BondLayer architecture" width="100%"></td>
-<td width="62%" valign="top">
-
-```mermaid
-flowchart TB
-    subgraph Input["Merchant console"]
-        P["Policy document"] --> X["AI extraction<br/>review & sign"]
-        C["Product catalogue"] --> V["Validate & normalise"]
-    end
-    X --> DB[("Merchant data<br/>catalogue · benefits · keys")]
-    V --> DB
-    DB --> DAO["Data access"]
-    DAO --> Core["BondLayer<br/>merchant service"]
-    L(("Loyalty &<br/>membership")) --> Core
-    ID["Shopper identity"] --> Core
-    Core <--> UCP{{"UCP<br/>search · intent · checkout"}}
-    ID <-->|"identity linking"| UCP
-    UCP <--> Agent["Shopping agent"]
-    Agent <-->|"asks · answers"| User(("Shopper"))
-    Agent -.->|"comparison reports"| Core
-    Core -.->|"insights"| Input
-```
-
-</td>
-</tr>
-</table>
+<a href="docs/bondlayer-architecture-v3.svg">
+  <img src="docs/bondlayer-architecture-v3.png" alt="BondLayer system architecture showing the Merchant, BondLayer and Customer entities" width="100%">
+</a>
 
 ## Build it locally
 
