@@ -5,9 +5,9 @@
 
 **Live website:** 
 
-[Merchant console](https://bondlayer-merchant.fly.dev/console/)
+[Merchant console](https://bondlayer-merchant.fly.dev/console/) (Inactive)
 
-[Customer Shopping chatbot](https://bondlayer-agent.fly.dev/)
+[Customer Shopping chatbot](https://bondlayer-agent.fly.dev/) (Inactive)
 
 ## The problem
 
